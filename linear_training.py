@@ -67,33 +67,33 @@ def generate_random_data(
     config: TrainingConfig,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Generate random input-output pairs using configuration"""
-    # X = torch.randn(config.num_samples, config.input_size)
-    # # Create a simple linear relationship with some noise
-    # true_weights = torch.randn(config.input_size, config.output_size)
-    # true_bias = torch.randn(config.output_size)
-    # y = (
-    #     X @ true_weights
-    #     + true_bias
-    #     + 0.1 * torch.randn(config.num_samples, config.output_size)
-    # )
-    # return X, y, true_weights, true_bias
-    X = torch.randn(config.num_samples, config.input_size)
-    y = torch.randn(config.num_samples, config.output_size)
-    true_weights = torch.randn(config.input_size, config.output_size)
-    true_bias = torch.randn(config.output_size)
-    return X, y, true_weights, true_bias
-
+    with torch.random.fork_rng():
+        torch.random.manual_seed(42)
+        X = torch.randn(config.num_samples, config.input_size)
+        y = torch.randn(config.num_samples, config.output_size)
+        true_weights = torch.randn(config.input_size, config.output_size)
+        true_bias = torch.randn(config.output_size)
+        return X, y, true_weights, true_bias
 
 
 class RandomLinearDataGenerator(DataProvider[DataItem]):
     """Data generator for random linear data"""
+
     def __init__(self, config: TrainingConfig):
         self.config = config
         self.X, self.y, self.true_weights, self.true_bias = generate_random_data(config)
 
     def generate(self) -> Iterable[DataItem]:
         """Generate random linear data"""
-        yield DataItem(self.X, self.y, metadata={"true_weights": self.true_weights, "true_bias": self.true_bias})
+        yield DataItem(
+            self.X,
+            self.y,
+            metadata={"true_weights": self.true_weights, "true_bias": self.true_bias},
+        )
+
+    def get_name(self) -> str:
+        """Name of the dataset"""
+        return f"random_linear dataset with seed {self.config.seed}"
 
 
 def train_linear_model(config: TrainingConfig):

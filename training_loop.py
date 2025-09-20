@@ -6,21 +6,17 @@ Design goals:
 - generate a clean list of functions to implement
 """
 
+import dataclasses
 import abc
-from typing import Generic, Iterable, TypeVar
+from typing import Generic, Iterable, TypeVar, Sequence
 
-import torch
-from dataclasses import dataclass
 
-@dataclass
+@dataclasses.dataclass(frozen=True)
 class TrainingConfig:
     """Configuration class for training hyperparameters"""
 
-    input_size: int = 3
-    output_size: int = 1
-    num_samples: int = 50
     num_epochs: int = 100
-    learning_rate: float = 0.1
+    eval_every_n_steps: int = 10
 
 
 Metrics = dict[str, float]
@@ -38,6 +34,11 @@ class DataProvider(Generic[D], abc.ABC):
 
         Returns batches of data, ends at the end of the dataset (=epoch).
         """
+        pass
+
+    @abc.abstractmethod
+    def get_name(self) -> str:
+        """Name of the dataset"""
         pass
 
 
@@ -59,38 +60,54 @@ class TrainingState(Generic[D], abc.ABC):
         """Take a training step, return metrics."""
         pass
 
+    @abc.abstractmethod
+    def eval(self, data: D) -> Metrics:
+        """Evaluate the model, return metrics."""
+        pass
+
+
+def print_metrics(metrics: Metrics) -> None:
+    """Print metrics sorted by name"""
+    for name, value in sorted(metrics.items()):
+        print(f"  {name}: {value:.4f}")
+
+
+def do_eval(
+    state: TrainingState[D],
+    eval_data_providers: Sequence[DataProvider[D]],
+    epoch: int | None = None,
+    step: int | None = None,
+) -> Metrics:
+    """Evaluate the model"""
+    print(f"Eval metrics ({epoch=}, {step=}):")
+    for eval_data_provider in eval_data_providers:
+        print(f"  {eval_data_provider.get_name()}:")
+        for data in eval_data_provider.generate():
+            metrics = state.eval(data)
+            print_metrics(metrics)
+
 
 def train(
     state: TrainingState[D],
     data_provider: DataProvider[D],
     config: TrainingConfig,
+    eval_data_providers: Sequence[DataProvider[D]] = (),
 ):
     """Training loop using configuration object"""
-    random_seed = 42
-    torch.manual_seed(random_seed)
 
-    losses = []
     print(f"Starting training for {config.num_epochs} epochs...")
     for epoch in range(config.num_epochs):
-        if epoch == 0:
-            print(f"Number of parameters: {state.num_parameters()}")
-            # print(f"Initial parameters: {state.print_parameters()}")
-
+        print(f"Epoch {epoch + 1}")
         for idx, data in enumerate(data_provider.generate()):
+            if idx % config.eval_every_n_steps == 0:
+                do_eval(state, eval_data_providers, epoch, idx)
             metrics = state.step(data)
-            loss = metrics["loss"]
-            losses.append(loss)
-            if idx > 0 and idx % 10 == 0:
-                print(f"Batch [{idx}], Loss: {loss:.4f}")
+            print(f"Step in epoch {idx}:")
+            print_metrics(metrics)
 
-            # print metrics sorted by name
-            # print(f"Batch [{idx}], metrics:")
-            # for name, value in sorted(metrics.items()):
-            #     print(f"  {name}: {value:.4f}")
-
-        print(f"Epoch [{epoch + 1}/{config.num_epochs}], Loss: {loss:.4f}")
+        print(f"Epoch {epoch + 1} completed.")
+        do_eval(state, eval_data_providers, epoch)
 
     print("-" * 50)
-    # print(f"Final parameters: {state.print_parameters()}\n")
     print("Training completed!")
-    return losses
+    return
