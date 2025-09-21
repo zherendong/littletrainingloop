@@ -3,10 +3,10 @@ Language model training.
 """
 
 import dataclasses
+from typing import Any
 
 from training_loop import (
     TrainingConfig,
-    DataProvider,
     TrainingState,
     Metrics,
     train,
@@ -14,8 +14,16 @@ from training_loop import (
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-import random
+
+import language_model_dataloader
+
+
+@dataclasses.dataclass
+class DataItem:
+    inputs: torch.Tensor
+    targets: torch.Tensor
+    loss_mask: torch.Tensor
+    metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -24,6 +32,8 @@ class LanguageModelTrainingConfig:
     dimension: int = 128
     learning_rate: float = 0.1
     seed: int = 42
+    batch_size: int = 32
+    sequence_length: int = 2048
 
     training_config: TrainingConfig = dataclasses.field(
         default_factory=lambda: TrainingConfig(
@@ -56,7 +66,7 @@ class DummyLanguageModel(nn.Module):
         return x
 
 
-class LanguageModelTrainingState(TrainingState[torch.Tensor]):
+class LanguageModelTrainingState(TrainingState[DataItem]):
     """Training state for language model"""
 
     def __init__(self, model: DummyLanguageModel, config: LanguageModelTrainingConfig):
@@ -89,10 +99,10 @@ class LanguageModelTrainingState(TrainingState[torch.Tensor]):
     def print_parameters(self) -> str:
         return f"{self.model.embedding.weight.data} {self.model.fc.weight.data} {self.model.fc.bias.data}"
 
-    def step(self, data: torch.Tensor) -> Metrics:
+    def step(self, data: DataItem) -> Metrics:
         # Forward pass
-        predictions = self.model(data)
-        loss = self.criterion(predictions, data)
+        predictions = self.model(data.inputs)
+        loss = self.criterion(predictions, data.targets)
 
         # Backward pass
         self.optimizer.zero_grad()
@@ -105,7 +115,7 @@ class LanguageModelTrainingState(TrainingState[torch.Tensor]):
 
         return {"loss": loss_numpy}
 
-    def eval(self, data: torch.Tensor) -> Metrics:
-        predictions = self.model(data)
-        loss = self.criterion(predictions, data)
+    def eval(self, data: DataItem) -> Metrics:
+        predictions = self.model(data.inputs)
+        loss = self.criterion(predictions, data.targets)
         return {"loss": float(loss.detach().numpy())}

@@ -139,7 +139,7 @@ def download_stackv2():
         streaming=True,
     )
     start_time = time.time()
-    with ThreadPoolExecutor(max_workers=128) as executor:
+    with ThreadPoolExecutor(max_workers=64) as executor:
         long_repos_ds = upsample_long_popular_repos(ds)
         batched_ds = split_in_batches(long_repos_ds, batch_size=100)
         for idx, batch in enumerate(batched_ds):

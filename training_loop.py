@@ -33,6 +33,7 @@ class DataProvider(Generic[D], abc.ABC):
         """Generate data using configuration.
 
         Returns batches of data, ends at the end of the dataset (=epoch).
+        Calling generate again starts from the beginning of the dataset.
         """
         pass
 

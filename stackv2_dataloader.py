@@ -1,0 +1,57 @@
+"""
+Data loader for Stack v2 dataset turning stackv2 dictionaries into text to train on.
+
+
+Expected labels:
+
+repo_name (string): Repository name on GitHub.
+repo_url (string): URL of the repository on GitHub.
+snapshot_id (string): SWH snapshot ID.
+revision_id (string): SWH revision (commit) ID.
+directory_id (string): SWH ID of the root directory of the repository.
+branch_name (string): Repository branch name.
+visit_date (timestamp[ns]): SWH crawl (snapshot) timestamp.
+revision_date (timestamp[ns]): SWH revision (commit) timestamp.
+committer_date (timestamp[ns]): SWH revision (commit) timestamp reported by the committer.
+github_id (int64): GitHub identifier for the repository.
+star_events_count (int64): Number of stars calculated from GHArchive events.
+fork_events_count (int64): Number of forks calculated from GHArchive events.
+gha_license_id (string): GHArchive SPDX license identifier, None if the repo is missing.
+gha_created_at (timestamp[ns]): Timestamp of repository creation on GitHub, None if the repo is missing.
+gha_updated_at (timestamp[ns]): Timestamp of the latest update on GitHub, None if the repo is missing.
+gha_pushed_at (timestamp[ns]): Timestamp of the last push on GitHub, None if the repo is missing.
+gha_language (string): Repository's primary programming language on GitHub, None if the repo is missing.
+files (list): List of files in the repository.
+    blob_id (string): Software Heritage (SWH) ID of the file on AWS S3.
+    path (string): The file path within the repository.
+    content_id (string): SWH content ID.
+    language (string): Programming language of the file, detected by go-enry / linguist.
+    length_bytes (int64): Length of the file content in UTF-8 bytes.
+    detected_licenses (string[]): List of licenses (SPDX) detected by ScanCode.
+    license_type (string): Inferred license type (permissive or no_license).
+    src_encoding (string): Original encoding of the file content before converting to UTF-8.
+    is_vendor (bool): Indicator of vendor file (external library), detected by go-enry.
+    is_generated (bool): Indicator of generated file (external library), detected by go-enry.
+    alphanum_fraction (float32): Fraction of alphanumeric characters in the file content.
+    alpha_fraction (float32): Fraction of alphabetic characters in the file content.
+    num_lines (int32): Number of lines in the file.
+    avg_line_length (float32): Average length of lines in the file.
+    max_line_length (int32): Maximum length of a line in the file.
+num_files (int64): Number of files in the repository.
+"""
+
+
+def preamble(row: dict) -> str:
+    """Generate preamble for a row."""
+    return f"=== Repository {row['repo_name']}, branch {row['branch_name']} with {row['num_files']} files. ==="
+
+
+def extract(row: dict) -> str:
+    """Extract text from a row."""
+
+    s = [preamble(row)]
+    for file in row["files"]:
+        s.append(f"=== File {file['path']} ({file['language']}) ===")
+        s.append(file["content"])
+        s.append("\n")
+    return "\n".join(s)
