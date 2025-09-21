@@ -55,7 +55,7 @@ class IrisModel(nn.Module):
         return x
 
 
-class IrisModelTrainingState(TrainingState[DataItem]):
+class IrisTrainingState(TrainingState[DataItem]):
     """Training state for Iris model"""
 
     def __init__(self, model: IrisModel, config: IrisTrainingConfig):
@@ -159,7 +159,7 @@ def train_iris_model(config: TrainingConfig):
         torch.random.manual_seed(config.seed)
         model = IrisModel(config.input_size, 16, config.output_size)
     # Create training state
-    state = IrisModelTrainingState(model, config)
+    state = IrisTrainingState(model, config)
     # Create data generator
     data_provider = IrisDataGenerator(config)
     eval_data_provider = IrisDataGenerator(config, is_train=False)
