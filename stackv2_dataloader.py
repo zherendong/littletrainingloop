@@ -80,6 +80,6 @@ def create_stackv2_dataloader(
         config, raw_data_loader, tokenizer, extract_stackv2
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
-        config, tokenized_data_loader, tokenizer
+        config, tokenized_data_loader, tokenizer, name="Stackv2"
     )
     return batched_data_loader

@@ -2,6 +2,8 @@
 Language model training.
 """
 
+import os
+
 from training_basics import (
     TrainingConfig,
     TrainingState,
@@ -15,6 +17,8 @@ from training_loop import train
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import neptune
+from dotenv import load_dotenv
 
 import stackv2_dataloader
 import slimpajama_dataloader
@@ -129,7 +133,9 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
 
 
 def train_language_model(
-    config: LanguageModelTrainingConfig, dataset: str = "slimpajama"
+    config: LanguageModelTrainingConfig,
+    dataset: str = "slimpajama",
+    neptune_run=None,
 ):
     """Train a language model using configuration object"""
     # Create model
@@ -156,27 +162,38 @@ def train_language_model(
         train_dataset,
         config.training_config,
         eval_data_providers=eval_datasets,
+        neptune_run=neptune_run,
     )
     return losses
 
 
 def run():
-    config = LanguageModelTrainingConfig(
-        vocab_size=100277,
-        dimension=64,
-        learning_rate=0.02,
-        seed=42,
-        batch_size=32,
-        sequence_length=64,
-        training_config=TrainingConfig(
-            num_epochs=1,
-            training_steps_per_epoch=500,
-            eval_every_n_steps=50,
-            eval_steps=10,
-        ),
+    load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
+    neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
+    neptune_run = neptune.init_run(
+        project="markusrabeworkspace/training-exploration",
+        # name="language-model-training",
+        api_token=neptune_api_token,
     )
-    losses = train_language_model(config)
-    print(f"Losses: {losses}")
+    try:
+        config = LanguageModelTrainingConfig(
+            vocab_size=100277,
+            dimension=64,
+            learning_rate=0.01,
+            seed=42,
+            batch_size=32,
+            sequence_length=64,
+            training_config=TrainingConfig(
+                num_epochs=1,
+                training_steps_per_epoch=500,
+                eval_every_n_steps=50,
+                eval_steps=10,
+            ),
+        )
+        losses = train_language_model(config, neptune_run=neptune_run)
+        print(f"Losses: {losses}")
+    finally:
+        neptune_run.stop()
 
 
 if __name__ == "__main__":

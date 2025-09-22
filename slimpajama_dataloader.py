@@ -32,6 +32,10 @@ def create_slimpajama_dataloader(
         config, raw_data_loader, tokenizer, extract_slimpajama_data
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
-        config, tokenized_data_loader, tokenizer, split=split
+        config,
+        tokenized_data_loader,
+        tokenizer,
+        split=split,
+        name=f"SlimPajama_{split}",
     )
     return batched_data_loader

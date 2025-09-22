@@ -88,12 +88,14 @@ class BatchedDataLoader(DataProvider[DataItem]):
         tokenized_data_loader: DataProvider[dict[str, Any]],
         tokenizer: tiktoken.Encoding,
         split: str = "train",
+        name: str = None,
     ):
         self.config = config
 
         self.tokenized_data_loader = tokenized_data_loader
         self.tokenizer = tokenizer
         self.split = split
+        self.name = name
         self.batch_size = (
             config.batch_size
             if split == "train"
@@ -165,4 +167,6 @@ class BatchedDataLoader(DataProvider[DataItem]):
 
     def get_name(self) -> str:
         """Name of the dataset"""
+        if self.name:
+            return self.name
         return f"Batched LM dataset ({self.config.batch_size=}, {self.tokenized_data_loader.get_name()})"
