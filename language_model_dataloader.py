@@ -50,7 +50,7 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]]):
         config: LanguageModelTrainingConfig,
         raw_data_loader: DataProvider[dict[str, Any]],
         tokenizer: tiktoken.Encoding,
-        data_to_text: Callable[[dict[str, Any]], str] = lambda data: data["text"],
+        data_to_text: Callable[[dict[str, Any]], str],
     ):
         self.config = config
         self.raw_data_loader = raw_data_loader

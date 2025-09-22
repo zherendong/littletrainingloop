@@ -15,8 +15,9 @@ from typing import Generic, Iterable, TypeVar, Sequence
 class TrainingConfig:
     """Configuration class for training hyperparameters"""
 
-    num_epochs: int = 100
+    num_epochs: int = 1
     eval_every_n_steps: int = 10
+    training_steps_per_epoch: int = 100
 
 
 Metrics = dict[str, float]
@@ -102,12 +103,14 @@ def train(
         for idx, data in enumerate(data_provider.generate()):
             if idx % config.eval_every_n_steps == 0:
                 do_eval(state, eval_data_providers, epoch, idx)
+            if idx >= config.training_steps_per_epoch:
+                break
             metrics = state.step(data)
-            print(f"Step in epoch {idx}:")
+            print(f"Step {idx}:")
             print_metrics(metrics)
 
         print(f"Epoch {epoch + 1} completed.")
-        do_eval(state, eval_data_providers, epoch)
+        do_eval(state, eval_data_providers, epoch, idx)
 
     print("-" * 50)
     print("Training completed!")

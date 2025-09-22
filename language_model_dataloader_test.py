@@ -30,6 +30,7 @@ def test_tokenized_dataloader():
         config,
         DummyRawDataProvider(),
         tokenizer=_construct_default_tokenizer(),
+        data_to_text=lambda x: x["text"],
     )
     data = next(dataloader.generate())
 
