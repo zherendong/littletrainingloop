@@ -16,7 +16,7 @@ from language_model_training import DataItem, LanguageModelTrainingConfig
 import prng
 
 
-def _construct_default_tokenizer():
+def default_tokenizer():
     return tiktoken.get_encoding("cl100k_base")  # used for gpt-3.5 ad gpt-4
 
 
@@ -87,19 +87,26 @@ class BatchedDataLoader(DataProvider[DataItem]):
         config: LanguageModelTrainingConfig,
         tokenized_data_loader: DataProvider[dict[str, Any]],
         tokenizer: tiktoken.Encoding,
+        split: str = "train",
     ):
         self.config = config
 
         self.tokenized_data_loader = tokenized_data_loader
         self.tokenizer = tokenizer
+        self.split = split
+        self.batch_size = (
+            config.batch_size
+            if split == "train"
+            else config.training_config.eval_batch_size
+        )
 
     def generate(self) -> Iterable[DataItem]:
         """Create a fresh iterator."""
         global_data_stream = iter(self.tokenized_data_loader.generate())
-        rest_data_per_batch = [None] * self.config.batch_size
+        rest_data_per_batch = [None] * self.batch_size
 
         while True:
-            shape = (self.config.batch_size, self.config.sequence_length)
+            shape = (self.batch_size, self.config.sequence_length)
             inputs = torch.zeros(shape, dtype=torch.int32)
             targets = torch.zeros(shape, dtype=torch.int32)
             loss_mask = torch.ones(shape, dtype=torch.float32)

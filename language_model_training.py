@@ -2,47 +2,22 @@
 Language model training.
 """
 
-import dataclasses
-from typing import Any
-
-from training_loop import (
+from training_basics import (
     TrainingConfig,
     TrainingState,
     Metrics,
-    train,
 )
+from language_model_basics import (
+    DataItem,
+    LanguageModelTrainingConfig,
+)
+from training_loop import train
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-import language_model_dataloader
 import stackv2_dataloader
-
-
-@dataclasses.dataclass
-class DataItem:
-    inputs: torch.Tensor
-    targets: torch.Tensor
-    loss_mask: torch.Tensor
-    metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
-
-
-@dataclasses.dataclass(frozen=True)
-class LanguageModelTrainingConfig:
-    vocab_size: int = 100277
-    dimension: int = 64
-    learning_rate: float = 0.1
-    seed: int = 42
-    batch_size: int = 16
-    sequence_length: int = 256
-
-    training_config: TrainingConfig = dataclasses.field(
-        default_factory=lambda: TrainingConfig(
-            num_epochs=1,
-            training_steps_per_epoch=100,
-            eval_every_n_steps=10,
-        )
-    )
+import slimpajama_dataloader
 
 
 class DummyLanguageModel(nn.Module):
@@ -142,36 +117,45 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
 
     def eval(self, data: DataItem) -> Metrics:
         predictions = self.model(data.inputs)
-        loss = self.criterion(predictions, data.targets)
+
+        # apply loss mask
+        predictions = predictions * data.loss_mask.unsqueeze(-1)
+
+        # flatten batch and sequence length for cross entropy
+        predictions = predictions.view(-1, self.model.vocab_size)
+        targets = data.targets.view(-1).long()
+        loss = self.criterion(predictions, targets)
         return {"loss": float(loss.detach().numpy())}
 
 
-def train_language_model(config: LanguageModelTrainingConfig):
+def train_language_model(
+    config: LanguageModelTrainingConfig, dataset: str = "slimpajama"
+):
     """Train a language model using configuration object"""
     # Create model
     model = DummyLanguageModel(config.vocab_size, config.dimension, config.seed)
     # Create training state
     state = LanguageModelTrainingState(model, config)
     # Create data generator
-    raw_data_loader = language_model_dataloader.JSONLDataLoader(
-        config, "data/stackv2_long"
-    )
-    tokenizer = language_model_dataloader._construct_default_tokenizer()
-    if tokenizer.n_vocab > config.vocab_size:
-        raise ValueError(
-            f"Tokenizer vocab size ({tokenizer.n_vocab}) is larger than the model vocab size ({config.vocab_size})"
-        )
-    tokenized_data_loader = language_model_dataloader.TokenizedDataLoader(
-        config, raw_data_loader, tokenizer, stackv2_dataloader.extract
-    )
-    batched_data_loader = language_model_dataloader.BatchedDataLoader(
-        config, tokenized_data_loader, tokenizer
-    )
+    if dataset == "stackv2":
+        train_dataset = stackv2_dataloader.create_stackv2_dataloader(config)
+        eval_datasets = []
+    elif dataset == "slimpajama":
+        train_dataset = slimpajama_dataloader.create_slimpajama_dataloader(config)
+        eval_datasets = [
+            slimpajama_dataloader.create_slimpajama_dataloader(
+                config, split="validation"
+            )
+        ]
+    else:
+        raise ValueError(f"Unknown dataset {dataset}")
+
     # Train the model
     losses = train(
         state,
-        batched_data_loader,
+        train_dataset,
         config.training_config,
+        eval_data_providers=eval_datasets,
     )
     return losses
 
@@ -180,14 +164,15 @@ def run():
     config = LanguageModelTrainingConfig(
         vocab_size=100277,
         dimension=64,
-        learning_rate=0.1,
+        learning_rate=0.02,
         seed=42,
-        batch_size=16,
-        sequence_length=256,
+        batch_size=32,
+        sequence_length=64,
         training_config=TrainingConfig(
             num_epochs=1,
-            training_steps_per_epoch=100,
-            eval_every_n_steps=10,
+            training_steps_per_epoch=500,
+            eval_every_n_steps=50,
+            eval_steps=10,
         ),
     )
     losses = train_language_model(config)

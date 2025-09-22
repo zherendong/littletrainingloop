@@ -9,6 +9,12 @@ class PRNG:
     prng = PRNG(42)
     print(prng.random())
     print(prng.random())
+
+    Or:
+
+    with prng:
+        print(random.random())
+        print(random.random())
     """
 
     def __init__(self, seed):

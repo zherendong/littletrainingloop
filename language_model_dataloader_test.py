@@ -5,8 +5,11 @@ Test script for the language model dataloader.
 from typing import Any, Iterable
 
 from training_loop import DataProvider
-from language_model_dataloader import BatchedDataLoader, TokenizedDataLoader
-from language_model_dataloader import _construct_default_tokenizer
+from language_model_dataloader import (
+    BatchedDataLoader,
+    TokenizedDataLoader,
+    default_tokenizer,
+)
 from language_model_training import DataItem, LanguageModelTrainingConfig
 import torch
 
@@ -29,7 +32,7 @@ def test_tokenized_dataloader():
     dataloader = TokenizedDataLoader(
         config,
         DummyRawDataProvider(),
-        tokenizer=_construct_default_tokenizer(),
+        tokenizer=default_tokenizer(),
         data_to_text=lambda x: x["text"],
     )
     data = next(dataloader.generate())
@@ -60,7 +63,7 @@ def test_batched_dataloader():
     dataloader = BatchedDataLoader(
         config,
         DummyTokenDataProvider(),
-        tokenizer=_construct_default_tokenizer(),
+        tokenizer=default_tokenizer(),
     )
     datastream = dataloader.generate()
     data = next(datastream)

@@ -40,13 +40,19 @@ files (list): List of files in the repository.
 num_files (int64): Number of files in the repository.
 """
 
+from typing import Any
+
+import language_model_dataloader
+from language_model_basics import LanguageModelTrainingConfig
+from training_basics import DataProvider
+
 
 def preamble(row: dict) -> str:
     """Generate preamble for a row."""
     return f"=== Repository {row['repo_name']}, branch {row['branch_name']} with {row['num_files']} files. ==="
 
 
-def extract(row: dict) -> str:
+def extract_stackv2(row: dict) -> str:
     """Extract text from a row."""
 
     s = [preamble(row)]
@@ -55,3 +61,25 @@ def extract(row: dict) -> str:
         s.append(file["content"])
         s.append("\n")
     return "\n".join(s)
+
+
+def create_stackv2_dataloader(
+    config: LanguageModelTrainingConfig,
+    path: str = "data/stackv2_long",
+) -> DataProvider[dict[str, Any]]:
+    """Load Stack v2 dataset."""
+    raw_data_loader = language_model_dataloader.JSONLDataLoader(
+        config, "data/stackv2_long"
+    )
+    tokenizer = language_model_dataloader.default_tokenizer()
+    if tokenizer.n_vocab > config.vocab_size:
+        raise ValueError(
+            f"Tokenizer vocab size ({tokenizer.n_vocab}) is larger than the model vocab size ({config.vocab_size})"
+        )
+    tokenized_data_loader = language_model_dataloader.TokenizedDataLoader(
+        config, raw_data_loader, tokenizer, extract_stackv2
+    )
+    batched_data_loader = language_model_dataloader.BatchedDataLoader(
+        config, tokenized_data_loader, tokenizer
+    )
+    return batched_data_loader
