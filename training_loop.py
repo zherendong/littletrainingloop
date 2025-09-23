@@ -50,9 +50,6 @@ def do_eval(
                 loss,
                 step=step,
             )
-            # neptune_run.log_metrics(
-            #     data={f"eval/{eval_data_provider.get_name()}/loss": loss}, step=step
-            # )
 
 
 def train(
@@ -87,8 +84,10 @@ def train(
             print(f"Step {idx}:")
             print_metrics(metrics)
             if neptune_run is not None:
-                neptune_run["train/loss"].append(metrics["loss"])
-                neptune_run["train/learning_rate"].append(metrics["learning_rate"])
+                neptune_run["train/loss"].append(metrics["loss"], step=idx)
+                neptune_run["train/learning_rate"].append(
+                    metrics["learning_rate"], step=idx
+                )
 
         print(f"Epoch {epoch + 1} completed.")
         do_eval(
