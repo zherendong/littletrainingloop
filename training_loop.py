@@ -21,7 +21,7 @@ from training_basics import (
 def print_metrics(metrics: Metrics) -> None:
     """Print metrics sorted by name"""
     for name, value in sorted(metrics.items()):
-        print(f"  {name}: {value:.4f}")
+        print(f"  {name}: {value}")
 
 
 def do_eval(

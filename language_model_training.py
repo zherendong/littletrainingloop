@@ -22,12 +22,13 @@ from dotenv import load_dotenv
 
 import stackv2_dataloader
 import slimpajama_dataloader
+from transformer import TransformerModel, TransformerConfig
 
 
 class DummyLanguageModel(nn.Module):
     """Simple language model: y = Wx + b"""
 
-    def __init__(self, vocab_size: int, dimension: int, seed: int):
+    def __init__(self, vocab_size: int, seed: int, dimension: int = 64):
         super(DummyLanguageModel, self).__init__()
         self.vocab_size = vocab_size
         self.dimension = dimension
@@ -108,6 +109,10 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         # Backward pass
         self.optimizer.zero_grad()
         loss.backward()
+
+        # gradient clipping
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+
         self.optimizer.step()
         self.scheduler.step()
 
@@ -139,7 +144,8 @@ def train_language_model(
 ):
     """Train a language model using configuration object"""
     # Create model
-    model = DummyLanguageModel(config.vocab_size, config.dimension, config.seed)
+    # model = DummyLanguageModel(config.vocab_size, config.seed)
+    model = TransformerModel(config.vocab_size, config.seed, TransformerConfig())
     # Create training state
     state = LanguageModelTrainingState(model, config)
     # Create data generator
@@ -178,8 +184,7 @@ def run():
     try:
         config = LanguageModelTrainingConfig(
             vocab_size=100277,
-            dimension=64,
-            learning_rate=0.01,
+            learning_rate=0.001,
             seed=1337,
             batch_size=32,
             sequence_length=64,
