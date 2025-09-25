@@ -25,6 +25,7 @@ class LanguageModelTrainingConfig:
     seed: int = 42
     batch_size: int = 16
     sequence_length: int = 256
+    shuffle_buffer_size: int = 0
 
     training_config: TrainingConfig = dataclasses.field(
         default_factory=lambda: TrainingConfig()

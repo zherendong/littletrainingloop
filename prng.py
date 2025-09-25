@@ -40,3 +40,7 @@ class PRNG:
     def shuffle(self, x):
         with self:
             random.shuffle(x)
+
+    def random_int(self, a, b):
+        with self:
+            return random.randint(a, b)

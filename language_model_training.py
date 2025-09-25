@@ -6,6 +6,7 @@ import os
 
 from training_basics import (
     TrainingConfig,
+    ShuffleBuffer,
     TrainingState,
     Metrics,
 )
@@ -60,7 +61,7 @@ class DummyLanguageModel(nn.Module):
 class LanguageModelTrainingState(TrainingState[DataItem]):
     """Training state for language model"""
 
-    def __init__(self, model: DummyLanguageModel, config: LanguageModelTrainingConfig):
+    def __init__(self, model: nn.Module, config: LanguageModelTrainingConfig):
         self.model = model
         self.config = config
         self.criterion = nn.CrossEntropyLoss()
@@ -91,9 +92,6 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
     def num_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
 
-    def print_parameters(self) -> str:
-        return f"{self.model.embedding.weight.data} {self.model.fc.weight.data} {self.model.fc.bias.data}"
-
     def step(self, data: DataItem) -> Metrics:
         # Forward pass
         predictions = self.model(data.inputs)
@@ -102,7 +100,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         predictions = predictions * data.loss_mask.unsqueeze(-1)
 
         # flatten batch and sequence length for cross entropy
-        predictions = predictions.view(-1, self.model.vocab_size)
+        predictions = predictions.view(-1, self.config.vocab_size)
         targets = data.targets.view(-1).long()
         loss = self.criterion(predictions, targets)
 
@@ -131,7 +129,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         predictions = predictions * data.loss_mask.unsqueeze(-1)
 
         # flatten batch and sequence length for cross entropy
-        predictions = predictions.view(-1, self.model.vocab_size)
+        predictions = predictions.view(-1, self.config.vocab_size)
         targets = data.targets.view(-1).long()
         loss = self.criterion(predictions, targets)
         return {"loss": float(loss.detach().numpy())}
@@ -144,7 +142,6 @@ def train_language_model(
 ):
     """Train a language model using configuration object"""
     # Create model
-    # model = DummyLanguageModel(config.vocab_size, config.seed)
     model = TransformerModel(config.vocab_size, config.seed, TransformerConfig())
     # Create training state
     state = LanguageModelTrainingState(model, config)
@@ -161,6 +158,14 @@ def train_language_model(
         ]
     else:
         raise ValueError(f"Unknown dataset {dataset}")
+
+    if config.shuffle_buffer_size:
+        train_dataset = ShuffleBuffer(
+            config.training_config,
+            config.shuffle_buffer_size,
+            train_dataset,
+            name=train_dataset.get_name(),
+        )
 
     # Train the model
     losses = train(
@@ -185,14 +190,15 @@ def run():
         config = LanguageModelTrainingConfig(
             vocab_size=100277,
             learning_rate=0.001,
-            seed=1337,
-            batch_size=32,
-            sequence_length=64,
+            batch_size=64,
+            sequence_length=256,
+            shuffle_buffer_size=1000,
             training_config=TrainingConfig(
                 num_epochs=1,
                 training_steps_per_epoch=5000,
                 eval_every_n_steps=50,
                 eval_steps=10,
+                seed=42,
             ),
         )
         losses = train_language_model(config, neptune_run=neptune_run)

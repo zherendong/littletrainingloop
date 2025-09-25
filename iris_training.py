@@ -83,9 +83,6 @@ class IrisTrainingState(TrainingState[DataItem]):
     def num_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
 
-    def print_parameters(self) -> str:
-        return f"{self.model.fc1.weight.data} {self.model.fc1.bias.data}"
-
     def step(self, data: DataItem) -> Metrics:
         # X, y, true_weights, true_bias = data
         # Forward pass
