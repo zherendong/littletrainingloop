@@ -97,7 +97,7 @@ class IrisTrainingState(TrainingState[DataItem]):
         print(f"Learning rate: {self.optimizer.param_groups[0]['lr']}")
 
         # detach loss
-        loss_numpy = float(loss.detach().numpy())
+        loss_numpy = float(loss.detach().cpu().numpy())
 
         return {
             "loss": loss_numpy,
@@ -117,7 +117,7 @@ class IrisTrainingState(TrainingState[DataItem]):
     def eval(self, data: DataItem) -> Metrics:
         predictions = self.model(data.inputs)
         loss = self.criterion(predictions, data.targets)
-        return {"loss": float(loss.detach().numpy())}
+        return {"loss": float(loss.detach().cpu().numpy())}
 
 
 class IrisDataGenerator(DataProvider[DataItem]):

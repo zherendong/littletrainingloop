@@ -55,7 +55,7 @@ class LinearModelTrainingState(TrainingState[DataItem]):
         self.optimizer.step()
 
         # detach loss
-        loss_numpy = float(loss.detach().numpy())
+        loss_numpy = float(loss.detach().cpu().numpy())
 
         return {"loss": loss_numpy}
 

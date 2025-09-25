@@ -115,7 +115,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         self.scheduler.step()
 
         # detach loss
-        loss_numpy = float(loss.detach().numpy())
+        loss_numpy = float(loss.detach().cpu().numpy())
 
         return {
             "loss": loss_numpy,
@@ -132,7 +132,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         predictions = predictions.view(-1, self.config.vocab_size)
         targets = data.targets.view(-1).long()
         loss = self.criterion(predictions, targets)
-        return {"loss": float(loss.detach().numpy())}
+        return {"loss": float(loss.detach().cpu().numpy())}
 
 
 def train_language_model(
@@ -179,6 +179,11 @@ def train_language_model(
 
 
 def run():
+    # Add device detection at the top of your training function
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    torch.set_default_device(device)
+
     load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
     neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
     neptune_run = neptune.init_run(
