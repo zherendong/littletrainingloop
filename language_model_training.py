@@ -183,7 +183,6 @@ def run():
     neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
     neptune_run = neptune.init_run(
         project="markusrabeworkspace/training-exploration",
-        # name="language-model-training",
         api_token=neptune_api_token,
     )
     try:
