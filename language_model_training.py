@@ -3,6 +3,8 @@ Language model training.
 """
 
 import os
+import time
+import torch.cuda.nvtx as nvtx
 
 from training_basics import (
     TrainingConfig,
@@ -20,10 +22,12 @@ import torch.nn as nn
 import torch.optim as optim
 import neptune
 from dotenv import load_dotenv
+from torch.utils import flop_counter
 
 import stackv2_dataloader
 import slimpajama_dataloader
 from transformer import TransformerModel, TransformerConfig
+import prng
 
 
 class DummyLanguageModel(nn.Module):
@@ -66,7 +70,8 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         self.config = config
         self.criterion = nn.CrossEntropyLoss()
 
-        self.optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+        with prng.PRNG(config.seed + 345345):
+            self.optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
 
         # linear learning rate schedule with warmup
         num_steps = (
@@ -88,38 +93,56 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             schedulers=[linear_warmup, linear_decay],
             milestones=[switch_step],
         )
+        self.fcounter = flop_counter.FlopCounterMode(depth=4, display=False)
+        self.training_flops_total = 0
 
     def num_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
 
+    def num_non_embedding_parameters(self):
+        return sum(p.numel() for p in self.model.transformer_blocks.parameters())
+
     def step(self, data: DataItem) -> Metrics:
-        # Forward pass
-        predictions = self.model(data.inputs)
 
-        # apply loss mask
-        predictions = predictions * data.loss_mask.unsqueeze(-1)
+        start = time.time()
+        with self.fcounter:
+            # Forward pass
+            with nvtx.range("forward", color="blue"):
+                predictions = self.model(data.inputs)
 
-        # flatten batch and sequence length for cross entropy
-        predictions = predictions.view(-1, self.config.vocab_size)
-        targets = data.targets.view(-1).long()
-        loss = self.criterion(predictions, targets)
+            with nvtx.range("loss", color="green"):
+                # apply loss mask
+                predictions = predictions * data.loss_mask.unsqueeze(-1)
 
-        # Backward pass
-        self.optimizer.zero_grad()
-        loss.backward()
+                # flatten batch and sequence length for cross entropy
+                predictions = predictions.view(-1, self.config.vocab_size)
+                targets = data.targets.view(-1).long()
+                loss = self.criterion(predictions, targets)
 
-        # gradient clipping
-        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+            with nvtx.range("backward", color="red"):
+                # Backward pass
+                self.optimizer.zero_grad()
+                loss.backward()
 
-        self.optimizer.step()
-        self.scheduler.step()
+                # gradient clipping
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+
+                self.optimizer.step()
+                self.scheduler.step()
 
         # detach loss
         loss_numpy = float(loss.detach().cpu().numpy())
 
+        flops_this_step = self.fcounter.get_total_flops()
+        self.training_flops_total += flops_this_step
+        step_time = time.time() - start
+
         return {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
+            "training_flops": self.training_flops_total,
+            "training_tflops_per_second": flops_this_step / step_time / 1e12,
+            "training_step_seconds": step_time,
         }
 
     def eval(self, data: DataItem) -> Metrics:
@@ -142,9 +165,19 @@ def train_language_model(
 ):
     """Train a language model using configuration object"""
     # Create model
-    model = TransformerModel(config.vocab_size, config.seed, TransformerConfig())
+    with prng.PRNG(config.seed + 123123):
+        tconfig = TransformerConfig(
+            num_layers=8,
+            num_heads=8,
+            num_heads_kv=4,
+            head_dim=64,
+            mlp_inner_size=2048,
+            embedding_size=512,
+        )
+        model = TransformerModel(config.vocab_size, tconfig)
     # Create training state
-    state = LanguageModelTrainingState(model, config)
+    with prng.PRNG(config.seed + 234234):
+        state = LanguageModelTrainingState(model, config)
     # Create data generator
     if dataset == "stackv2":
         train_dataset = stackv2_dataloader.create_stackv2_dataloader(config)
@@ -195,8 +228,8 @@ def run():
             vocab_size=100277,
             learning_rate=0.001,
             batch_size=64,
-            sequence_length=256,
-            shuffle_buffer_size=1000,
+            sequence_length=512,
+            shuffle_buffer_size=100,
             training_config=TrainingConfig(
                 num_epochs=1,
                 training_steps_per_epoch=5000,

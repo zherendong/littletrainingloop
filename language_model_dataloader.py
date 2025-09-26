@@ -63,6 +63,7 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]]):
             text = self.data_to_text(data)
             tokens = self.tokenizer.encode(text)
             text_per_token = [self.tokenizer.decode([t]) for t in tokens]
+            # text_per_token = ["" for t in tokens]
             yield {
                 "tokens": tokens,
                 "raw_text": text,

@@ -18,10 +18,16 @@ from training_basics import (
 )
 
 
-def print_metrics(metrics: Metrics) -> None:
+def process_metrics(
+    metrics: Metrics, neptune_run=None, step=None, mode="train"
+) -> None:
     """Print metrics sorted by name"""
+    print(f"{mode} step {step}:")
     for name, value in sorted(metrics.items()):
-        print(f"  {name}: {value}")
+        print(f"  {name}: {value:.6f}")
+    if neptune_run is not None:
+        for name, value in sorted(metrics.items()):
+            neptune_run[f"{mode}/{name}"].append(value, step=step)
 
 
 def do_eval(
@@ -41,15 +47,15 @@ def do_eval(
             if idx > config.eval_steps:
                 break
             metrics = state.eval(data)
-            print_metrics(metrics)
             losses.append(metrics["loss"])
 
         loss = sum(losses) / (len(losses) + 1e-6)
-        if neptune_run is not None:
-            neptune_run[f"eval/{eval_data_provider.get_name()}/loss"].append(
-                loss,
-                step=step,
-            )
+        process_metrics(
+            {"loss": loss},
+            neptune_run=neptune_run,
+            step=step,
+            mode=f"eval/{eval_data_provider.get_name()}",
+        )
 
 
 def train(
@@ -63,6 +69,9 @@ def train(
 
     if neptune_run is not None:
         neptune_run["num_parameters"] = state.num_parameters()
+        neptune_run["num_non_embedding_parameters"] = (
+            state.num_non_embedding_parameters()
+        )
         neptune_run["config"] = dataclasses.asdict(config)
 
     print(f"Starting training for {config.num_epochs} epochs...")
@@ -81,13 +90,7 @@ def train(
             if idx >= config.training_steps_per_epoch:
                 break
             metrics = state.step(data)
-            print(f"Step {idx}:")
-            print_metrics(metrics)
-            if neptune_run is not None:
-                neptune_run["train/loss"].append(metrics["loss"], step=idx)
-                neptune_run["train/learning_rate"].append(
-                    metrics["learning_rate"], step=idx
-                )
+            process_metrics(metrics, neptune_run=neptune_run, step=idx, mode="train")
 
         print(f"Epoch {epoch + 1} completed.")
         do_eval(

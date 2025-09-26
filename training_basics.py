@@ -93,6 +93,11 @@ class TrainingState(Generic[D], abc.ABC):
     """Abstract base class for training state"""
 
     @abc.abstractmethod
+    def num_non_embedding_parameters(self):
+        """Number of parameters in the model, excluding embedding parameters"""
+        pass
+
+    @abc.abstractmethod
     def num_parameters(self):
         """Number of parameters in the model"""
         pass

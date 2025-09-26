@@ -215,3 +215,7 @@ __marimo__/
 data/
 
 .neptune
+
+# nvidia profiling data
+*.qdstrm
+*.nsys-rep
