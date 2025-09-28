@@ -1,6 +1,7 @@
 import random
 import torch
 
+
 class PRNG:
     """Self-contained random number generator to make sure we don't pollute global state.
 
