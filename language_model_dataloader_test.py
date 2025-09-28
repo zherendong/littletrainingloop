@@ -4,13 +4,14 @@ Test script for the language model dataloader.
 
 from typing import Any, Iterable
 
-from training_loop import DataProvider
+from training_basics import DataProvider, TrainingConfig
+from language_model_basics import EvalConfig
 from language_model_dataloader import (
     BatchedDataLoader,
     TokenizedDataLoader,
     default_tokenizer,
 )
-from language_model_training import DataItem, LanguageModelTrainingConfig
+from language_model_basics import DataItem, LanguageModelTrainingConfig
 import torch
 
 
@@ -28,7 +29,14 @@ class DummyRawDataProvider(DataProvider[dict[str, Any]]):
 
 def test_tokenized_dataloader():
     """Test the TokenizedDataLoader class"""
-    config = LanguageModelTrainingConfig(batch_size=2, sequence_length=10)
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=10,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+        ),
+    )
     dataloader = TokenizedDataLoader(
         config,
         DummyRawDataProvider(),
@@ -59,7 +67,14 @@ class DummyTokenDataProvider(DataProvider[dict[str, Any]]):
 
 def test_batched_dataloader():
     """Test the BatchedDataLoader class"""
-    config = LanguageModelTrainingConfig(batch_size=2, sequence_length=6)
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=6,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=6, every_n_steps=1, steps=1
+        ),
+    )
     dataloader = BatchedDataLoader(
         config,
         DummyTokenDataProvider(),
@@ -69,9 +84,10 @@ def test_batched_dataloader():
     data = next(datastream)
 
     assert isinstance(data, DataItem), f"Expected DataItem, got {type(data)}"
-    assert data.inputs.shape == (2, 6), (
-        f"Expected inputs shape (2, 6), got {data.inputs.shape}"
-    )
+    assert data.inputs.shape == (
+        2,
+        6,
+    ), f"Expected inputs shape (2, 6), got {data.inputs.shape}"
 
     torch.testing.assert_close(
         data.inputs,
@@ -97,42 +113,39 @@ def test_batched_dataloader():
     )
 
 
-# def test_weird_bug():
-#     """Find out why I need to do the back-and-forth assignment of final_tokens and final_text_per_tokens or else tokens get lost."""
+def test_special_tokens_ok():
+    """Test that the data is allowed to contain special tokens."""
 
-#     token_provider = DummyTokenDataProvider()
-#     global_data_stream = token_provider.generate()
+    text_to_tokenize = "Hello world<|pad|><|endoftext|>\n"
 
-#     sequence_length = 6
+    # create a raw data handler with dummy data, containing a special token
+    class DummyRawDataProvider(DataProvider[dict[str, Any]]):
+        """Dummy data provider for testing"""
 
-#     def continued_data_stream(rest_data, global_data_stream):
-#         """Stream data, starting with rest_data if any."""
-#         if rest_data is not None:
-#             print(f"Continuing with rest data; {rest_data['tokens']}")
-#             yield rest_data  # continue processing tokens in rest_data
-#         yield from global_data_stream
-#         print(f"token object is now {tokens}")
-#         print("Ended data stream")
+        def generate(self) -> Iterable[dict[str, Any]]:
+            """Generate dummy data"""
 
-#     rest_data = None
+            yield {"text": text_to_tokenize}
 
-#     for data in global_data_stream:
-#         print(f"New data: {data['tokens']}")
-#         rest_data = data
-#         break
+        def get_name(self) -> str:
+            return "DummyRawDataProvider"
 
-#     tokens = []
-#     for data in continued_data_stream(rest_data, global_data_stream):
-#         print(f"New data: {data['tokens']}")
-#         free_space = sequence_length - len(tokens)
-#         print(f"Free space: {free_space}")
-#         if free_space >= len(data["tokens"]):
-#             tokens.extend(data["tokens"])
-#             print(f"Added data to batch; {tokens}")
-#         else:
-#             tokens.extend(data["tokens"][:free_space])
-#             print(f"Splitting data over multiple batches... {tokens}")
-#             break
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=10,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+        ),
+    )
+    dataloader = TokenizedDataLoader(
+        config,
+        DummyRawDataProvider(),
+        tokenizer=default_tokenizer(),
+        data_to_text=lambda x: x["text"],
+    )
+    data = next(dataloader.generate())
 
-#     print(f"Final tokens: {tokens}")
-#     assert False
+    assert isinstance(data, dict), f"Expected dict, got {type(data)}"
+    assert data["raw_text"] == text_to_tokenize
+    assert "".join(data["text_per_token"]) == text_to_tokenize
