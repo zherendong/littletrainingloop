@@ -96,7 +96,7 @@ def train(
 
         print(f"Epoch {epoch + 1} completed.")
         do_eval(
-            config,
+            eval_config,
             state,
             eval_data_providers,
             epoch,

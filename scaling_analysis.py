@@ -16,8 +16,6 @@ def retrieve_run_ids(neptune_api_token: str):
     )
     table = neptune_project.fetch_runs_table()
     table = table.to_pandas()
-    # print(table.columns.to_list())
-    # print(table["sys/id"].values)
     return list(table["sys/id"].values)
 
 
@@ -44,7 +42,6 @@ def main(output_file: str, run_ids: Sequence[str]):
         run_ids = retrieve_run_ids(neptune_api_token)
     for run_id in run_ids:
         df = extract_data(neptune_api_token, run_id)
-        # df = pd.concat([ for run_id in run_ids])
         df.to_csv(output_file, index=False)
 
 

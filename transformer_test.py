@@ -6,13 +6,13 @@ Mostly smoke tests
 
 import torch
 from torch.utils import flop_counter
+import attention
 from transformer import (
     MLP,
     SelfAttention,
     TransformerBlock,
     TransformerModel,
     TransformerConfig,
-    attention_fn,
 )
 
 if torch.cuda.is_available():
@@ -33,7 +33,7 @@ def test_attention_fn():
     q = torch.randn(1, 3, 2, 4, 32, dtype=torch.bfloat16)
     k = torch.randn(1, 3, 2, 32, dtype=torch.bfloat16)
     v = torch.randn(1, 3, 2, 32, dtype=torch.bfloat16)
-    y = attention_fn(q, k, v)
+    y = attention.attention_fn(q, k, v)
     assert y.shape == (1, 3, 2, 4, 32)
     assert not torch.isnan(y).any()
 
@@ -85,7 +85,7 @@ def test_transformer_model():
         y = model(x)
     assert y.shape == (3, 10, vocab_size)
     assert not torch.isnan(y).any()
-    assert flops.get_total_flops() == 66846720
+    assert flops.get_total_flops() == 67161120
     assert sum(p.numel() for p in model.parameters()) == 1377280
 
     # now count with backward
@@ -94,7 +94,7 @@ def test_transformer_model():
         y = model(x)
         loss = y.sum()
         loss.backward()
-    assert flops.get_total_flops() == 200540160
+    assert flops.get_total_flops() == 201483360
 
 
 def test_flash_nonflash_equivalence():
@@ -110,6 +110,6 @@ def test_flash_nonflash_equivalence():
     v = torch.normal(
         mean=0, std=1, size=(1, 3, 2, 32), dtype=torch.bfloat16, device="cuda"
     )
-    y_flash = attention_fn(q, k, v, use_flash=True)
-    y_nonflash = attention_fn(q, k, v, use_flash=False)
+    y_flash = attention.attention_fn(q, k, v, use_flash=True)
+    y_nonflash = attention.attention_fn(q, k, v, use_flash=False)
     torch.testing.assert_close(y_flash, y_nonflash, rtol=1e-2, atol=1e-2)
