@@ -145,9 +145,9 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         return {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
-            "training_pflops_total": self.training_flops_total / 1e15,
-            "training_tflops_per_second": flops_this_step / step_time / 1e12,
-            "training_step_seconds": step_time,
+            "pflops_total": self.training_flops_total / 1e15,
+            "tflops_per_second": flops_this_step / step_time / 1e12,
+            "step_time_seconds": step_time,
             "num_tokens": self.num_tokens_total,
         }
 
@@ -161,7 +161,12 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         predictions = predictions.view(-1, self.config.vocab_size)
         targets = data.targets.view(-1).long()
         loss = self.criterion(predictions, targets)
-        return {"loss": float(loss.detach().cpu().numpy())}
+        loss = float(loss.detach().cpu().numpy())
+        return {
+            "loss": loss,
+            "loss_vs_tokens": (loss, self.num_tokens_total),
+            "loss_vs_pflops_total": (loss, self.training_flops_total / 1e15),
+        }
 
 
 def train_language_model(
@@ -226,13 +231,13 @@ def run():
         config = LanguageModelTrainingConfig(
             vocab_size=100277,
             warmup_steps=100,
-            learning_rate=0.0005,
+            learning_rate=0.001,
             batch_size=64,
             sequence_length=512,
             shuffle_buffer_size=100,
             training_config=TrainingConfig(
                 num_epochs=1,
-                training_steps_per_epoch=10000,
+                training_steps_per_epoch=50000,
                 seed=42,
             ),
             eval_config=EvalConfig(

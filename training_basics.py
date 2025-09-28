@@ -26,7 +26,7 @@ class EvalConfig:
     steps: int
 
 
-Metrics = dict[str, float]
+Metrics = dict[str, float | tuple[float, float]]
 
 
 D = TypeVar("D")

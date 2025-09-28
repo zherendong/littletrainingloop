@@ -28,7 +28,10 @@ def process_metrics(
         print(f"  {name}: {value:.6f}")
     if neptune_run is not None:
         for name, value in sorted(metrics.items()):
-            neptune_run[f"{mode}/{name}"].append(value, step=step)
+            x_axis = step
+            if isinstance(value, tuple):
+                value, x_axis = value
+            neptune_run[f"{mode}/{name}"].append(value, step=x_axis)
 
 
 def do_eval(

@@ -213,6 +213,7 @@ __marimo__/
 
 # data
 data/
+scaling_data/
 
 .neptune
 
