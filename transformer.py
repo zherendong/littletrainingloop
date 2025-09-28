@@ -8,6 +8,7 @@ from typing import Callable
 import torch
 import torch.nn as nn
 import attention
+import torchtune
 
 
 @dataclasses.dataclass(frozen=True)
@@ -100,20 +101,30 @@ class SelfAttention(nn.Module):  # non-flash
         self.linear_out = nn.Linear(
             num_heads_q * head_dim_v, input_size, bias=False, dtype=torch.bfloat16
         )
-        # rotary_emb = RotaryEmbedding(head_dim)
-        # self.register_buffer("rotary_emb", rotary_emb)
+        self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=8192
+        )
 
+    @torch.compile()
     def forward(self, x):
         x = self.norm(x)
         batch_size, sequence_length, _ = x.shape
         q = self.linear_q(x).view(
-            batch_size, sequence_length, self.num_heads_kv, self.q_per_kv, self.head_dim
+            batch_size, sequence_length, self.num_heads_q, self.head_dim
         )
         k = self.linear_k(x).view(
             batch_size, sequence_length, self.num_heads_kv, self.head_dim
         )
         v = self.linear_v(x).view(
             batch_size, sequence_length, self.num_heads_kv, self.head_dim_v
+        )
+
+        q = self.rotary_emb(q)
+        k = self.rotary_emb(k)
+        # v = self.rotary_emb(v)  # ?
+
+        q = q.view(
+            batch_size, sequence_length, self.num_heads_kv, self.q_per_kv, self.head_dim
         )
 
         out = attention.attention_fn(q, k, v)
