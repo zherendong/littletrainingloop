@@ -4,9 +4,7 @@ Data loader for JSONL files.
 
 import glob
 import json
-import logging
 from typing import Any, Callable, Iterable
-from concurrent.futures import ThreadPoolExecutor
 import torch
 import tiktoken
 
@@ -61,9 +59,8 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]]):
         """Create a fresh iterator."""
         for data in self.raw_data_loader.generate():
             text = self.data_to_text(data)
-            tokens = self.tokenizer.encode(text)
+            tokens = self.tokenizer.encode(text, disallowed_special=())
             text_per_token = [self.tokenizer.decode([t]) for t in tokens]
-            # text_per_token = ["" for t in tokens]
             yield {
                 "tokens": tokens,
                 "raw_text": text,
@@ -98,9 +95,7 @@ class BatchedDataLoader(DataProvider[DataItem]):
         self.split = split
         self.name = name
         self.batch_size = (
-            config.batch_size
-            if split == "train"
-            else config.training_config.eval_batch_size
+            config.batch_size if split == "train" else config.eval_config.batch_size
         )
 
     def generate(self) -> Iterable[DataItem]:
@@ -149,9 +144,9 @@ class BatchedDataLoader(DataProvider[DataItem]):
                     if len(tokens) == self.config.sequence_length:
                         break
 
-                assert len(tokens) == self.config.sequence_length, (
-                    f"got {len(tokens)}; expected {self.config.sequence_length} tokens."
-                )
+                assert (
+                    len(tokens) == self.config.sequence_length
+                ), f"got {len(tokens)}; expected {self.config.sequence_length} tokens."
                 assert len(text_per_tokens) == self.config.sequence_length
                 inputs[batch_idx] = torch.tensor(tokens)
                 target_tokens = tokens[1:] + [self.tokenizer.eot_token]

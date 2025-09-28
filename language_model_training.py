@@ -2,6 +2,7 @@
 Language model training.
 """
 
+import argparse
 import os
 import time
 import torch.cuda.nvtx as nvtx
@@ -15,6 +16,7 @@ from training_basics import (
 from language_model_basics import (
     DataItem,
     LanguageModelTrainingConfig,
+    EvalConfig,
 )
 from training_loop import train
 import torch
@@ -78,7 +80,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             config.training_config.num_epochs
             * config.training_config.training_steps_per_epoch
         )
-        switch_step = num_steps * 0.05
+        switch_step = config.warmup_steps or num_steps * 0.05
         linear_warmup = optim.lr_scheduler.LinearLR(
             self.optimizer, start_factor=0.1, end_factor=1.0, total_iters=switch_step
         )
@@ -95,6 +97,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         )
         self.fcounter = flop_counter.FlopCounterMode(depth=4, display=False)
         self.training_flops_total = 0
+        self.num_tokens_total = 0
 
     def num_parameters(self):
         return sum(p.numel() for p in self.model.parameters())
@@ -133,16 +136,19 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         # detach loss
         loss_numpy = float(loss.detach().cpu().numpy())
 
+        step_time = time.time() - start
         flops_this_step = self.fcounter.get_total_flops()
         self.training_flops_total += flops_this_step
-        step_time = time.time() - start
+        num_tokens_this_step = data.inputs.numel()
+        self.num_tokens_total += num_tokens_this_step
 
         return {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
-            "training_flops": self.training_flops_total,
+            "training_pflops_total": self.training_flops_total / 1e15,
             "training_tflops_per_second": flops_this_step / step_time / 1e12,
             "training_step_seconds": step_time,
+            "num_tokens": self.num_tokens_total,
         }
 
     def eval(self, data: DataItem) -> Metrics:
@@ -166,15 +172,7 @@ def train_language_model(
     """Train a language model using configuration object"""
     # Create model
     with prng.PRNG(config.seed + 123123):
-        tconfig = TransformerConfig(
-            num_layers=8,
-            num_heads=8,
-            num_heads_kv=4,
-            head_dim=64,
-            mlp_inner_size=2048,
-            embedding_size=512,
-        )
-        model = TransformerModel(config.vocab_size, tconfig)
+        model = TransformerModel(config.vocab_size, config.model_config)
     # Create training state
     with prng.PRNG(config.seed + 234234):
         state = LanguageModelTrainingState(model, config)
@@ -204,7 +202,8 @@ def train_language_model(
     losses = train(
         state,
         train_dataset,
-        config.training_config,
+        config=config.training_config,
+        eval_config=config.eval_config,
         eval_data_providers=eval_datasets,
         neptune_run=neptune_run,
     )
@@ -226,16 +225,29 @@ def run():
     try:
         config = LanguageModelTrainingConfig(
             vocab_size=100277,
-            learning_rate=0.001,
+            warmup_steps=100,
+            learning_rate=0.0005,
             batch_size=64,
             sequence_length=512,
             shuffle_buffer_size=100,
             training_config=TrainingConfig(
                 num_epochs=1,
-                training_steps_per_epoch=5000,
-                eval_every_n_steps=50,
-                eval_steps=10,
+                training_steps_per_epoch=10000,
                 seed=42,
+            ),
+            eval_config=EvalConfig(
+                every_n_steps=50,
+                steps=10,
+                batch_size=64,
+                sequence_length=512,
+            ),
+            model_config=TransformerConfig(
+                num_layers=12,
+                num_heads=8,
+                num_heads_kv=4,
+                head_dim=128,
+                mlp_inner_size=4096,
+                embedding_size=1024,
             ),
         )
         losses = train_language_model(config, neptune_run=neptune_run)
@@ -245,4 +257,9 @@ def run():
 
 
 if __name__ == "__main__":
+
+    # command line args, including name
+    parser = argparse.ArgumentParser()
+    args = parser.parse_args()
+
     run()

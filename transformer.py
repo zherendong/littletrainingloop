@@ -30,6 +30,7 @@ class FP32LayerNorm(nn.Module):
             dtype=torch.float32,
         )
 
+    @torch.compile()
     def forward(self, x):
         input_dtype = x.dtype
         x = x.to(torch.float32)
@@ -67,7 +68,7 @@ class MLP(nn.Module):
 def attention_fn(q, k, v, use_flash: bool = True):
     if use_flash:
         try:
-            from flash_attn import flash_attn_func
+            import flash_attn
 
             # # q: (batch_size, seqlen, nheads, headdim)
             batch_size, sequence_length_q, num_heads_kv, q_per_kv, head_dim = q.shape
@@ -77,10 +78,12 @@ def attention_fn(q, k, v, use_flash: bool = True):
             sequence_length_kv = k.shape[1]
             k = k.view(batch_size, sequence_length_kv, num_heads_kv, head_dim)
             v = v.view(batch_size, sequence_length_kv, num_heads_kv, head_dim)
-            return flash_attn_func(q, k, v, causal=True).view(
+            res = flash_attn.flash_attn_func(q, k, v, causal=True)
+            return res.view(
                 batch_size, sequence_length_q, num_heads_kv, q_per_kv, head_dim
             )
         except ImportError:
+            print("Flash attention not available, using slow attention")
             pass
     batch_size, sequence_length_q, num_heads_kv, q_per_kv, head_dim = q.shape
     num_heads_q = num_heads_kv * q_per_kv
@@ -211,7 +214,6 @@ class TransformerModel(nn.Module):
             dtype=torch.bfloat16,
             bias=False,
         )
-        # print number of parameters
         print(
             f"Num non-embedding parameters: {sum(p.numel() for p in self.transformer_blocks.parameters())} parameters"
         )

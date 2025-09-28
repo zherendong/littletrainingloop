@@ -11,6 +11,7 @@ from typing import Sequence
 
 from training_basics import (
     TrainingConfig,
+    EvalConfig,
     DataProvider,
     TrainingState,
     Metrics,
@@ -31,7 +32,7 @@ def process_metrics(
 
 
 def do_eval(
-    config: TrainingConfig,
+    config: EvalConfig,
     state: TrainingState[D],
     eval_data_providers: Sequence[DataProvider[D]],
     epoch: int | None = None,
@@ -44,7 +45,7 @@ def do_eval(
         print(f"  {eval_data_provider.get_name()}:")
         losses = []
         for idx, data in enumerate(eval_data_provider.generate()):
-            if idx > config.eval_steps:
+            if idx > config.steps:
                 break
             metrics = state.eval(data)
             losses.append(metrics["loss"])
@@ -62,6 +63,7 @@ def train(
     state: TrainingState[D],
     data_provider: DataProvider[D],
     config: TrainingConfig,
+    eval_config: EvalConfig,
     eval_data_providers: Sequence[DataProvider[D]] = (),
     neptune_run=None,
 ):
@@ -78,9 +80,9 @@ def train(
     for epoch in range(config.num_epochs):
         print(f"Epoch {epoch + 1}")
         for idx, data in enumerate(data_provider.generate()):
-            if idx % config.eval_every_n_steps == 0:
+            if idx % eval_config.every_n_steps == 0:
                 do_eval(
-                    config,
+                    eval_config,
                     state,
                     eval_data_providers,
                     epoch,

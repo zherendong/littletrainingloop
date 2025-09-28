@@ -15,6 +15,9 @@ from transformer import (
     attention_fn,
 )
 
+if torch.cuda.is_available():
+    torch.set_default_device("cuda")
+
 
 def test_mlp():
     """Smoke test for the MLP class"""
@@ -76,27 +79,37 @@ def test_transformer_model():
     )
     vocab_size = 1024
     model = TransformerModel(vocab_size=vocab_size, config=config)
-    x = torch.randint(0, vocab_size, (3, 10))
-    fcounter = flop_counter.FlopCounterMode(depth=4)
-    with fcounter:
+    x = torch.randint(0, vocab_size, (3, 10), dtype=torch.int32)
+    flops = flop_counter.FlopCounterMode(depth=4)
+    with flops:
         y = model(x)
     assert y.shape == (3, 10, vocab_size)
     assert not torch.isnan(y).any()
-    assert fcounter.get_total_flops() == 67461120
-    assert sum(p.numel() for p in model.parameters()) == 1379328
+    assert flops.get_total_flops() == 66846720
+    assert sum(p.numel() for p in model.parameters()) == 1377280
+
+    # now count with backward
+    flops = flop_counter.FlopCounterMode(depth=4)
+    with flops:
+        y = model(x)
+        loss = y.sum()
+        loss.backward()
+    assert flops.get_total_flops() == 200540160
 
 
 def test_flash_nonflash_equivalence():
     """Test that flash and non-flash attention give the same results"""
     if not torch.cuda.is_available():
         return
-    q = torch.normal(mean=0, std=1, size=(1, 3, 2, 4, 32), dtype=torch.bfloat16, device="cuda")
-    k = torch.normal(mean=0, std=1, size=(1, 3, 2, 32), dtype=torch.bfloat16, device="cuda")
-    v = torch.normal(mean=0, std=1, size=(1, 3, 2, 32), dtype=torch.bfloat16, device="cuda")
-    # q_copy = q.clone()
-    # q_copy = q.reshape(1, 3, 2 * 4, 32)
-    # k_copy = k.clone()
-    # v_copy = v.clone()
+    q = torch.normal(
+        mean=0, std=1, size=(1, 3, 2, 4, 32), dtype=torch.bfloat16, device="cuda"
+    )
+    k = torch.normal(
+        mean=0, std=1, size=(1, 3, 2, 32), dtype=torch.bfloat16, device="cuda"
+    )
+    v = torch.normal(
+        mean=0, std=1, size=(1, 3, 2, 32), dtype=torch.bfloat16, device="cuda"
+    )
     y_flash = attention_fn(q, k, v, use_flash=True)
     y_nonflash = attention_fn(q, k, v, use_flash=False)
     torch.testing.assert_close(y_flash, y_nonflash, rtol=1e-2, atol=1e-2)

@@ -17,9 +17,13 @@ class TrainingConfig:
     training_steps_per_epoch: int = 100
     seed: int = 42
 
-    eval_every_n_steps: int = 20
-    eval_steps: int = 1
-    eval_batch_size: int = 32
+
+@dataclasses.dataclass(frozen=True)
+class EvalConfig:
+    """Configuration class for evaluation"""
+
+    every_n_steps: int
+    steps: int
 
 
 Metrics = dict[str, float]
