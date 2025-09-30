@@ -24,12 +24,14 @@ class JSONLDataLoader(DataProvider[dict[str, Any]]):
     def __init__(self, config: LanguageModelTrainingConfig, path: str):
         self.path = path
         self.config = config
-        self.prng = prng.PRNG(config.seed + 52135)
 
     def generate(self) -> Iterable[dict[str, Any]]:
         """Load data from JSONL files."""
         files = list(glob.glob(f"{self.path}/*.jsonl"))
-        self.prng.shuffle(files)
+        # creating a new prng here to make sure the shuffle is identical on repeated
+        # calls to generate()
+        shuffler = prng.PRNG(self.config.seed + 52135)
+        shuffler.shuffle(files)
 
         for file in files:
             with open(file, "r") as f:
