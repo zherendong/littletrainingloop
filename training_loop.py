@@ -7,6 +7,7 @@ Design goals:
 """
 
 import dataclasses
+from collections import defaultdict
 from typing import Sequence
 
 from training_basics import (
@@ -17,6 +18,7 @@ from training_basics import (
     Metrics,
     D,
 )
+import metrics
 
 
 def process_metrics(
@@ -46,14 +48,19 @@ def do_eval(
     print(f"Eval metrics ({epoch=}, {step=}):")
     for eval_data_provider in eval_data_providers:
         print(f"  {eval_data_provider.get_name()}:")
-        losses = []
+
+        metric_aggregators = defaultdict(metrics.ExactMetricsAggregator)
         for idx, data in enumerate(eval_data_provider.generate()):
             if idx > config.steps:
                 break
             metrics = state.eval(data)
-            losses.append(metrics["loss"])
+            for name, value in metrics.items():
+                metric_aggregators[name].observe(value)
 
-        loss = sum(losses) / (len(losses) + 1e-6)
+        # loss = sum(losses) / (len(losses) + 1e-6)
+        metrics = {
+            name: aggregator.mean() for name, aggregator in metric_aggregators.items()
+        }
         process_metrics(
             {"loss": loss},
             neptune_run=neptune_run,
