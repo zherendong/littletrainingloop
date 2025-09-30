@@ -18,7 +18,8 @@ from training_basics import (
     Metrics,
     D,
 )
-import metrics
+import aggregation
+import null_neptune
 
 
 def process_metrics(
@@ -28,12 +29,11 @@ def process_metrics(
     print(f"{mode} step {step}:")
     for name, value in sorted(metrics.items()):
         print(f"  {name}: {value:.6f}")
-    if neptune_run is not None:
-        for name, value in sorted(metrics.items()):
-            x_axis = step
-            if isinstance(value, tuple):
-                value, x_axis = value
-            neptune_run[f"{mode}/{name}"].append(value, step=x_axis)
+    for name, value in sorted(metrics.items()):
+        x_axis = step
+        if isinstance(value, tuple):
+            value, x_axis = value
+        neptune_run[f"{mode}/{name}"].append(value, step=x_axis)
 
 
 def do_eval(
@@ -49,7 +49,7 @@ def do_eval(
     for eval_data_provider in eval_data_providers:
         print(f"  {eval_data_provider.get_name()}:")
 
-        metric_aggregators = defaultdict(metrics.ExactMetricsAggregator)
+        metric_aggregators = defaultdict(aggregation.ExactMetricsAggregator)
         for idx, data in enumerate(eval_data_provider.generate()):
             if idx > config.steps:
                 break
@@ -57,12 +57,11 @@ def do_eval(
             for name, value in metrics.items():
                 metric_aggregators[name].observe(value)
 
-        # loss = sum(losses) / (len(losses) + 1e-6)
         metrics = {
             name: aggregator.mean() for name, aggregator in metric_aggregators.items()
         }
         process_metrics(
-            {"loss": loss},
+            metrics,
             neptune_run=neptune_run,
             step=step,
             mode=f"eval/{eval_data_provider.get_name()}",
@@ -75,16 +74,13 @@ def train(
     config: TrainingConfig,
     eval_config: EvalConfig,
     eval_data_providers: Sequence[DataProvider[D]] = (),
-    neptune_run=None,
+    neptune_run=null_neptune.NullNeptuneRun(),
 ):
     """Training loop using configuration object"""
 
-    if neptune_run is not None:
-        neptune_run["num_parameters"] = state.num_parameters()
-        neptune_run["num_non_embedding_parameters"] = (
-            state.num_non_embedding_parameters()
-        )
-        neptune_run["config"] = dataclasses.asdict(config)
+    neptune_run["num_parameters"] = state.num_parameters()
+    neptune_run["num_non_embedding_parameters"] = state.num_non_embedding_parameters()
+    neptune_run["config"] = dataclasses.asdict(config)
 
     print(f"Starting training for {config.num_epochs} epochs...")
     for epoch in range(config.num_epochs):

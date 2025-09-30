@@ -6,6 +6,7 @@ import argparse
 import os
 import time
 import torch.cuda.nvtx as nvtx
+import null_neptune
 
 from training_basics import (
     TrainingConfig,
@@ -215,18 +216,21 @@ def train_language_model(
     return losses
 
 
-def run():
+def run(use_neptune: bool):
     # Add device detection at the top of your training function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
-    load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
-    neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
-    neptune_run = neptune.init_run(
-        project="markusrabeworkspace/training-exploration",
-        api_token=neptune_api_token,
-    )
+    if use_neptune:
+        load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
+        neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
+        neptune_run = neptune.init_run(
+            project="markusrabeworkspace/training-exploration",
+            api_token=neptune_api_token,
+        )
+    else:
+        neptune_run = null_neptune.NullNeptuneRun()
     try:
         config = LanguageModelTrainingConfig(
             vocab_size=100277,
@@ -247,12 +251,12 @@ def run():
                 sequence_length=512,
             ),
             model_config=TransformerConfig(
-                num_layers=12,
-                num_heads=8,
+                num_layers=6,
+                num_heads=4,
                 num_heads_kv=4,
-                head_dim=128,
-                mlp_inner_size=4096,
-                embedding_size=1024,
+                head_dim=64,
+                mlp_inner_size=512,
+                embedding_size=128,
             ),
         )
         losses = train_language_model(config, neptune_run=neptune_run)
@@ -265,6 +269,7 @@ if __name__ == "__main__":
 
     # command line args, including name
     parser = argparse.ArgumentParser()
+    parser.add_argument("--use_neptune", type=bool, default=False)
     args = parser.parse_args()
 
-    run()
+    run(use_neptune=args.use_neptune)

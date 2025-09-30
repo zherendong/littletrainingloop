@@ -1,12 +1,17 @@
 """Attention functions."""
 
-import flash_attn
+use_flash_attention = True
+try:
+    import flash_attn
+except ImportError:
+    print("Could not load flash attention. Falling back to manual attn.")
+    use_flash_attention = False
 import torch
 from torch.utils.flop_counter import register_flop_formula
 
 
 def attention_fn(q, k, v, use_flash: bool = True):
-    if use_flash:
+    if use_flash and use_flash_attention:
         batch_size, sequence_length_q, num_heads_kv, q_per_kv, head_dim = q.shape
         num_heads_q = num_heads_kv * q_per_kv
         q = q.view(batch_size, sequence_length_q, num_heads_q, head_dim)
@@ -38,52 +43,53 @@ def attention_fn(q, k, v, use_flash: bool = True):
     return out
 
 
-@register_flop_formula(torch.ops.flash_attn._flash_attn_forward)
-def attention_fn_flop_formula(q_shape, k_shape, v_shape, *args, **kwargs):
-    # del out_shape
-    # print(
-    #     f"Computing flops for flash attention with {q_shape=}, {k_shape=}, {v_shape=}"
-    # )
-    # print(f"args: {args}, kwargs: {kwargs}")
+if use_flash_attention:
 
-    # Assuming that none of the fancy parameters are set. Assuming causal=True.
-    batch_size, sequence_length_q, num_heads_q, head_dim = q_shape
-    batch_size, sequence_length_kv, _, head_dim = k_shape
-    batch_size, sequence_length_kv, _, head_dim = v_shape
-    qk_flops = (
-        batch_size
-        * num_heads_q
-        * sequence_length_q
-        * head_dim
-        * sequence_length_kv
-        * 2  # multiply-add
-        // 2  # because causal
-    )
-    softmax_flops = (
-        batch_size * num_heads_q * sequence_length_q * sequence_length_kv * 3 // 2
-    )
-    qv_flops = (
-        batch_size
-        * num_heads_q
-        * sequence_length_q
-        * sequence_length_kv
-        * head_dim
-        * 2  # multiply-add
-        // 2  # because causal
-    )
-    return qk_flops + softmax_flops + qv_flops
+    @register_flop_formula(torch.ops.flash_attn._flash_attn_forward)
+    def attention_fn_flop_formula(q_shape, k_shape, v_shape, *args, **kwargs):
+        # del out_shape
+        # print(
+        #     f"Computing flops for flash attention with {q_shape=}, {k_shape=}, {v_shape=}"
+        # )
+        # print(f"args: {args}, kwargs: {kwargs}")
 
+        # Assuming that none of the fancy parameters are set. Assuming causal=True.
+        batch_size, sequence_length_q, num_heads_q, head_dim = q_shape
+        batch_size, sequence_length_kv, _, head_dim = k_shape
+        batch_size, sequence_length_kv, _, head_dim = v_shape
+        qk_flops = (
+            batch_size
+            * num_heads_q
+            * sequence_length_q
+            * head_dim
+            * sequence_length_kv
+            * 2  # multiply-add
+            // 2  # because causal
+        )
+        softmax_flops = (
+            batch_size * num_heads_q * sequence_length_q * sequence_length_kv * 3 // 2
+        )
+        qv_flops = (
+            batch_size
+            * num_heads_q
+            * sequence_length_q
+            * sequence_length_kv
+            * head_dim
+            * 2  # multiply-add
+            // 2  # because causal
+        )
+        return qk_flops + softmax_flops + qv_flops
 
-@register_flop_formula(torch.ops.flash_attn._flash_attn_backward)
-def attention_fn_bwd_flop_formula(
-    dout_shape,
-    q_shape,
-    k_shape,
-    v_shape,
-    *args,
-    **kwargs,
-):
-    # print(
-    #     f"Computing flops for flash attention backward with {dout_shape=}, {q_shape=}, {k_shape=}, {v_shape=}"
-    # )
-    return attention_fn_flop_formula(q_shape, k_shape, v_shape) * 2
+    @register_flop_formula(torch.ops.flash_attn._flash_attn_backward)
+    def attention_fn_bwd_flop_formula(
+        dout_shape,
+        q_shape,
+        k_shape,
+        v_shape,
+        *args,
+        **kwargs,
+    ):
+        # print(
+        #     f"Computing flops for flash attention backward with {dout_shape=}, {q_shape=}, {k_shape=}, {v_shape=}"
+        # )
+        return attention_fn_flop_formula(q_shape, k_shape, v_shape) * 2

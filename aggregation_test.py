@@ -1,6 +1,6 @@
 import random
 
-from metrics import (
+from aggregation import (
     _quantize_relative,
     ExactMetricsAggregator,
     ApproximateMetricsAggregator,
