@@ -2,8 +2,9 @@
 Basic classes for language model training.
 """
 
+import abc
 import dataclasses
-from typing import Any
+from typing import Any, Iterator
 
 import torch
 import training_basics
@@ -39,3 +40,26 @@ class LanguageModelTrainingConfig:
         default_factory=lambda: training_basics.TrainingConfig()
     )
     eval_config: EvalConfig = dataclasses.field(default_factory=lambda: EvalConfig())
+
+
+class LanguageModel(abc.ABC):
+
+    @abc.abstractmethod
+    def num_parameters(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def num_embedding_parameters(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def num_non_embedding_parameters(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def __call__(self, *args, **kwargs) -> torch.Tensor:
+        pass
+
+    @abc.abstractmethod
+    def parameters(self) -> Iterator[torch.nn.Parameter]:
+        pass

@@ -16,7 +16,7 @@ class NullNeptuneFloatSeries:
 class NullNeptuneRun:
 
     def __getitem__(self, key):
-        return NullNeptuneRun()
+        return NullNeptuneFloatSeries()
 
     def __setitem__(self, key, value):
         pass

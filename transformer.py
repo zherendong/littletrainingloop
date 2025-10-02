@@ -10,6 +10,8 @@ import torch.nn as nn
 import attention
 import torchtune
 
+import language_model_basics
+
 
 @dataclasses.dataclass(frozen=True)
 class TransformerConfig:
@@ -121,7 +123,7 @@ class SelfAttention(nn.Module):  # non-flash
 
         q = self.rotary_emb(q)
         k = self.rotary_emb(k)
-        # v = self.rotary_emb(v)  # ?
+        assert q.dtype == x.dtype
 
         q = q.view(
             batch_size, sequence_length, self.num_heads_kv, self.q_per_kv, self.head_dim
@@ -155,7 +157,7 @@ class TransformerBlock(nn.Module):
         return x
 
 
-class TransformerModel(nn.Module):
+class TransformerModel(nn.Module, language_model_basics.LanguageModel):
     """Simple transformer model: y = Wx + b"""
 
     def __init__(self, vocab_size: int, config: TransformerConfig):
@@ -187,6 +189,7 @@ class TransformerModel(nn.Module):
         print(
             f"Num non-embedding parameters: {sum(p.numel() for p in self.transformer_blocks.parameters())} parameters"
         )
+        self.parameters()
 
     def forward(self, x):
         x = self.embedding(x)
@@ -195,3 +198,14 @@ class TransformerModel(nn.Module):
         x = self.output_projection(x)
         assert x.dtype == torch.bfloat16
         return x
+
+    def num_parameters(self):
+        return sum(p.numel() for p in self.parameters())
+
+    def num_embedding_parameters(self):
+        return sum(p.numel() for p in self.embedding.parameters()) + sum(
+            p.numel() for p in self.output_projection.parameters()
+        )
+
+    def num_non_embedding_parameters(self):
+        return self.num_parameters() - self.num_embedding_parameters()

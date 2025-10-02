@@ -22,18 +22,13 @@ import aggregation
 import null_neptune
 
 
-def process_metrics(
-    metrics: Metrics, neptune_run=None, step=None, mode="train"
-) -> None:
+def process_metrics(metrics: Metrics, neptune_run, step=None, mode="train") -> None:
     """Print metrics sorted by name"""
     print(f"{mode} step {step}:")
     for name, value in sorted(metrics.items()):
         print(f"  {name}: {value:.6f}")
     for name, value in sorted(metrics.items()):
-        x_axis = step
-        if isinstance(value, tuple):
-            value, x_axis = value
-        neptune_run[f"{mode}/{name}"].append(value, step=x_axis)
+        neptune_run[f"{mode}/{name}"].append(value, step=step)
 
 
 def do_eval(
@@ -42,8 +37,8 @@ def do_eval(
     eval_data_providers: Sequence[DataProvider[D]],
     epoch: int | None = None,
     step: int | None = None,
-    neptune_run=None,
-) -> Metrics:
+    neptune_run=null_neptune.NullNeptuneRun(),
+):
     """Evaluate the model"""
     print(f"Eval metrics ({epoch=}, {step=}):")
     for eval_data_provider in eval_data_providers:
@@ -60,12 +55,21 @@ def do_eval(
         metrics = {
             name: aggregator.mean() for name, aggregator in metric_aggregators.items()
         }
-        process_metrics(
-            metrics,
-            neptune_run=neptune_run,
-            step=step,
-            mode=f"eval/{eval_data_provider.get_name()}",
-        )
+        training_tokens_seen = state.get_training_tokens_seen()
+        training_pflops = state.get_training_pflops()
+        non_emb_training_pflops = state.get_non_emb_training_pflops()
+        for step_val, step_name in [
+            (step, ""),
+            (training_tokens_seen, "/num_tokens"),
+            (training_pflops, "/pflops"),
+            (non_emb_training_pflops, "/pflops_non_embedding"),
+        ]:
+            process_metrics(
+                metrics,
+                neptune_run=neptune_run,
+                step=step_val,
+                mode=f"eval/{eval_data_provider.get_name()}{step_name}",
+            )
 
 
 def train(
@@ -85,6 +89,7 @@ def train(
     print(f"Starting training for {config.num_epochs} epochs...")
     for epoch in range(config.num_epochs):
         print(f"Epoch {epoch + 1}")
+        idx = 0
         for idx, data in enumerate(data_provider.generate()):
             if idx % eval_config.every_n_steps == 0:
                 do_eval(

@@ -31,9 +31,10 @@ import stackv2_dataloader
 import slimpajama_dataloader
 from transformer import TransformerModel, TransformerConfig
 import prng
+import language_model_basics
 
 
-class DummyLanguageModel(nn.Module):
+class DummyLanguageModel(nn.Module, language_model_basics.LanguageModel):
     """Simple language model: y = Wx + b"""
 
     def __init__(self, vocab_size: int, seed: int, dimension: int = 64):
@@ -64,11 +65,26 @@ class DummyLanguageModel(nn.Module):
         assert x.shape == (batch_size, sequence_length, self.vocab_size)
         return x
 
+    def num_parameters(self):
+        return sum(p.numel() for p in self.parameters())
+
+    def num_embedding_parameters(self):
+        return sum(p.numel() for p in self.embedding.parameters()) + sum(
+            p.numel() for p in self.fc.parameters()
+        )
+
+    def num_non_embedding_parameters(self):
+        return self.num_parameters() - self.num_embedding_parameters()
+
 
 class LanguageModelTrainingState(TrainingState[DataItem]):
     """Training state for language model"""
 
-    def __init__(self, model: nn.Module, config: LanguageModelTrainingConfig):
+    def __init__(
+        self,
+        model: language_model_basics.LanguageModel,
+        config: LanguageModelTrainingConfig,
+    ):
         self.model = model
         self.config = config
         self.criterion = nn.CrossEntropyLoss()
@@ -81,7 +97,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             config.training_config.num_epochs
             * config.training_config.training_steps_per_epoch
         )
-        switch_step = config.warmup_steps or num_steps * 0.05
+        switch_step = config.warmup_steps or int(num_steps * 0.05)
         linear_warmup = optim.lr_scheduler.LinearLR(
             self.optimizer, start_factor=0.1, end_factor=1.0, total_iters=switch_step
         )
@@ -98,13 +114,8 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         )
         self.fcounter = flop_counter.FlopCounterMode(depth=4, display=False)
         self.training_flops_total = 0
-        self.num_tokens_total = 0
-
-    def num_parameters(self):
-        return sum(p.numel() for p in self.model.parameters())
-
-    def num_non_embedding_parameters(self):
-        return sum(p.numel() for p in self.model.transformer_blocks.parameters())
+        self.non_emb_training_flops_total = 0
+        self.num_tokens_seen = 0
 
     def step(self, data: DataItem) -> Metrics:
 
@@ -140,16 +151,25 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         step_time = time.time() - start
         flops_this_step = self.fcounter.get_total_flops()
         self.training_flops_total += flops_this_step
-        num_tokens_this_step = data.inputs.numel()
-        self.num_tokens_total += num_tokens_this_step
+        # estimated
+        self.non_emb_training_flops_total += (
+            self.config.batch_size
+            * self.config.sequence_length
+            * self.config.vocab_size
+            * self.config.dimension
+            * 2  # multiply-add
+            * 2  # forward and backward
+        )
+        self.num_tokens_seen += data.inputs.numel()
 
         return {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
             "pflops_total": self.training_flops_total / 1e15,
+            "pflops_non_embedding": self.non_emb_training_flops_total / 1e15,
             "tflops_per_second": flops_this_step / step_time / 1e12,
             "step_time_seconds": step_time,
-            "num_tokens": self.num_tokens_total,
+            "num_tokens": self.num_tokens_seen,
         }
 
     def eval(self, data: DataItem) -> Metrics:
@@ -163,11 +183,22 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         targets = data.targets.view(-1).long()
         loss = self.criterion(predictions, targets)
         loss = float(loss.detach().cpu().numpy())
-        return {
-            "loss": loss,
-            "loss_vs_tokens": (loss, self.num_tokens_total),
-            "loss_vs_pflops_total": (loss, self.training_flops_total / 1e15),
-        }
+        return {"loss": loss}
+
+    def num_parameters(self) -> int:
+        return self.model.num_parameters()
+
+    def num_non_embedding_parameters(self) -> int:
+        return self.model.num_non_embedding_parameters()
+
+    def get_training_pflops(self) -> float:
+        return self.training_flops_total / 1e15
+
+    def get_non_emb_training_pflops(self) -> float:
+        return self.non_emb_training_flops_total / 1e15
+
+    def get_training_tokens_seen(self) -> int:
+        return self.num_tokens_seen
 
 
 def train_language_model(
@@ -251,12 +282,12 @@ def run(use_neptune: bool):
                 sequence_length=512,
             ),
             model_config=TransformerConfig(
-                num_layers=6,
-                num_heads=4,
+                num_layers=10,
+                num_heads=8,
                 num_heads_kv=4,
-                head_dim=64,
-                mlp_inner_size=512,
-                embedding_size=128,
+                head_dim=128,
+                mlp_inner_size=2048,
+                embedding_size=512,
             ),
         )
         losses = train_language_model(config, neptune_run=neptune_run)
@@ -269,7 +300,7 @@ if __name__ == "__main__":
 
     # command line args, including name
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use_neptune", type=bool, default=False)
+    parser.add_argument("--use_neptune", type=bool, default=True)
     args = parser.parse_args()
 
     run(use_neptune=args.use_neptune)

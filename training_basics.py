@@ -26,7 +26,7 @@ class EvalConfig:
     steps: int
 
 
-Metrics = dict[str, float | tuple[float, float]]
+Metrics = dict[str, float]
 
 
 D = TypeVar("D")
@@ -97,12 +97,12 @@ class TrainingState(Generic[D], abc.ABC):
     """Abstract base class for training state"""
 
     @abc.abstractmethod
-    def num_non_embedding_parameters(self):
+    def num_non_embedding_parameters(self) -> int:
         """Number of parameters in the model, excluding embedding parameters"""
         pass
 
     @abc.abstractmethod
-    def num_parameters(self):
+    def num_parameters(self) -> int:
         """Number of parameters in the model"""
         pass
 
@@ -114,4 +114,16 @@ class TrainingState(Generic[D], abc.ABC):
     @abc.abstractmethod
     def eval(self, data: D) -> Metrics:
         """Evaluate the model, return metrics."""
+        pass
+
+    @abc.abstractmethod
+    def get_training_pflops(self) -> float:
+        pass
+
+    @abc.abstractmethod
+    def get_non_emb_training_pflops(self) -> float:
+        pass
+
+    @abc.abstractmethod
+    def get_training_tokens_seen(self) -> int:
         pass

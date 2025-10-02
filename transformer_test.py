@@ -6,7 +6,6 @@ Mostly smoke tests
 
 import torch
 from torch.utils import flop_counter
-import attention
 from transformer import (
     MLP,
     SelfAttention,
