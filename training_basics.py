@@ -14,7 +14,7 @@ class TrainingConfig:
     """Configuration class for training hyperparameters"""
 
     num_epochs: int = 1
-    training_steps_per_epoch: int = 100
+    training_steps_per_epoch: int | None = 100
     seed: int = 42
 
 

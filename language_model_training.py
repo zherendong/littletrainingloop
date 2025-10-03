@@ -3,6 +3,7 @@ Language model training.
 """
 
 import argparse
+import dataclasses
 import os
 import time
 import torch.cuda.nvtx as nvtx
@@ -250,6 +251,20 @@ def train_language_model(
             name=train_dataset.get_name(),
         )
 
+    if config.training_config.training_steps_per_epoch is None:
+        # Default: chinchilla-optimal amount of data, which is 20 tokens per parameter
+        num_parameters = model.num_non_embedding_parameters()
+        num_tokens_per_step = config.batch_size * config.sequence_length
+        chinchilla_optimal_steps = int(20 * num_parameters / num_tokens_per_step)
+        # update frozen dataclass
+        config = dataclasses.replace(
+            config,
+            training_config=dataclasses.replace(
+                config.training_config,
+                training_steps_per_epoch=chinchilla_optimal_steps,
+            ),
+        )
+
     # Train the model
     losses = train(
         state,
@@ -287,7 +302,7 @@ def run(use_neptune: bool):
             shuffle_buffer_size=100,
             training_config=TrainingConfig(
                 num_epochs=1,
-                training_steps_per_epoch=50000,
+                training_steps_per_epoch=None,
                 seed=42,
             ),
             eval_config=EvalConfig(
