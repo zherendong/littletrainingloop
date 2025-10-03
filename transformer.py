@@ -23,6 +23,30 @@ class TransformerConfig:
     embedding_size: int = 128
 
 
+class ConfigRegistry:
+    def __init__(self):
+        self._configs = {}
+
+    def register(self, name: str):
+        """Decorator to register a config factory function."""
+
+        def decorator(func):
+            config = func()
+            self._configs[name] = config
+            return config
+
+        return decorator
+
+    def get(self, name: str) -> TransformerConfig:
+        return self._configs[name]
+
+    def list_configs(self):
+        return list(self._configs.keys())
+
+
+transformer_config_registry = ConfigRegistry()
+
+
 class FP32LayerNorm(nn.Module):
     def __init__(self, input_size: int):
         super(FP32LayerNorm, self).__init__()
@@ -44,7 +68,10 @@ class FP32LayerNorm(nn.Module):
 
 class MLP(nn.Module):
     def __init__(
-        self, input_size: int, output_size: int = None, inner_size: int = None
+        self,
+        input_size: int,
+        output_size: int | None = None,
+        inner_size: int | None = None,
     ):
         if inner_size is None:
             inner_size = input_size * 4
