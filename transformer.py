@@ -21,6 +21,7 @@ class TransformerConfig:
     head_dim: int = 64
     mlp_inner_size: int = 512
     embedding_size: int = 128
+    use_flash_attention: bool = True
 
 
 class ConfigRegistry:
@@ -103,6 +104,7 @@ class SelfAttention(nn.Module):  # non-flash
         num_heads_q: int,
         num_heads_kv: int,
         head_dim: int,
+        use_flash_attention: bool,
         head_dim_v: int | None = None,
     ):
         super(SelfAttention, self).__init__()
@@ -133,6 +135,7 @@ class SelfAttention(nn.Module):  # non-flash
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
             dim=head_dim, max_seq_len=8192
         )
+        self.use_flash_attention = use_flash_attention
 
     @torch.compile()
     def forward(self, x):
@@ -156,7 +159,7 @@ class SelfAttention(nn.Module):  # non-flash
             batch_size, sequence_length, self.num_heads_kv, self.q_per_kv, self.head_dim
         )
 
-        out = attention.attention_fn(q, k, v)
+        out = attention.attention_fn(q, k, v, use_flash=self.use_flash_attention)
         out = out.reshape(
             batch_size, sequence_length, self.num_heads_q * self.head_dim_v
         )
@@ -202,6 +205,7 @@ class TransformerModel(nn.Module, language_model_basics.LanguageModel):
                         config.num_heads,
                         config.num_heads_kv,
                         config.head_dim,
+                        use_flash_attention=config.use_flash_attention,
                     ),
                 )
                 for _ in range(config.num_layers)

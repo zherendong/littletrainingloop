@@ -100,6 +100,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
 
         # linear learning rate schedule with warmup
+        assert config.training_config.training_steps_per_epoch is not None
         num_steps = (
             config.training_config.num_epochs
             * config.training_config.training_steps_per_epoch
@@ -277,7 +278,7 @@ def train_language_model(
     return losses
 
 
-def run(use_neptune: bool):
+def run(use_neptune: bool = False):
     # Add device detection at the top of your training function
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")

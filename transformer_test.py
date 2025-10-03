@@ -6,6 +6,8 @@ Mostly smoke tests
 
 import torch
 from torch.utils import flop_counter
+import transformer
+import model_configs.mini_transformers  # noqa: F401
 from transformer import (
     MLP,
     SelfAttention,
@@ -30,7 +32,11 @@ def test_mlp():
 def test_self_attention():
     """Smoke test for the SelfAttention class"""
     attention = SelfAttention(
-        input_size=128, num_heads_q=8, num_heads_kv=2, head_dim=32
+        input_size=128,
+        num_heads_q=8,
+        num_heads_kv=2,
+        head_dim=32,
+        use_flash_attention=False,
     )
     x = torch.randn(3, 10, 128, dtype=torch.bfloat16)
     y = attention(x)
@@ -45,7 +51,13 @@ def test_transformer_block():
         return MLP(input_size=128, output_size=128, inner_size=512)
 
     def attention_factory():
-        return SelfAttention(input_size=128, num_heads_q=8, num_heads_kv=2, head_dim=32)
+        return SelfAttention(
+            input_size=128,
+            num_heads_q=8,
+            num_heads_kv=2,
+            head_dim=32,
+            use_flash_attention=False,
+        )
 
     block = TransformerBlock(
         input_size=128, mlp_factory=mlp_factory, attention_factory=attention_factory
@@ -84,3 +96,14 @@ def test_transformer_model():
         loss = y.sum()
         loss.backward()
     assert flops.get_total_flops() == 201483360
+
+
+def test_mini_transformer_smoketest():
+    """Smoke test for the mini transformer"""
+    config = transformer.transformer_config_registry.get("mini-transformer-1")
+    vocab_size = 1024
+    model = TransformerModel(vocab_size=vocab_size, config=config)
+    x = torch.randint(0, vocab_size, (3, 10), dtype=torch.int32)
+    y = model(x)
+    assert y.shape == (3, 10, vocab_size)
+    assert not torch.isnan(y).any()
