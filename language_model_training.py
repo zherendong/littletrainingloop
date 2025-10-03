@@ -23,7 +23,6 @@ from training_loop import train
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import neptune
 from dotenv import load_dotenv
 from torch.utils import flop_counter
 
@@ -32,6 +31,13 @@ import slimpajama_dataloader
 from transformer import TransformerModel, TransformerConfig
 import prng
 import language_model_basics
+import neptune
+
+
+# Ignore_index is a magic number for cross entropy loss
+# when a target token is set to this value, we ignore the
+# loss for this token.
+_cross_entropy_ignore_index = -100
 
 
 class DummyLanguageModel(nn.Module, language_model_basics.LanguageModel):
@@ -87,10 +93,10 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
     ):
         self.model = model
         self.config = config
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(ignore_index=_cross_entropy_ignore_index)
 
         with prng.PRNG(config.seed + 345345):
-            self.optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+            self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
 
         # linear learning rate schedule with warmup
         num_steps = (
@@ -132,6 +138,13 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
                 # flatten batch and sequence length for cross entropy
                 predictions = predictions.view(-1, self.config.vocab_size)
                 targets = data.targets.view(-1).long()
+
+                # apply loss mask; more efficient?
+                # targets = torch.where(
+                #     data.loss_mask.view(-1) == 0.0,
+                #     _cross_entropy_ignore_index,
+                #     targets,
+                # )
                 loss = self.criterion(predictions, targets)
 
             with nvtx.range("backward", color="red"):
@@ -152,14 +165,15 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         flops_this_step = self.fcounter.get_total_flops()
         self.training_flops_total += flops_this_step
         # estimated
-        self.non_emb_training_flops_total += (
+        emb_flops = (
             self.config.batch_size
             * self.config.sequence_length
             * self.config.vocab_size
-            * self.config.dimension
+            * self.config.model_config.embedding_size
             * 2  # multiply-add
-            * 2  # forward and backward
+            * 3  # backward uses twice the flops of forward
         )
+        self.non_emb_training_flops_total += flops_this_step - emb_flops
         self.num_tokens_seen += data.inputs.numel()
 
         return {
@@ -203,8 +217,9 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
 
 def train_language_model(
     config: LanguageModelTrainingConfig,
+    *,
+    neptune_run,
     dataset: str = "slimpajama",
-    neptune_run=None,
 ):
     """Train a language model using configuration object"""
     # Create model
@@ -282,12 +297,12 @@ def run(use_neptune: bool):
                 sequence_length=512,
             ),
             model_config=TransformerConfig(
-                num_layers=10,
-                num_heads=8,
-                num_heads_kv=4,
-                head_dim=128,
-                mlp_inner_size=2048,
-                embedding_size=512,
+                num_layers=15,
+                num_heads=12,
+                num_heads_kv=6,
+                head_dim=64,
+                mlp_inner_size=3072,
+                embedding_size=768,
             ),
         )
         losses = train_language_model(config, neptune_run=neptune_run)
@@ -300,7 +315,7 @@ if __name__ == "__main__":
 
     # command line args, including name
     parser = argparse.ArgumentParser()
-    parser.add_argument("--use_neptune", type=bool, default=True)
+    parser.add_argument("--no_neptune", action="store_true", default=False)
     args = parser.parse_args()
 
-    run(use_neptune=args.use_neptune)
+    run(use_neptune=not args.no_neptune)

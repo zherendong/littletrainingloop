@@ -189,7 +189,6 @@ class TransformerModel(nn.Module, language_model_basics.LanguageModel):
         print(
             f"Num non-embedding parameters: {sum(p.numel() for p in self.transformer_blocks.parameters())} parameters"
         )
-        self.parameters()
 
     def forward(self, x):
         x = self.embedding(x)

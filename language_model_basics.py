@@ -27,7 +27,6 @@ class EvalConfig(training_basics.EvalConfig):
 @dataclasses.dataclass(frozen=True)
 class LanguageModelTrainingConfig:
     vocab_size: int = 100277
-    dimension: int = 64
     warmup_steps: int = 0  # 0 means 5% of training steps
     learning_rate: float = 0.1
     seed: int = 42
@@ -39,7 +38,14 @@ class LanguageModelTrainingConfig:
     training_config: training_basics.TrainingConfig = dataclasses.field(
         default_factory=lambda: training_basics.TrainingConfig()
     )
-    eval_config: EvalConfig = dataclasses.field(default_factory=lambda: EvalConfig())
+    eval_config: EvalConfig = dataclasses.field(
+        default_factory=lambda: EvalConfig(
+            every_n_steps=100,
+            steps=10,
+            batch_size=16,
+            sequence_length=256,
+        )
+    )
 
 
 class LanguageModel(abc.ABC):
