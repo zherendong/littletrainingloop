@@ -1,3 +1,14 @@
+"""Chinchilla model configs.
+
+Taken from the Chinchilla paper.
+
+https://arxiv.org/pdf/2203.15556#page=36
+
+Warning: the parameter counts are off. It appears the chinchilla parameter counts
+include the output projection parameters. Their layers have a weirdly low parameter
+count of ~13.75M for a layer with embedding size 1024.
+"""
+
 import transformer
 
 registry = transformer.transformer_config_registry
@@ -8,7 +19,6 @@ def chinchilla_44m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=8,
         num_heads=8,
-        num_heads_kv=8,
         head_dim=64,
         mlp_inner_size=2048,
         embedding_size=512,
@@ -20,7 +30,6 @@ def chinchilla_57m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=9,
         num_heads=9,
-        num_heads_kv=9,
         head_dim=64,
         mlp_inner_size=2304,
         embedding_size=576,
@@ -32,7 +41,6 @@ def chinchilla_74m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=10,
         num_heads=10,
-        num_heads_kv=10,
         head_dim=64,
         mlp_inner_size=2560,
         embedding_size=640,
@@ -44,7 +52,6 @@ def chinchilla_90m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=13,
         num_heads=10,
-        num_heads_kv=10,
         head_dim=64,
         mlp_inner_size=2560,
         embedding_size=640,
@@ -56,7 +63,6 @@ def chinchilla_106m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=16,
         num_heads=10,
-        num_heads_kv=10,
         head_dim=64,
         mlp_inner_size=2560,
         embedding_size=640,
@@ -68,7 +74,6 @@ def chinchilla_117m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=12,
         num_heads=12,
-        num_heads_kv=12,
         head_dim=64,
         mlp_inner_size=3072,
         embedding_size=768,
@@ -80,7 +85,6 @@ def chinchilla_140m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=15,
         num_heads=12,
-        num_heads_kv=12,
         head_dim=64,
         mlp_inner_size=3072,
         embedding_size=768,
@@ -92,7 +96,6 @@ def chinchilla_163m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=18,
         num_heads=12,
-        num_heads_kv=12,
         head_dim=64,
         mlp_inner_size=3072,
         embedding_size=768,
@@ -104,7 +107,6 @@ def chinchilla_175m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=14,
         num_heads=14,
-        num_heads_kv=14,
         head_dim=64,
         mlp_inner_size=3584,
         embedding_size=896,
@@ -116,7 +118,6 @@ def chinchilla_196m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=16,
         num_heads=14,
-        num_heads_kv=14,
         head_dim=64,
         mlp_inner_size=3584,
         embedding_size=896,
@@ -128,7 +129,6 @@ def chinchilla_217m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=18,
         num_heads=14,
-        num_heads_kv=14,
         head_dim=64,
         mlp_inner_size=3584,
         embedding_size=896,
@@ -140,7 +140,6 @@ def chinchilla_251m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=16,
         num_heads=16,
-        num_heads_kv=16,
         head_dim=64,
         mlp_inner_size=4096,
         embedding_size=1024,
@@ -152,7 +151,6 @@ def chinchilla_278m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=18,
         num_heads=16,
-        num_heads_kv=16,
         head_dim=64,
         mlp_inner_size=4096,
         embedding_size=1024,
@@ -164,7 +162,6 @@ def chinchilla_306m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=20,
         num_heads=16,
-        num_heads_kv=16,
         head_dim=64,
         mlp_inner_size=4096,
         embedding_size=1024,
@@ -176,7 +173,6 @@ def chinchilla_425m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=18,
         num_heads=10,
-        num_heads_kv=10,
         head_dim=128,
         mlp_inner_size=5120,
         embedding_size=1280,
@@ -188,7 +184,6 @@ def chinchilla_489m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=21,
         num_heads=10,
-        num_heads_kv=10,
         head_dim=128,
         mlp_inner_size=5120,
         embedding_size=1280,
@@ -200,7 +195,6 @@ def chinchilla_509m() -> transformer.TransformerConfig:
     return transformer.TransformerConfig(
         num_layers=18,
         num_heads=11,
-        num_heads_kv=11,
         head_dim=128,
         mlp_inner_size=5632,
         embedding_size=1408,

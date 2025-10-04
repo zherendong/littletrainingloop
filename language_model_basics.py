@@ -48,7 +48,7 @@ class LanguageModelTrainingConfig:
     )
 
 
-class LanguageModel(abc.ABC):
+class LanguageModel(abc.ABC, torch.nn.Module):
 
     @abc.abstractmethod
     def num_parameters(self) -> int:
@@ -62,10 +62,10 @@ class LanguageModel(abc.ABC):
     def num_non_embedding_parameters(self) -> int:
         pass
 
-    @abc.abstractmethod
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
-        pass
+    # @abc.abstractmethod
+    # def __call__(self, *args, **kwargs) -> torch.Tensor:
+    #     pass
 
-    @abc.abstractmethod
-    def parameters(self) -> Iterator[torch.nn.Parameter]:
-        pass
+    # @abc.abstractmethod
+    # def parameters(self) -> Iterator[torch.nn.Parameter]:
+    #     pass

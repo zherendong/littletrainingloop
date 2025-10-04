@@ -121,9 +121,5 @@ class TrainingState(Generic[D], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_non_emb_training_pflops(self) -> float:
-        pass
-
-    @abc.abstractmethod
     def get_training_tokens_seen(self) -> int:
         pass

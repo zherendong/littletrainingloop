@@ -57,12 +57,10 @@ def do_eval(
         }
         training_tokens_seen = state.get_training_tokens_seen()
         training_pflops = state.get_training_pflops()
-        non_emb_training_pflops = state.get_non_emb_training_pflops()
         for step_val, step_name in [
             (step, ""),
             (training_tokens_seen, "/num_tokens"),
             (training_pflops, "/pflops"),
-            (non_emb_training_pflops, "/pflops_non_embedding"),
         ]:
             process_metrics(
                 metrics,
