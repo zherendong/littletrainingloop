@@ -62,10 +62,7 @@ class LanguageModel(abc.ABC, torch.nn.Module):
     def num_non_embedding_parameters(self) -> int:
         pass
 
-    # @abc.abstractmethod
-    # def __call__(self, *args, **kwargs) -> torch.Tensor:
-    #     pass
-
-    # @abc.abstractmethod
-    # def parameters(self) -> Iterator[torch.nn.Parameter]:
-    #     pass
+    @abc.abstractmethod
+    def get_output_projection_weights(self) -> torch.Tensor:
+        """For cut cross entropy."""
+        pass

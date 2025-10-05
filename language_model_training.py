@@ -34,6 +34,7 @@ import language_model_basics
 import neptune
 import transformer
 import model_configs.chinchilla  # noqa: F401
+import cut_cross_entropy
 
 
 # Ignore_index is a magic number for cross entropy loss
@@ -95,7 +96,6 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
     ):
         self.model = model
         self.config = config
-        self.criterion = nn.CrossEntropyLoss(ignore_index=_cross_entropy_ignore_index)
 
         with prng.PRNG(config.seed + 345345):
             self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
@@ -134,6 +134,22 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
 
         self.model_opt = torch.compile(self.model, mode="max-autotune", fullgraph=True)
 
+    def compute_loss(self, predictions: torch.Tensor, targets: torch.Tensor):
+        # flatten batch and sequence length for cross entropy
+        batch_size, sequence_length, inner = predictions.shape
+        predictions = predictions.view(-1, inner)
+        targets = targets.view(-1).to(torch.long)
+        loss = cut_cross_entropy.linear_cross_entropy(
+            predictions,
+            self.model.get_output_projection_weights(),
+            targets,
+            ignore_index=_cross_entropy_ignore_index,
+            filter_eps=torch.finfo(torch.float32).eps,
+            accum_e_fp32=True,
+            accum_c_fp32=True,
+        )
+        return loss
+
     def step(self, data: DataItem) -> Metrics:
 
         start = time.time()
@@ -142,17 +158,15 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             predictions = self.model_opt(data.inputs)
 
         with nvtx.range("loss", color="green"):
-            # flatten batch and sequence length for cross entropy
-            predictions = predictions.view(-1, self.config.vocab_size)
-            targets = data.targets.view(-1).long()
-
             # apply loss mask
             targets = torch.where(
-                data.loss_mask.view(-1) == 0.0,
+                data.loss_mask == 0.0,
                 _cross_entropy_ignore_index,
-                targets,
+                data.targets,
             )
-            loss = self.criterion(predictions, targets)
+
+            # flatten batch and sequence length for cross entropy
+            loss = self.compute_loss(predictions, targets)
 
         with nvtx.range("backward", color="red"):
             # Backward pass
@@ -184,17 +198,13 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
     def eval(self, data: DataItem) -> Metrics:
         with torch.no_grad():
             predictions = self.model_opt(data.inputs)
-            # flatten batch and sequence length for cross entropy
-            predictions = predictions.view(-1, self.config.vocab_size)
-            targets = data.targets.view(-1).long()
             # apply loss mask
             targets = torch.where(
-                data.loss_mask.view(-1) == 0.0,
+                data.loss_mask == 0.0,
                 _cross_entropy_ignore_index,
-                targets,
+                data.targets,
             )
-            loss = self.criterion(predictions, targets)
-
+            loss = self.compute_loss(predictions, targets)
             loss = float(loss.to(torch.float32).detach().cpu().numpy())
         return {"loss": loss}
 
@@ -275,6 +285,7 @@ def train_language_model(
 
 def run(
     model_config_str: str,
+    description: str,
     use_neptune: bool = False,
     profile_only: bool = False,
 ):
@@ -288,7 +299,7 @@ def run(
         vocab_size=100277,
         warmup_steps=100,
         learning_rate=0.001,
-        batch_size=64,
+        batch_size=256,
         sequence_length=512,
         shuffle_buffer_size=100,
         training_config=TrainingConfig(
@@ -314,8 +325,7 @@ def run(
         neptune_run = neptune.init_run(
             project="markusrabeworkspace/training-exploration",
             api_token=neptune_api_token,
-            description="Test description",
-            tags=["test-tag1", "test-tag2"],
+            description=description,
         )
     else:
         neptune_run = null_neptune.NullNeptuneRun()
@@ -326,11 +336,6 @@ def run(
         neptune_run.stop()
 
 
-# import os
-
-# os.environ["TORCH_LOGS"] = "+dynamo"
-# os.environ["TORCHDYNAMO_VERBOSE"] = "1"
-
 if __name__ == "__main__":
 
     # command line args, including name
@@ -338,10 +343,14 @@ if __name__ == "__main__":
     parser.add_argument("--no_neptune", action="store_true", default=False)
     parser.add_argument("--model_config", type=str, default="chinchilla-44m")
     parser.add_argument("--profile_only", action="store_true", default=False)
+    parser.add_argument("--description", "-d", type=str, default=None)
     args = parser.parse_args()
+
+    assert args.description is not None, "Must provide a description"
 
     run(
         use_neptune=not args.no_neptune,
         model_config_str=args.model_config,
         profile_only=args.profile_only,
+        description=args.description,
     )

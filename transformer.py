@@ -5,7 +5,7 @@ Transformer model.
 import dataclasses
 from typing import Callable
 import math
-
+from torch.utils import checkpoint
 import torch
 import torch.nn as nn
 import attention
@@ -78,15 +78,7 @@ class FP32LayerNorm(nn.Module):
             dtype=torch.float32,
         )
 
-    # @torch.compile(
-    #     # mode="max-autotune",
-    #     fullgraph=True,
-    #     options={
-    #         "max_autotune": True,
-    #         "trace.enabled": True,
-    #         "trace.graph_diagram": True,
-    #     },
-    # )
+    # @torch.compile(mode="max-autotune", fullgraph=True)
     def forward(self, x):
         input_dtype = x.dtype
         x = x.to(torch.float32)
@@ -230,23 +222,32 @@ class TransformerBlock(nn.Module):
         self.mlp = mlp_factory()
         self.attention = attention_factory()
 
-    def forward(self, x):
+    def _forward(self, x):
         x = x + self.attention(x)
         x = x + self.mlp(x)
-        assert x.dtype == torch.bfloat16
         return x
+
+    def forward(self, x: torch.Tensor):
+        if self.block_idx % 2 == 0:
+            x = checkpoint.checkpoint(
+                self._forward,
+                x,
+                use_reentrant=False,
+            )  # type: ignore
+            return x
+        return self._forward(x)
 
 
 class TransformerModel(language_model_basics.LanguageModel):
-    """Simple transformer model: y = Wx + b"""
+    """Simple transformer model."""
 
     def __init__(self, vocab_size: int, config: TransformerConfig):
         super(TransformerModel, self).__init__()
         self.vocab_size = vocab_size
         self.dim = config.embedding_size
         self.embedding = nn.Embedding(vocab_size, self.dim, dtype=torch.bfloat16)
-        self.transformer_blocks = nn.ModuleList(
-            [
+        self.transformer_blocks = nn.Sequential(
+            *[
                 TransformerBlock(
                     i,
                     self.dim,
@@ -262,6 +263,7 @@ class TransformerModel(language_model_basics.LanguageModel):
                 for i in range(config.num_layers)
             ]
         )
+
         # output projection
         self.final_norm = FP32LayerNorm(self.dim)
         self.output_projection = nn.Linear(
@@ -271,7 +273,7 @@ class TransformerModel(language_model_basics.LanguageModel):
             bias=False,
         )
         print(
-            f"Num non-embedding parameters: {sum(p.numel() for p in self.transformer_blocks.parameters())} parameters"
+            f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
         # with torch.no_grad():
@@ -281,14 +283,18 @@ class TransformerModel(language_model_basics.LanguageModel):
         #         mean=0.0, std=1.0 / math.sqrt(self.dim)
         #     )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
+        """Returns embeddings, not logits.
+
+        Use get_output_projection_weights to get the weights to compute the logits.
+        """
         x = self.embedding(x)
-        for block in self.transformer_blocks:
-            x = block(x)
+        x = self.transformer_blocks(x)
         x = self.final_norm(x)
-        x = self.output_projection(x)
-        assert x.dtype == torch.bfloat16
         return x
+
+    def get_output_projection_weights(self) -> torch.Tensor:
+        return self.output_projection.weight
 
     def num_parameters(self):
         return sum(p.numel() for p in self.parameters())
