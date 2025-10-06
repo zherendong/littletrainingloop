@@ -4,10 +4,15 @@ Basic classes for language model training.
 
 import abc
 import dataclasses
-from typing import Any, Iterator
+from typing import Any
 
 import torch
 import training_basics
+
+# Ignore_index is a magic number for cross entropy loss
+# when a target token is set to this value, we ignore the
+# loss for this token.
+cross_entropy_ignore_index = -100
 
 
 @dataclasses.dataclass
@@ -63,6 +68,5 @@ class LanguageModel(abc.ABC, torch.nn.Module):
         pass
 
     @abc.abstractmethod
-    def get_output_projection_weights(self) -> torch.Tensor:
-        """For cut cross entropy."""
+    def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         pass

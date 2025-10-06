@@ -25,7 +25,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from dotenv import load_dotenv
-from torch.utils import flop_counter
 
 import stackv2_dataloader
 import slimpajama_dataloader
@@ -124,51 +123,24 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         self.training_flops_total = 0
         self.num_tokens_seen = 0
 
-        # self.fcounter = flop_counter.FlopCounterMode(depth=4, display=False)
-        self.flops_per_step = (
-            6
-            * self.model.num_non_embedding_parameters()
-            * self.config.batch_size
-            * self.config.sequence_length
+    def flops_per_step(self, batch_shape: tuple[int, int]) -> int:
+        batch_size, sequence_length = batch_shape
+        return (
+            6 * self.model.num_non_embedding_parameters() * batch_size * sequence_length
         )
-
-        self.model_opt = torch.compile(self.model, mode="max-autotune", fullgraph=True)
-
-    def compute_loss(self, predictions: torch.Tensor, targets: torch.Tensor):
-        # flatten batch and sequence length for cross entropy
-        batch_size, sequence_length, inner = predictions.shape
-        predictions = predictions.view(-1, inner)
-        targets = targets.view(-1).to(torch.long)
-        loss = cut_cross_entropy.linear_cross_entropy(
-            predictions,
-            self.model.get_output_projection_weights(),
-            targets,
-            ignore_index=_cross_entropy_ignore_index,
-            filter_eps=torch.finfo(torch.float32).eps,
-            accum_e_fp32=True,
-            accum_c_fp32=True,
-        )
-        return loss
 
     def step(self, data: DataItem) -> Metrics:
 
         start = time.time()
-        # Forward pass
-        with nvtx.range("forward", color="blue"):
-            predictions = self.model_opt(data.inputs)
+        targets = torch.where(
+            data.loss_mask == 0.0,
+            _cross_entropy_ignore_index,
+            data.targets,
+        )
 
-        with nvtx.range("loss", color="green"):
-            # apply loss mask
-            targets = torch.where(
-                data.loss_mask == 0.0,
-                _cross_entropy_ignore_index,
-                data.targets,
-            )
+        with nvtx.range("train_step", color="blue"):
+            loss = self.model.compute_loss(data.inputs, targets)
 
-            # flatten batch and sequence length for cross entropy
-            loss = self.compute_loss(predictions, targets)
-
-        with nvtx.range("backward", color="red"):
             # Backward pass
             self.optimizer.zero_grad()
             loss.backward()
@@ -178,33 +150,31 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
 
             self.optimizer.step()
             self.scheduler.step()
-
-        # detach loss
-        loss_numpy = float(loss.to(torch.float32).detach().cpu().numpy())
+            # detach loss
+            loss_numpy = float(loss.to(torch.float32).detach().cpu().numpy())
 
         step_time = time.time() - start
-        self.training_flops_total += self.flops_per_step
+        flops_this_step = self.flops_per_step(data.inputs.shape)  # type: ignore
+        self.training_flops_total += flops_this_step
         self.num_tokens_seen += data.inputs.numel()
 
         return {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
             "pflops_total": self.training_flops_total / 1e15,
-            "tflops_per_second": self.flops_per_step / step_time / 1e12,
+            "tflops_per_second": flops_this_step / step_time / 1e12,
             "step_time_seconds": step_time,
             "num_tokens": self.num_tokens_seen,
         }
 
     def eval(self, data: DataItem) -> Metrics:
         with torch.no_grad():
-            predictions = self.model_opt(data.inputs)
-            # apply loss mask
             targets = torch.where(
                 data.loss_mask == 0.0,
                 _cross_entropy_ignore_index,
                 data.targets,
             )
-            loss = self.compute_loss(predictions, targets)
+            loss = self.model.compute_loss(data.inputs, targets)
             loss = float(loss.to(torch.float32).detach().cpu().numpy())
         return {"loss": loss}
 
@@ -298,7 +268,7 @@ def run(
     config = LanguageModelTrainingConfig(
         vocab_size=100277,
         warmup_steps=100,
-        learning_rate=0.001,
+        learning_rate=0.0005,
         batch_size=256,
         sequence_length=512,
         shuffle_buffer_size=100,
@@ -346,10 +316,12 @@ if __name__ == "__main__":
     parser.add_argument("--description", "-d", type=str, default=None)
     args = parser.parse_args()
 
-    assert args.description is not None, "Must provide a description"
+    assert (
+        args.description is not None or args.profile_only
+    ), "Must provide a description"
 
     run(
-        use_neptune=not args.no_neptune,
+        use_neptune=not args.no_neptune and not args.profile_only,
         model_config_str=args.model_config,
         profile_only=args.profile_only,
         description=args.description,

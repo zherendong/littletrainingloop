@@ -12,6 +12,7 @@ import attention
 import torchtune
 
 import language_model_basics
+import cut_cross_entropy
 
 
 @dataclasses.dataclass(frozen=True)
@@ -283,7 +284,11 @@ class TransformerModel(language_model_basics.LanguageModel):
         #         mean=0.0, std=1.0 / math.sqrt(self.dim)
         #     )
 
-    def forward(self, x: torch.Tensor):
+        self._forward_opt = torch.compile(
+            self._forward, mode="max-autotune", fullgraph=True
+        )
+
+    def _forward(self, x: torch.Tensor):
         """Returns embeddings, not logits.
 
         Use get_output_projection_weights to get the weights to compute the logits.
@@ -293,8 +298,28 @@ class TransformerModel(language_model_basics.LanguageModel):
         x = self.final_norm(x)
         return x
 
-    def get_output_projection_weights(self) -> torch.Tensor:
-        return self.output_projection.weight
+    def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
+        final_emb = self._forward_opt(inputs)
+
+        # flatten batch and sequence length for cross entropy
+        final_emb = final_emb.view(-1, self.dim)
+        targets = targets.view(-1).to(torch.long)
+
+        loss = cut_cross_entropy.linear_cross_entropy(
+            final_emb,
+            self.output_projection.weight,
+            targets,
+            ignore_index=language_model_basics.cross_entropy_ignore_index,
+            filter_eps=torch.finfo(torch.float32).eps,
+            accum_e_fp32=True,
+            accum_c_fp32=True,
+        )
+        return loss
+
+    def forward(self, x: torch.Tensor):
+        final_emb = self._forward_opt(x)
+        logits = self.output_projection(final_emb)
+        return logits
 
     def num_parameters(self):
         return sum(p.numel() for p in self.parameters())
