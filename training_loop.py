@@ -80,10 +80,6 @@ def train(
 ):
     """Training loop using configuration object"""
 
-    neptune_run["num_parameters"] = state.num_parameters()
-    neptune_run["num_non_embedding_parameters"] = state.num_non_embedding_parameters()
-    neptune_run["config"] = dataclasses.asdict(config)
-
     print(f"Starting training for {config.num_epochs} epochs...")
     for epoch in range(config.num_epochs):
         print(f"Epoch {epoch + 1}")

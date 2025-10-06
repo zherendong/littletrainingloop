@@ -241,6 +241,9 @@ def train_language_model(
             name=train_dataset.get_name(),
         )
 
+    neptune_run["num_parameters"] = state.num_parameters()
+    neptune_run["num_non_embedding_parameters"] = state.num_non_embedding_parameters()
+    neptune_run["config"] = dataclasses.asdict(config)
     # Train the model
     losses = train(
         state,
@@ -297,6 +300,7 @@ def run(
             api_token=neptune_api_token,
             description=description,
         )
+        neptune_run["model_config"] = model_config_str
     else:
         neptune_run = null_neptune.NullNeptuneRun()
     try:
