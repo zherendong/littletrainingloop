@@ -58,7 +58,7 @@ class ShuffleBuffer(DataProvider[D]):
         config: TrainingConfig,
         buffer_size: int,
         data_provider: DataProvider[D],
-        name: str = None,
+        name: str | None = None,
     ):
         self.config = config
         self.data_provider = data_provider

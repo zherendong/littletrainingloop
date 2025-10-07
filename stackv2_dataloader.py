@@ -40,11 +40,8 @@ files (list): List of files in the repository.
 num_files (int64): Number of files in the repository.
 """
 
-from typing import Any
-
 import language_model_dataloader
 from language_model_basics import LanguageModelTrainingConfig
-from training_basics import DataProvider
 
 
 def preamble(row: dict) -> str:
@@ -66,7 +63,8 @@ def extract_stackv2(row: dict) -> str:
 def create_stackv2_dataloader(
     config: LanguageModelTrainingConfig,
     path: str = "data/stackv2_long",
-) -> DataProvider[dict[str, Any]]:
+    split: str = "train",
+) -> language_model_dataloader.BatchedDataLoader:
     """Load Stack v2 dataset."""
     raw_data_loader = language_model_dataloader.JSONLDataLoader(
         config, "data/stackv2_long"
@@ -80,6 +78,10 @@ def create_stackv2_dataloader(
         config, raw_data_loader, tokenizer, extract_stackv2
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
-        config, tokenized_data_loader, tokenizer, name="Stackv2"
+        config.batch_size if split == "train" else config.eval_config.batch_size,
+        config.sequence_length,
+        tokenized_data_loader,
+        tokenizer,
+        name="Stackv2",
     )
     return batched_data_loader

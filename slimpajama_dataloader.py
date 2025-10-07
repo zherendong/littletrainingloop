@@ -6,7 +6,6 @@ from typing import Any
 
 import language_model_dataloader
 from language_model_basics import LanguageModelTrainingConfig
-from training_basics import DataProvider
 
 
 def extract_slimpajama_data(row: dict) -> str:
@@ -18,7 +17,7 @@ def create_slimpajama_dataloader(
     config: LanguageModelTrainingConfig,
     split: str = "train",
     path: str = "data/slimpajama",
-) -> DataProvider[dict[str, Any]]:
+) -> language_model_dataloader.BatchedDataLoader:
     """Load SlimPajama dataset."""
     raw_data_loader = language_model_dataloader.JSONLDataLoader(
         config, f"{path}_{split}"
@@ -32,10 +31,10 @@ def create_slimpajama_dataloader(
         config, raw_data_loader, tokenizer, extract_slimpajama_data
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
-        config,
+        config.batch_size if split == "train" else config.eval_config.batch_size,
+        config.sequence_length,
         tokenized_data_loader,
         tokenizer,
-        split=split,
         name=f"SlimPajama_{split}",
     )
     return batched_data_loader

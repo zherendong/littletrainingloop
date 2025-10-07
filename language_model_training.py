@@ -222,7 +222,9 @@ def train_language_model(
     # Create data generator
     if dataset == "stackv2":
         train_dataset = stackv2_dataloader.create_stackv2_dataloader(config)
-        eval_datasets = []
+        eval_datasets = [
+            stackv2_dataloader.create_stackv2_dataloader(config, split="validation")
+        ]
     elif dataset == "slimpajama":
         train_dataset = slimpajama_dataloader.create_slimpajama_dataloader(config)
         eval_datasets = [
@@ -283,9 +285,9 @@ def run(
             seed=42,
         ),
         eval_config=EvalConfig(
-            every_n_steps=50,
-            steps=10,
-            batch_size=64,
+            every_n_steps=100,
+            steps=5,
+            batch_size=256,
             sequence_length=512,
         ),
         model_config=model_config,

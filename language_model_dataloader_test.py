@@ -39,17 +39,20 @@ def test_tokenized_dataloader():
     )
     dataloader = TokenizedDataLoader(
         config,
-        DummyRawDataProvider(),
+        raw_data_loader=DummyRawDataProvider(),
         tokenizer=default_tokenizer(),
         data_to_text=lambda x: x["text"],
     )
-    data = next(dataloader.generate())
+    data = next(iter(dataloader.generate()))
 
     assert isinstance(data, dict), f"Expected dict, got {type(data)}"
 
 
-class DummyTokenDataProvider(DataProvider[dict[str, Any]]):
+class DummyTokenDataProvider(TokenizedDataLoader):
     """Dummy data provider for testing"""
+
+    def __init__(self):
+        pass
 
     def generate(self) -> Iterable[dict[str, Any]]:
         """Generate dummy data"""
@@ -76,11 +79,12 @@ def test_batched_dataloader():
         ),
     )
     dataloader = BatchedDataLoader(
-        config,
-        DummyTokenDataProvider(),
+        batch_size=config.batch_size,
+        sequence_length=config.sequence_length,
+        tokenized_data_loader=DummyTokenDataProvider(),
         tokenizer=default_tokenizer(),
     )
-    datastream = dataloader.generate()
+    datastream = iter(dataloader.generate())
     data = next(datastream)
 
     assert isinstance(data, DataItem), f"Expected DataItem, got {type(data)}"
@@ -140,11 +144,11 @@ def test_special_tokens_ok():
     )
     dataloader = TokenizedDataLoader(
         config,
-        DummyRawDataProvider(),
+        raw_data_loader=DummyRawDataProvider(),
         tokenizer=default_tokenizer(),
         data_to_text=lambda x: x["text"],
     )
-    data = next(dataloader.generate())
+    data = next(iter(dataloader.generate()))
 
     assert isinstance(data, dict), f"Expected dict, got {type(data)}"
     assert data["raw_text"] == text_to_tokenize

@@ -46,8 +46,8 @@ class LanguageModelTrainingConfig:
     eval_config: EvalConfig = dataclasses.field(
         default_factory=lambda: EvalConfig(
             every_n_steps=100,
-            steps=10,
-            batch_size=16,
+            steps=5,
+            batch_size=128,
             sequence_length=256,
         )
     )

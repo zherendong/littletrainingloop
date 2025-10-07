@@ -92,6 +92,7 @@ class MLP(nn.Module):
     def __init__(
         self,
         input_size: int,
+        dtype: torch.dtype,
         output_size: int | None = None,
         inner_size: int | None = None,
     ):
@@ -101,13 +102,9 @@ class MLP(nn.Module):
             output_size = input_size
         super(MLP, self).__init__()
         self.norm = FP32LayerNorm(input_size)
-        self.linear_in = nn.Linear(
-            input_size, inner_size, bias=False, dtype=torch.bfloat16
-        )
+        self.linear_in = nn.Linear(input_size, inner_size, bias=False, dtype=dtype)
         self.nonlinearity = nn.ReLU()
-        self.linear_out = nn.Linear(
-            inner_size, output_size, bias=False, dtype=torch.bfloat16
-        )
+        self.linear_out = nn.Linear(inner_size, output_size, bias=False, dtype=dtype)
 
         # with torch.no_grad():
         #     # initialization
@@ -122,7 +119,6 @@ class MLP(nn.Module):
         x = self.linear_in(x)
         x = self.nonlinearity(x)
         x = self.linear_out(x)
-        assert x.dtype == torch.bfloat16
         return x
 
 
@@ -134,6 +130,7 @@ class SelfAttention(nn.Module):  # non-flash
         num_heads_kv: int,
         head_dim: int,
         use_flash_attention: bool,
+        dtype: torch.dtype,
         head_dim_v: int | None = None,
     ):
         super(SelfAttention, self).__init__()
@@ -154,16 +151,16 @@ class SelfAttention(nn.Module):  # non-flash
 
         self.norm = FP32LayerNorm(input_size)
         self.linear_q = nn.Linear(
-            input_size, num_heads_q * head_dim, bias=False, dtype=torch.bfloat16
+            input_size, num_heads_q * head_dim, bias=False, dtype=dtype
         )
         self.linear_k = nn.Linear(
-            input_size, num_heads_kv * head_dim, bias=False, dtype=torch.bfloat16
+            input_size, num_heads_kv * head_dim, bias=False, dtype=dtype
         )
         self.linear_v = nn.Linear(
-            input_size, num_heads_kv * head_dim_v, bias=False, dtype=torch.bfloat16
+            input_size, num_heads_kv * head_dim_v, bias=False, dtype=dtype
         )
         self.linear_out = nn.Linear(
-            num_heads_q * head_dim_v, input_size, bias=False, dtype=torch.bfloat16
+            num_heads_q * head_dim_v, input_size, bias=False, dtype=dtype
         )
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
             dim=head_dim, max_seq_len=8192
@@ -205,7 +202,6 @@ class SelfAttention(nn.Module):  # non-flash
             batch_size, sequence_length, self.num_heads_q * self.head_dim_v
         )
         out = self.linear_out(out)
-        assert out.dtype == torch.bfloat16
         return out
 
 
@@ -242,23 +238,36 @@ class TransformerBlock(nn.Module):
 class TransformerModel(language_model_basics.LanguageModel):
     """Simple transformer model."""
 
-    def __init__(self, vocab_size: int, config: TransformerConfig):
+    def __init__(self, vocab_size: int, config: TransformerConfig, dtype=torch.float32):
         super(TransformerModel, self).__init__()
+
+        if dtype == torch.float32:
+            print("Using float32")
+            torch.set_float32_matmul_precision(
+                "high"
+            )  # enable use TF32 to enable tensor cores
         self.vocab_size = vocab_size
         self.dim = config.embedding_size
-        self.embedding = nn.Embedding(vocab_size, self.dim, dtype=torch.bfloat16)
+        self.config = config
+        self.dtype = dtype
+        self.embedding = nn.Embedding(vocab_size, self.dim, dtype=dtype)
         self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(
                     i,
                     self.dim,
-                    lambda: MLP(self.dim, inner_size=config.mlp_inner_size),
+                    lambda: MLP(
+                        self.dim,
+                        inner_size=config.mlp_inner_size,
+                        dtype=dtype,
+                    ),
                     lambda: SelfAttention(
                         self.dim,
                         config.num_heads,
                         config.num_heads_kv,
                         config.head_dim,
                         use_flash_attention=config.use_flash_attention,
+                        dtype=dtype,
                     ),
                 )
                 for i in range(config.num_layers)
@@ -270,7 +279,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         self.output_projection = nn.Linear(
             self.dim,
             vocab_size,
-            dtype=torch.bfloat16,
+            dtype=dtype,
             bias=False,
         )
         print(
@@ -305,9 +314,12 @@ class TransformerModel(language_model_basics.LanguageModel):
         final_emb = final_emb.view(-1, self.dim)
         targets = targets.view(-1).to(torch.long)
 
+        targets = targets.to(self.dtype)
+        weights = self.output_projection.weight.to(self.dtype)
+
         loss = cut_cross_entropy.linear_cross_entropy(
             final_emb,
-            self.output_projection.weight,
+            weights,
             targets,
             ignore_index=language_model_basics.cross_entropy_ignore_index,
             filter_eps=torch.finfo(torch.float32).eps,

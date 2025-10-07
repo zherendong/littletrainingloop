@@ -5,12 +5,13 @@ Data loader for JSONL files.
 import glob
 import json
 from typing import Any, Callable, Iterable
+import time
+
 import torch
 import tiktoken
 
 from training_loop import DataProvider
-from language_model_training import DataItem, LanguageModelTrainingConfig
-
+from language_model_basics import DataItem, LanguageModelTrainingConfig
 import prng
 
 
@@ -84,21 +85,19 @@ class BatchedDataLoader(DataProvider[DataItem]):
 
     def __init__(
         self,
-        config: LanguageModelTrainingConfig,
-        tokenized_data_loader: DataProvider[dict[str, Any]],
+        batch_size: int,
+        sequence_length: int,
+        tokenized_data_loader: TokenizedDataLoader,
         tokenizer: tiktoken.Encoding,
         split: str = "train",
-        name: str = None,
+        name: str | None = None,
     ):
-        self.config = config
-
+        self.batch_size = batch_size
+        self.sequence_length = sequence_length
         self.tokenized_data_loader = tokenized_data_loader
         self.tokenizer = tokenizer
         self.split = split
         self.name = name
-        self.batch_size = (
-            config.batch_size if split == "train" else config.eval_config.batch_size
-        )
 
     def generate(self) -> Iterable[DataItem]:
         """Create a fresh iterator."""
@@ -106,7 +105,8 @@ class BatchedDataLoader(DataProvider[DataItem]):
         rest_data_per_batch = [None] * self.batch_size
 
         while True:
-            shape = (self.batch_size, self.config.sequence_length)
+            batch_start_time = time.time()
+            shape = (self.batch_size, self.sequence_length)
             inputs = torch.zeros(shape, dtype=torch.int32)
             targets = torch.zeros(shape, dtype=torch.int32)
             loss_mask = torch.ones(shape, dtype=torch.float32)
@@ -127,7 +127,7 @@ class BatchedDataLoader(DataProvider[DataItem]):
                 text_per_tokens = []
 
                 for data in continued_data_stream(rest_data):
-                    free_space_in_batch_item = self.config.sequence_length - len(tokens)
+                    free_space_in_batch_item = self.sequence_length - len(tokens)
                     tokens.extend(data["tokens"][:free_space_in_batch_item])
                     text_per_tokens.extend(
                         data["text_per_token"][:free_space_in_batch_item]
@@ -143,19 +143,21 @@ class BatchedDataLoader(DataProvider[DataItem]):
                         }
                     rest_data_per_batch[batch_idx] = rest_data
 
-                    if len(tokens) == self.config.sequence_length:
+                    if len(tokens) == self.sequence_length:
                         break
 
                 assert (
-                    len(tokens) == self.config.sequence_length
-                ), f"got {len(tokens)}; expected {self.config.sequence_length} tokens."
-                assert len(text_per_tokens) == self.config.sequence_length
-                inputs[batch_idx] = torch.tensor(tokens)
+                    len(tokens) == self.sequence_length
+                ), f"got {len(tokens)}; expected {self.sequence_length} tokens."
+                assert len(text_per_tokens) == self.sequence_length
+                inputs[batch_idx] = torch.tensor(tokens, dtype=torch.int32)
                 target_tokens = tokens[1:] + [self.tokenizer.eot_token]
-                targets[batch_idx] = torch.tensor(target_tokens)
+                targets[batch_idx] = torch.tensor(target_tokens, dtype=torch.int32)
                 loss_mask[batch_idx, -1] = 0.0  # mask out the EOT token
                 metadata["text_per_tokens"].append(text_per_tokens)
 
+            batch_end_time = time.time()
+            print(f"Batch time: {batch_end_time - batch_start_time}")
             yield DataItem(
                 inputs,
                 targets,
@@ -167,4 +169,4 @@ class BatchedDataLoader(DataProvider[DataItem]):
         """Name of the dataset"""
         if self.name:
             return self.name
-        return f"Batched LM dataset ({self.config.batch_size=}, {self.tokenized_data_loader.get_name()})"
+        return f"Batched LM dataset ({self.batch_size=}, {self.tokenized_data_loader.get_name()})"
