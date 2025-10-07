@@ -8,6 +8,7 @@ from typing import Any
 
 import torch
 import training_basics
+import numpy as np
 
 # Ignore_index is a magic number for cross entropy loss
 # when a target token is set to this value, we ignore the
@@ -16,10 +17,10 @@ cross_entropy_ignore_index = -100
 
 
 @dataclasses.dataclass
-class DataItem:
-    inputs: torch.Tensor
-    targets: torch.Tensor
-    loss_mask: torch.Tensor
+class LMData:
+    inputs: np.ndarray
+    targets: np.ndarray
+    loss_mask: np.ndarray
     metadata: dict[str, Any] = dataclasses.field(default_factory=dict)
 
 

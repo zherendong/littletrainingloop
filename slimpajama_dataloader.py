@@ -2,10 +2,10 @@
 Data loader for SlimPajama dataset turning SlimPajama dictionaries into text to train on.
 """
 
-from typing import Any
+from typing import Iterable
 
 import language_model_dataloader
-from language_model_basics import LanguageModelTrainingConfig
+from language_model_basics import LanguageModelTrainingConfig, LMData
 
 
 def extract_slimpajama_data(row: dict) -> str:
@@ -38,3 +38,28 @@ def create_slimpajama_dataloader(
         name=f"SlimPajama_{split}",
     )
     return batched_data_loader
+
+
+def create_slimpajama_and_call_generate(
+    config: LanguageModelTrainingConfig,
+    split: str = "train",
+    path: str = "data/slimpajama",
+) -> Iterable[LMData]:
+    """Load SlimPajama dataset and call generate."""
+    dataloader = create_slimpajama_dataloader(config, split, path)
+    return dataloader.generate()
+
+
+def create_slimpajama_dataloader_in_separate_process(
+    config: LanguageModelTrainingConfig,
+    split: str = "train",
+    path: str = "data/slimpajama",
+    prefetch: int = 10,
+) -> language_model_dataloader.MultiProcessDataloader:
+    """Load SlimPajama dataset."""
+    return language_model_dataloader.MultiProcessDataloader(
+        create_slimpajama_and_call_generate,
+        {"config": config, "split": split, "path": path},
+        prefetch=prefetch,
+        name=f"SlimPajama_{split}",
+    )

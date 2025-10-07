@@ -4,15 +4,16 @@ Data loader for JSONL files.
 
 import glob
 import json
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, TypeVar
 import time
 
-import torch
+import numpy as np
 import tiktoken
 
 from training_loop import DataProvider
-from language_model_basics import DataItem, LanguageModelTrainingConfig
+from language_model_basics import LMData, LanguageModelTrainingConfig
 import prng
+import multiprocess_iterable
 
 
 def default_tokenizer():
@@ -74,7 +75,7 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]]):
         return f"Tokenized dataset ({self.raw_data_loader.get_name()})"
 
 
-class BatchedDataLoader(DataProvider[DataItem]):
+class BatchedDataLoader(DataProvider[LMData]):
     """Data loader creating batches.
 
     Tokenizes text data on the fly and returns batches of token ids.
@@ -99,7 +100,7 @@ class BatchedDataLoader(DataProvider[DataItem]):
         self.split = split
         self.name = name
 
-    def generate(self) -> Iterable[DataItem]:
+    def generate(self) -> Iterable[LMData]:
         """Create a fresh iterator."""
         global_data_stream = iter(self.tokenized_data_loader.generate())
         rest_data_per_batch = [None] * self.batch_size
@@ -107,9 +108,9 @@ class BatchedDataLoader(DataProvider[DataItem]):
         while True:
             batch_start_time = time.time()
             shape = (self.batch_size, self.sequence_length)
-            inputs = torch.zeros(shape, dtype=torch.int32)
-            targets = torch.zeros(shape, dtype=torch.int32)
-            loss_mask = torch.ones(shape, dtype=torch.float32)
+            inputs = np.zeros(shape, dtype=np.int32)
+            targets = np.zeros(shape, dtype=np.int32)
+            loss_mask = np.ones(shape, dtype=np.float32)
             metadata = {"text_per_tokens": []}
 
             def continued_data_stream(rest_data) -> Iterable[dict[str, Any]]:
@@ -150,15 +151,15 @@ class BatchedDataLoader(DataProvider[DataItem]):
                     len(tokens) == self.sequence_length
                 ), f"got {len(tokens)}; expected {self.sequence_length} tokens."
                 assert len(text_per_tokens) == self.sequence_length
-                inputs[batch_idx] = torch.tensor(tokens, dtype=torch.int32)
+                inputs[batch_idx] = tokens
                 target_tokens = tokens[1:] + [self.tokenizer.eot_token]
-                targets[batch_idx] = torch.tensor(target_tokens, dtype=torch.int32)
+                targets[batch_idx] = target_tokens
                 loss_mask[batch_idx, -1] = 0.0  # mask out the EOT token
                 metadata["text_per_tokens"].append(text_per_tokens)
 
             batch_end_time = time.time()
             print(f"Batch time: {batch_end_time - batch_start_time}")
-            yield DataItem(
+            yield LMData(
                 inputs,
                 targets,
                 loss_mask,
@@ -170,3 +171,34 @@ class BatchedDataLoader(DataProvider[DataItem]):
         if self.name:
             return self.name
         return f"Batched LM dataset ({self.batch_size=}, {self.tokenized_data_loader.get_name()})"
+
+
+T = TypeVar("T")
+
+
+class MultiProcessDataloader(DataProvider[T]):
+    """Wrap a dataloader to run it in a separate process."""
+
+    def __init__(
+        self,
+        dataloader_factory: Callable[..., Iterable[T]],
+        kwargs: dict[str, Any],
+        prefetch: int,
+        name: str | None = None,
+    ):
+        self.dataloader_factory = dataloader_factory
+        self.kwargs = kwargs
+        self.prefetch = prefetch
+        self.name = name
+
+    def generate(self) -> Iterable[T]:
+        """Create a fresh iterator."""
+        yield from multiprocess_iterable.GeneratorProcess(
+            self.dataloader_factory, self.kwargs, prefetch=self.prefetch
+        )
+
+    def get_name(self) -> str:
+        """Name of the dataset"""
+        if self.name:
+            return self.name
+        return f"MultiProcessDataloader({self.dataloader_factory.__name__})"

@@ -16,7 +16,7 @@ from training_basics import (
     Metrics,
 )
 from language_model_basics import (
-    DataItem,
+    LMData,
     LanguageModelTrainingConfig,
     EvalConfig,
 )
@@ -85,7 +85,7 @@ class DummyLanguageModel(language_model_basics.LanguageModel):
         return self.num_parameters() - self.num_embedding_parameters()
 
 
-class LanguageModelTrainingState(TrainingState[DataItem]):
+class LanguageModelTrainingState(TrainingState[LMData]):
     """Training state for language model"""
 
     def __init__(
@@ -129,17 +129,25 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             6 * self.model.num_non_embedding_parameters() * batch_size * sequence_length
         )
 
-    def step(self, data: DataItem) -> Metrics:
+    def step(self, data: LMData) -> Metrics:
+        inputs = torch.tensor(data.inputs, dtype=torch.int32)
+        targets = torch.tensor(data.targets, dtype=torch.long)
+        loss_mask = torch.tensor(data.loss_mask, dtype=torch.float32)
+        assert inputs.shape == targets.shape == loss_mask.shape
+        assert inputs.shape == (
+            self.config.batch_size,
+            self.config.sequence_length,
+        )
 
         start = time.time()
         targets = torch.where(
-            data.loss_mask == 0.0,
+            loss_mask == 0.0,
             _cross_entropy_ignore_index,
-            data.targets,
+            targets,
         )
 
         with nvtx.range("train_step", color="blue"):
-            loss = self.model.compute_loss(data.inputs, targets)
+            loss = self.model.compute_loss(inputs, targets)
 
             # Backward pass
             self.optimizer.zero_grad()
@@ -156,7 +164,7 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
         step_time = time.time() - start
         flops_this_step = self.flops_per_step(data.inputs.shape)  # type: ignore
         self.training_flops_total += flops_this_step
-        self.num_tokens_seen += data.inputs.numel()
+        self.num_tokens_seen += inputs.numel()
 
         return {
             "loss": loss_numpy,
@@ -167,14 +175,21 @@ class LanguageModelTrainingState(TrainingState[DataItem]):
             "num_tokens": self.num_tokens_seen,
         }
 
-    def eval(self, data: DataItem) -> Metrics:
+    def eval(self, data: LMData) -> Metrics:
+        inputs = torch.tensor(data.inputs, dtype=torch.int32)
+        targets = torch.tensor(data.targets, dtype=torch.long)
+        loss_mask = torch.tensor(data.loss_mask, dtype=torch.float32)
+        assert inputs.shape == (
+            self.config.eval_config.batch_size,
+            self.config.eval_config.sequence_length,
+        )
         with torch.no_grad():
             targets = torch.where(
-                data.loss_mask == 0.0,
+                loss_mask == 0.0,
                 _cross_entropy_ignore_index,
-                data.targets,
+                targets,
             )
-            loss = self.model.compute_loss(data.inputs, targets)
+            loss = self.model.compute_loss(inputs, targets)
             loss = float(loss.to(torch.float32).detach().cpu().numpy())
         return {"loss": loss}
 
@@ -226,7 +241,11 @@ def train_language_model(
             stackv2_dataloader.create_stackv2_dataloader(config, split="validation")
         ]
     elif dataset == "slimpajama":
-        train_dataset = slimpajama_dataloader.create_slimpajama_dataloader(config)
+        train_dataset = (
+            slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
+                config
+            )
+        )
         eval_datasets = [
             slimpajama_dataloader.create_slimpajama_dataloader(
                 config, split="validation"
@@ -273,7 +292,7 @@ def run(
     config = LanguageModelTrainingConfig(
         vocab_size=100277,
         warmup_steps=100,
-        learning_rate=0.0005,
+        learning_rate=0.001,
         batch_size=256,
         sequence_length=512,
         shuffle_buffer_size=100,

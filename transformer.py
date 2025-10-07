@@ -238,7 +238,9 @@ class TransformerBlock(nn.Module):
 class TransformerModel(language_model_basics.LanguageModel):
     """Simple transformer model."""
 
-    def __init__(self, vocab_size: int, config: TransformerConfig, dtype=torch.float32):
+    def __init__(
+        self, vocab_size: int, config: TransformerConfig, dtype=torch.bfloat16
+    ):
         super(TransformerModel, self).__init__()
 
         if dtype == torch.float32:
@@ -305,16 +307,18 @@ class TransformerModel(language_model_basics.LanguageModel):
         x = self.embedding(x)
         x = self.transformer_blocks(x)
         x = self.final_norm(x)
+        # don't apply the output projection, as it's handled differently in
+        # compute_loss and forward.
         return x
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
+        assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
 
         # flatten batch and sequence length for cross entropy
         final_emb = final_emb.view(-1, self.dim)
-        targets = targets.view(-1).to(torch.long)
+        targets = targets.view(-1)
 
-        targets = targets.to(self.dtype)
         weights = self.output_projection.weight.to(self.dtype)
 
         loss = cut_cross_entropy.linear_cross_entropy(

@@ -11,7 +11,7 @@ from language_model_dataloader import (
     TokenizedDataLoader,
     default_tokenizer,
 )
-from language_model_basics import DataItem, LanguageModelTrainingConfig
+from language_model_basics import LMData, LanguageModelTrainingConfig
 import torch
 
 
@@ -87,7 +87,7 @@ def test_batched_dataloader():
     datastream = iter(dataloader.generate())
     data = next(datastream)
 
-    assert isinstance(data, DataItem), f"Expected DataItem, got {type(data)}"
+    assert isinstance(data, LMData), f"Expected DataItem, got {type(data)}"
     assert data.inputs.shape == (
         2,
         6,
