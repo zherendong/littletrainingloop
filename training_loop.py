@@ -6,9 +6,11 @@ Design goals:
 - generate a clean list of functions to implement
 """
 
-import dataclasses
+import time
 from collections import defaultdict
 from typing import Sequence
+
+import torch
 
 from training_basics import (
     TrainingConfig,
@@ -96,6 +98,17 @@ def train(
                 )
             if idx >= config.training_steps_per_epoch:
                 break
+            if idx == 5:
+                torch.cuda.synchronize()
+                torch.cuda.reset_peak_memory_stats()
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                print(torch.cuda.memory_summary())
+                # snap = (
+                #     torch.cuda.memory_snapshot()
+                # )  # JSON-like: blocks, sizes, “active” flags
+                # print(snap)
+
             metrics = state.step(data)
             process_metrics(metrics, neptune_run=neptune_run, step=idx, mode="train")
 

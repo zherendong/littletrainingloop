@@ -33,13 +33,16 @@ import language_model_basics
 import neptune
 import transformer
 import model_configs.chinchilla  # noqa: F401
-import cut_cross_entropy
+import cross_entropy
 
+# import bf16_fused_adam
+import optimi  # for 16-bit optimizers
 
-# Ignore_index is a magic number for cross entropy loss
-# when a target token is set to this value, we ignore the
-# loss for this token.
-_cross_entropy_ignore_index = -100
+os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
+os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
+os.environ["TORCHINDUCTOR_AUTOGRAD_CACHE"] = "1"
+
+torch.set_float32_matmul_precision("high")  # enable use TF32 to enable tensor cores
 
 
 class DummyLanguageModel(language_model_basics.LanguageModel):
@@ -97,7 +100,17 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         self.config = config
 
         with prng.PRNG(config.seed + 345345):
-            self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
+            # self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
+            # https://optimi.benjaminwarner.dev/kahan_summation/
+            self.optimizer = optimi.AdamW(
+                model.parameters(),
+                lr=config.learning_rate,
+                # eps 1e-8 is the default in pytorch AdamW, and
+                # 1e-7 in in optimi.
+                eps=1e-7,
+                # weight_decay=0.01,
+                # betas=(0.9, 0.999),
+            )
 
         # linear learning rate schedule with warmup
         assert config.training_config.training_steps_per_epoch is not None
@@ -142,7 +155,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         start = time.time()
         targets = torch.where(
             loss_mask == 0.0,
-            _cross_entropy_ignore_index,
+            cross_entropy.cross_entropy_ignore_index,
             targets,
         )
 
@@ -186,7 +199,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         with torch.no_grad():
             targets = torch.where(
                 loss_mask == 0.0,
-                _cross_entropy_ignore_index,
+                cross_entropy.cross_entropy_ignore_index,
                 targets,
             )
             loss = self.model.compute_loss(inputs, targets)

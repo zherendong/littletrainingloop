@@ -8,11 +8,11 @@ import math
 from torch.utils import checkpoint
 import torch
 import torch.nn as nn
-import attention
 import torchtune
 
+import attention
+import cross_entropy
 import language_model_basics
-import cut_cross_entropy
 
 
 @dataclasses.dataclass(frozen=True)
@@ -235,24 +235,38 @@ class TransformerBlock(nn.Module):
         return self._forward(x)
 
 
+def mem_gb():
+    s = torch.cuda.memory_stats()
+    alloc = s["allocated_bytes.all.current"] / 1e9
+    peak = s["allocated_bytes.all.peak"] / 1e9
+    resv = s["reserved_bytes.all.current"] / 1e9
+    frag = resv - alloc
+    return alloc, peak, resv, frag
+
+
 class TransformerModel(language_model_basics.LanguageModel):
     """Simple transformer model."""
 
     def __init__(
-        self, vocab_size: int, config: TransformerConfig, dtype=torch.bfloat16
+        self,
+        vocab_size: int,
+        config: TransformerConfig,
+        params_dtype=torch.bfloat16,
+        activation_dtype=torch.bfloat16,
     ):
         super(TransformerModel, self).__init__()
-
-        if dtype == torch.float32:
-            print("Using float32")
-            torch.set_float32_matmul_precision(
-                "high"
-            )  # enable use TF32 to enable tensor cores
         self.vocab_size = vocab_size
         self.dim = config.embedding_size
         self.config = config
-        self.dtype = dtype
-        self.embedding = nn.Embedding(vocab_size, self.dim, dtype=dtype)
+        self.params_dtype = params_dtype
+        self.activation_dtype = activation_dtype
+        self.embedding = nn.Embedding(
+            vocab_size,
+            self.dim,
+            # Always float32 for embedding, as recommended
+            # for optimal quality.
+            dtype=torch.float32,
+        )
         self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(
@@ -261,7 +275,7 @@ class TransformerModel(language_model_basics.LanguageModel):
                     lambda: MLP(
                         self.dim,
                         inner_size=config.mlp_inner_size,
-                        dtype=dtype,
+                        dtype=params_dtype,
                     ),
                     lambda: SelfAttention(
                         self.dim,
@@ -269,7 +283,7 @@ class TransformerModel(language_model_basics.LanguageModel):
                         config.num_heads_kv,
                         config.head_dim,
                         use_flash_attention=config.use_flash_attention,
-                        dtype=dtype,
+                        dtype=params_dtype,
                     ),
                 )
                 for i in range(config.num_layers)
@@ -281,7 +295,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         self.output_projection = nn.Linear(
             self.dim,
             vocab_size,
-            dtype=dtype,
+            dtype=self.params_dtype,
             bias=False,
         )
         print(
@@ -304,7 +318,7 @@ class TransformerModel(language_model_basics.LanguageModel):
 
         Use get_output_projection_weights to get the weights to compute the logits.
         """
-        x = self.embedding(x)
+        x = self.embedding(x).to(self.activation_dtype)
         x = self.transformer_blocks(x)
         x = self.final_norm(x)
         # don't apply the output projection, as it's handled differently in
@@ -312,6 +326,10 @@ class TransformerModel(language_model_basics.LanguageModel):
         return x
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
+
+        alloc, peak, resv, frag = mem_gb()
+        print(f"compute_loss: {alloc=}, {peak=}, {resv=}, {frag=}")
+
         assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
 
@@ -319,16 +337,20 @@ class TransformerModel(language_model_basics.LanguageModel):
         final_emb = final_emb.view(-1, self.dim)
         targets = targets.view(-1)
 
-        weights = self.output_projection.weight.to(self.dtype)
+        weights = self.output_projection.weight
 
-        loss = cut_cross_entropy.linear_cross_entropy(
-            final_emb,
-            weights,
-            targets,
-            ignore_index=language_model_basics.cross_entropy_ignore_index,
-            filter_eps=torch.finfo(torch.float32).eps,
-            accum_e_fp32=True,
-            accum_c_fp32=True,
+        # loss = cut_cross_entropy.linear_cross_entropy(
+        #     final_emb,
+        #     weights,
+        #     targets,
+        #     ignore_index=cross_entropy.cross_entropy_ignore_index,
+        #     filter_eps=torch.finfo(torch.float32).eps,
+        #     accum_e_fp32=True,
+        #     accum_c_fp32=True,
+        # )
+        # return loss
+        loss = cross_entropy.cross_entropy_with_logits_by_segment(
+            final_emb.clone(), weights, targets
         )
         return loss
 
