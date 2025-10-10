@@ -63,3 +63,23 @@ def create_slimpajama_dataloader_in_separate_process(
         prefetch=prefetch,
         name=f"SlimPajama_{split}",
     )
+
+
+def main():
+    """Process the entire dataset to measure the number of available tokens."""
+    config = LanguageModelTrainingConfig()
+    dataloader = create_slimpajama_dataloader_in_separate_process(config)
+    num_tokens = 0
+    for idx, data in enumerate(dataloader.generate()):
+        if type(data) is not LMData:
+            print(f"Expected LMData, got {type(data)}. Likely the dataset is exhausted")
+            break
+        num_tokens += data.inputs.shape[0] * data.inputs.shape[1]
+        if idx % 100 == 0:
+            mtokens = num_tokens / 1e6
+            print(f"Processed {mtokens:.2f}M tokens")
+    print(f"Processed {num_tokens} tokens")
+
+
+if __name__ == "__main__":
+    main()

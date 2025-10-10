@@ -35,10 +35,12 @@ class JSONLDataLoader(DataProvider[dict[str, Any]]):
         shuffler = prng.PRNG(self.config.seed + 52135)
         shuffler.shuffle(files)
 
-        for file in files:
+        for file_idx, file in enumerate(files):
             with open(file, "r") as f:
                 for line in f:
                     yield json.loads(line)
+            read_fraction = file_idx / len(files)
+            print(f"Read ~{100 * read_fraction:.2f}% of the dataset")
 
     def get_name(self) -> str:
         return f"JSONL dataset ({self.path=})"
@@ -106,7 +108,6 @@ class BatchedDataLoader(DataProvider[LMData]):
         rest_data_per_batch = [None] * self.batch_size
 
         while True:
-            batch_start_time = time.time()
             shape = (self.batch_size, self.sequence_length)
             inputs = np.zeros(shape, dtype=np.int32)
             targets = np.zeros(shape, dtype=np.int32)
@@ -157,8 +158,6 @@ class BatchedDataLoader(DataProvider[LMData]):
                 loss_mask[batch_idx, -1] = 0.0  # mask out the EOT token
                 metadata["text_per_tokens"].append(text_per_tokens)
 
-            batch_end_time = time.time()
-            print(f"Batch time: {batch_end_time - batch_start_time}")
             yield LMData(
                 inputs,
                 targets,

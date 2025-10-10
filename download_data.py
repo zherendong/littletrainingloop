@@ -1,5 +1,9 @@
 """
 Data loading and processing as a python file, not a notebook.
+
+Usage:
+python download_data.py --path=data/slimpajama2 --split=train --num_files=50000
+
 """
 
 import argparse
@@ -76,27 +80,25 @@ def save_batch(batch: list[dict], directory: str, idx: int):
     print(f"Saved batch {idx}")
 
 
-def download_slimpajama(split: str = "train"):
+def download_slimpajama(
+    split: str = "train", path: str = "data/slimpajama", num_files: int = 1000
+):
     # https://huggingface.co/datasets/cerebras/SlimPajama-627B
     ds = load_dataset("cerebras/SlimPajama-627B", streaming=True)
-    ds_train, ds_test = ds["train"], ds["test"]
-
-    ds = ds_train if split == "train" else ds_test
+    # comes with train, test, and validation splits
+    ds = ds[split]
 
     start_time = time.time()
-    batched_ds = split_in_batches(ds, batch_size=5000)
-    for idx, batch in enumerate(batched_ds):
-        print(f"Batch {idx}")
-        path = f"data/slimpajama_{split}"
-        os.makedirs(path, exist_ok=True)
-        save_batch(batch, path, idx)
-        if idx >= 999:
-            break
+    threads = 32
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        batched_ds = split_in_batches(ds, batch_size=5000)
+        for idx, batch in enumerate(batched_ds):
+            executor.submit(save_batch, batch, f"{path}_{split}", idx)
+            if idx >= num_files - 1:
+                break
 
     total_time = time.time() - start_time
     print(f"Total time: {total_time}")
-
-    return ds_train, ds_test
 
 
 def upsample_long_popular_repos(ds: Iterable[dict]) -> Iterable[dict]:
@@ -160,10 +162,12 @@ def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="slimpajama")
     parser.add_argument("--split", type=str, default="train")
+    parser.add_argument("--path", type=str, default="data/slimpajama")
+    parser.add_argument("--num_files", type=int, default=1000)
     args = parser.parse_args()
 
     if args.dataset == "slimpajama":
-        download_slimpajama(args.split)
+        download_slimpajama(split=args.split, path=args.path, num_files=args.num_files)
     elif args.dataset == "stackv2":
         download_stackv2()
     else:

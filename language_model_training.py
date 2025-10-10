@@ -105,7 +105,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
                 model.parameters(),
                 lr=config.learning_rate,
                 # eps 1e-8 is the default in pytorch AdamW, and
-                # 1e-7 in in optimi.
+                # 1e-6 in optimi.
                 eps=1e-7,
                 # weight_decay=0.01,
                 # betas=(0.9, 0.999),
