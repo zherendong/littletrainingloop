@@ -19,3 +19,6 @@ import argparse
 import os
 import subprocess
 import time
+import datetime
+
+class TargetState:
