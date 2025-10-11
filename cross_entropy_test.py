@@ -64,7 +64,6 @@ def test_equivalence_with_random_data(dtype: torch.dtype):
     embeddings = torch.randn(512, 128, dtype=dtype)  # 512 samples, 128 dimensions
     projection_weights = torch.randn(1000, 128, dtype=dtype)  # 1000 classes
     targets = torch.randint(0, 1000, (512,), dtype=torch.long)
-
     compare_linear_cross_entropy(embeddings, projection_weights, targets)
 
 

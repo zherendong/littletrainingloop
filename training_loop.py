@@ -21,7 +21,7 @@ from training_basics import (
     D,
 )
 import aggregation
-import null_neptune
+import neptune_lib
 
 
 def process_metrics(metrics: Metrics, neptune_run, step=None, mode="train") -> None:
@@ -39,7 +39,7 @@ def do_eval(
     eval_data_providers: Sequence[DataProvider[D]],
     epoch: int | None = None,
     step: int | None = None,
-    neptune_run=null_neptune.NullNeptuneRun(),
+    neptune_run=neptune_lib.NullNeptuneRun(),
 ):
     """Evaluate the model"""
     print(f"Eval metrics ({epoch=}, {step=}):")
@@ -78,7 +78,7 @@ def train(
     config: TrainingConfig,
     eval_config: EvalConfig,
     eval_data_providers: Sequence[DataProvider[D]] = (),
-    neptune_run=null_neptune.NullNeptuneRun(),
+    neptune_run=neptune_lib.NullNeptuneRun(),
 ):
     """Training loop using configuration object"""
 

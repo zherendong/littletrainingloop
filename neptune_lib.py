@@ -1,0 +1,67 @@
+"""Null implementation for neptune API.
+
+Meant to allow running experiments without reporting and simplify the code that reports to neptune.
+"""
+
+import os
+
+
+class NullNeptuneFloatSeries:
+
+    def fetch_value(self):
+        raise NotImplementedError()
+
+    def append(self, value, step=None):
+        pass
+
+
+class NullNeptuneRun:
+
+    def __getitem__(self, key):
+        return NullNeptuneFloatSeries()
+
+    def __setitem__(self, key, value):
+        pass
+
+    def stop(self):
+        pass
+
+
+class NeptuneRunWrapper:
+    """Wrap neptune API to log all calls and allow us to disable it."""
+
+    def __init__(
+        self,
+        use_neptune: bool,
+        description: str,
+        run_name: str | None = None,
+    ):
+        if use_neptune:
+            import neptune
+            from dotenv import load_dotenv
+
+            print("Using neptune")
+            load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
+            neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
+
+            self.run = neptune.init_run(
+                project="markusrabeworkspace/training-exploration",
+                api_token=neptune_api_token,
+                description=description,
+                # run_name=run_name,
+            )
+            assert run_name is None, "Not implemented."
+        else:
+            self.run = NullNeptuneRun()
+
+    def __getitem__(self, key):
+        print(f"Neptune getitem: {key}")
+        return self.run[key]
+
+    def __setitem__(self, key, value):
+        print(f"Neptune setitem: {key}={value}")
+        self.run[key] = value
+
+    def stop(self):
+        print("Neptune stop")
+        self.run.stop()

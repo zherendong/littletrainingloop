@@ -7,7 +7,7 @@ import dataclasses
 import os
 import time
 import torch.cuda.nvtx as nvtx
-import null_neptune
+import neptune_lib
 
 from training_basics import (
     TrainingConfig,
@@ -30,7 +30,6 @@ import stackv2_dataloader
 import slimpajama_dataloader
 import prng
 import language_model_basics
-import neptune
 import transformer
 import model_configs.chinchilla  # noqa: F401
 import cross_entropy
@@ -293,6 +292,7 @@ def train_language_model(
 def run(
     model_config_str: str,
     description: str,
+    run_name: str | None = None,
     use_neptune: bool = False,
     profile_only: bool = False,
 ):
@@ -325,18 +325,8 @@ def run(
         model_config=model_config,
     )
 
-    if use_neptune:
-        print("Using neptune")
-        load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
-        neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
-        neptune_run = neptune.init_run(
-            project="markusrabeworkspace/training-exploration",
-            api_token=neptune_api_token,
-            description=description,
-        )
-        neptune_run["model_config"] = model_config_str
-    else:
-        neptune_run = null_neptune.NullNeptuneRun()
+    neptune_run = neptune_lib.NeptuneRunWrapper(use_neptune, description, run_name)
+    neptune_run["model_config"] = model_config_str
     try:
         losses = train_language_model(config, neptune_run=neptune_run)
         print(f"Losses: {losses}")
@@ -352,6 +342,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_config", type=str, default="chinchilla-44m")
     parser.add_argument("--profile_only", action="store_true", default=False)
     parser.add_argument("--description", "-d", type=str, default=None)
+    parser.add_argument("--id", type=str, default=None)
     args = parser.parse_args()
 
     assert (
@@ -363,4 +354,5 @@ if __name__ == "__main__":
         model_config_str=args.model_config,
         profile_only=args.profile_only,
         description=args.description,
+        run_name=args.id,
     )
