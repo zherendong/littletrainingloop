@@ -1,15 +1,16 @@
-# Minimal Training Loop
+# Language Model Training
 
-A simple PyTorch training loop implementation with a linear model and random data.
+A PyTorch implementation for training transformer language models on large text datasets like SlimPajama.
 
 ## Features
 
-- **Linear Model**: Simple neural network with one linear layer (y = Wx + b)
+- **Transformer Model**: Transformer architecture with configurable parameters
 - **Training Configuration**: Clean configuration object for all hyperparameters
-- **Random Data Generation**: Creates synthetic data with a known linear relationship
-- **Training Loop**: Complete training implementation with loss tracking
-- **Loss Summary**: Detailed loss analysis and progress tracking
-- **Weight Comparison**: Compares learned weights with true weights
+- **SlimPajama Dataset**: Support for the SlimPajama-627B dataset with efficient data loading
+- **Training Loop**: Complete training implementation with loss tracking and evaluation
+- **Multi-process Data Loading**: Efficient data loading with separate processes
+- **Neptune Integration**: Optional experiment tracking with Neptune
+- **Chinchilla Scaling**: Automatic computation of optimal numer of training steps
 
 ## Installation
 
@@ -19,63 +20,53 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-## Usage
+## Data Preparation
 
-Run the minimal training loop:
+First, download and prepare the SlimPajama dataset:
 
 ```bash
-# Using Python 3.11 directly
-/opt/homebrew/bin/python3.11 minimal_training_loop.py
+# Download training data
+python download_data.py --dataset slimpajama --split train
 
-# Or using the convenience script
-chmod +x run.sh
-./run.sh minimal_training_loop.py
+# Download validation data  
+python download_data.py --dataset slimpajama --split validation
+```
 
-# Or using the entry point
-/opt/homebrew/bin/python3.11 start.py
+This will create `data/slimpajama_train/` and `data/slimpajama_validation/` directories with the processed JSONL files.
+
+## Usage
+
+Run the language model training:
+
+```bash
+# Basic training with default configuration
+python language_model_training.py --description "My training run"
+
+# Training without Neptune logging
+python language_model_training.py --no_neptune --description "Local training"
+
+# Use different model configuration
+python language_model_training.py --model_config chinchilla-44m --description "Small model test"
+
+# Profile mode (short run for testing)
+python language_model_training.py --profile_only
 ```
 
 ## What it does
 
-1. **Data Generation**: Creates random input data (X) and corresponding outputs (y) with a known linear relationship
-2. **Model Creation**: Initializes a simple linear model with configurable input/output dimensions
-3. **Training**: Runs a training loop using SGD optimizer and MSE loss
-4. **Monitoring**: Tracks and displays loss during training
-5. **Evaluation**: Compares learned parameters with the true parameters used to generate data
-6. **Visualization**: Shows training loss curve
+1. **Data Loading**: Loads SlimPajama dataset with tokenization and batching
+2. **Model Creation**: Initializes a transformer model with specified configuration
+3. **Training**: Runs training loop with AdamW optimizer and learning rate scheduling
+4. **Monitoring**: Tracks loss, learning rate, and performance metrics during training
+5. **Evaluation**: Periodic evaluation on validation data
+6. **Experiment Tracking**: Optional Neptune integration for experiment management
 
 ## Customization
 
-You can modify the hyperparameters in the `main()` function:
+You can modify the hyperparameters in the `run()` function in `language_model_training.py`:
 
-- `input_size`: Dimension of input features
-- `output_size`: Dimension of output
-- `num_samples`: Number of training samples
-- `num_epochs`: Number of training epochs
-- `learning_rate`: Learning rate for SGD optimizer
-
-## Example Output
-
-```
-=== Minimal PyTorch Training Loop ===
-Input size: 10
-Output size: 1
-Number of samples: 1000
-Number of epochs: 100
-
-Generating random data...
-Data shapes - X: torch.Size([1000, 10]), y: torch.Size([1000, 1])
-
-Creating linear model...
-Model: LinearModel(
-  (linear): Linear(in_features=10, out_features=1, bias=True)
-)
-Number of parameters: 11
-
-Starting training for 100 epochs...
-Learning rate: 0.01
---------------------------------------------------
-Epoch [10/100], Loss: 0.234567
-Epoch [20/100], Loss: 0.123456
-...
-```
+- `batch_size`: Training batch size
+- `sequence_length`: Maximum sequence length
+- `learning_rate`: Learning rate for AdamW optimizer
+- `warmup_steps`: Number of warmup steps for learning rate schedule
+- `model_config`: Transformer architecture configuration
