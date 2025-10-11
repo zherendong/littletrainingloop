@@ -39,9 +39,6 @@ This will create `data/slimpajama_train/` and `data/slimpajama_validation/` dire
 Run the language model training:
 
 ```bash
-# Basic training with default configuration
-python language_model_training.py --description "My training run"
-
 # Training without Neptune logging
 python language_model_training.py --no_neptune --description "Local training"
 
