@@ -89,7 +89,7 @@ def download_slimpajama(
     ds = ds[split]
 
     start_time = time.time()
-    threads = 32
+    threads = 1
     with ThreadPoolExecutor(max_workers=threads) as executor:
         batched_ds = split_in_batches(ds, batch_size=5000)
         for idx, batch in enumerate(batched_ds):
