@@ -575,7 +575,7 @@ class TransformerModel(language_model_basics.LanguageModel):
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
 
         alloc, peak, resv, frag = mem_gb()
-        print(f"compute_loss: {alloc=}, {peak=}, {resv=}, {frag=}")
+        print(f"compute_loss: {alloc=:.2f}, {peak=:.2f}, {resv=:.2f}, {frag=:.2f}")
 
         assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
