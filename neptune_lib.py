@@ -35,7 +35,9 @@ class NeptuneRunWrapper:
         use_neptune: bool,
         description: str,
         run_name: str | None = None,
+        print_calls: bool = True,
     ):
+        self.print_calls = print_calls
         if use_neptune:
             import neptune
             from dotenv import load_dotenv
@@ -55,13 +57,16 @@ class NeptuneRunWrapper:
             self.run = NullNeptuneRun()
 
     def __getitem__(self, key):
-        print(f"Neptune getitem: {key}")
+        if self.print_calls:
+            print(f"Neptune getitem: {key}")
         return self.run[key]
 
     def __setitem__(self, key, value):
-        print(f"Neptune setitem: {key}={value}")
+        if self.print_calls:
+            print(f"Neptune setitem: {key}={value}")
         self.run[key] = value
 
     def stop(self):
-        print("Neptune stop")
+        if self.print_calls:
+            print("Neptune stop")
         self.run.stop()

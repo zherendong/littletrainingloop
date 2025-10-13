@@ -32,12 +32,12 @@ class TransformerConfig:
 
     # experimental architectural choices
     pre_projection_transform: str | None = None
-    early_mlp_scaling: float | None = None
-    middle_mlp_scaling: float | None = None
-    late_mlp_scaling: float | None = None
-    early_attention_scaling: int = 1
-    middle_attention_scaling: int = 1
-    late_attention_scaling: int = 1
+    early_mlp_scaling: float = 1
+    middle_mlp_scaling: float = 1
+    late_mlp_scaling: float = 1
+    early_attention_scaling: float = 1
+    middle_attention_scaling: float = 1
+    late_attention_scaling: float = 1
     segmented_norm: int | None = (
         None  # Try 128 and 512. The goal is that nothing changes.
     )
@@ -406,9 +406,8 @@ class TransformerBlock(nn.Module):
             "middle": config.middle_mlp_scaling,
             "late": config.late_mlp_scaling,
         }[layer_stage]
-        if mlp_scaling_factor is not None:
-            mlp_inner_size = int(mlp_inner_size * mlp_scaling_factor)
-            print(f"Scaling MLP inner dim of block {block_idx} to {mlp_inner_size}.")
+        mlp_inner_size = int(mlp_inner_size * mlp_scaling_factor)
+        print(f"Scaling MLP inner dim of block {block_idx} to {mlp_inner_size}.")
 
         self.mlp = MLP(
             dtype=params_dtype,
@@ -427,8 +426,8 @@ class TransformerBlock(nn.Module):
         }[layer_stage]
         self.attention = SelfAttention(
             input_size=config.embedding_size,
-            num_heads_q=config.num_heads * attention_scaling_factor,
-            num_heads_kv=config.num_heads_kv * attention_scaling_factor,
+            num_heads_q=int(config.num_heads * attention_scaling_factor),
+            num_heads_kv=int(config.num_heads_kv * attention_scaling_factor),
             head_dim=config.head_dim,
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
