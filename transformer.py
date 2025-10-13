@@ -13,6 +13,8 @@ import attention
 import cross_entropy
 import language_model_basics
 
+# import cut_cross_entropy
+
 
 @dataclasses.dataclass(frozen=True)
 class TransformerConfig:
@@ -442,14 +444,13 @@ class TransformerBlock(nn.Module):
         return x
 
     def forward(self, x: torch.Tensor):
-        if self.block_idx % 2 == 0:
-            x = checkpoint.checkpoint(
-                self._forward,
-                x,
-                use_reentrant=False,
-            )  # type: ignore
-            return x
-        return self._forward(x)
+        x = checkpoint.checkpoint(
+            self._forward,
+            x,
+            use_reentrant=False,
+            preserve_rng_state=False,
+        )  # type: ignore
+        return x
 
 
 def mem_gb():
@@ -574,7 +575,9 @@ class TransformerModel(language_model_basics.LanguageModel):
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
 
         alloc, peak, resv, frag = mem_gb()
-        print(f"compute_loss: {alloc=:.2f}, {peak=:.2f}, {resv=:.2f}, {frag=:.2f}")
+        print(f"beginning of step: {alloc=:.2f}, {peak=:.2f}, {resv=:.2f}, {frag=:.2f}")
+        # reset memory stats
+        torch.cuda.reset_peak_memory_stats()
 
         assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
@@ -586,15 +589,17 @@ class TransformerModel(language_model_basics.LanguageModel):
         weights = self.output_projection.weight
 
         # loss = cut_cross_entropy.linear_cross_entropy(
-        #     final_emb,
-        #     weights,
-        #     targets,
+        #     e=final_emb,
+        #     c=weights,
+        #     targets=targets,
         #     ignore_index=cross_entropy.cross_entropy_ignore_index,
         #     filter_eps=torch.finfo(torch.float32).eps,
-        #     accum_e_fp32=True,
-        #     accum_c_fp32=True,
+        #     # accum_e_fp32=True,
+        #     # accum_c_fp32=True,
+        #     # impl="cce_kahan_full_c",
+        #     impl="torch_compile",
         # )
-        # return loss
+
         loss = cross_entropy.cross_entropy_with_logits_by_segment(
             final_emb.clone(), weights, targets
         )

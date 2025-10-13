@@ -17,7 +17,22 @@ def _cross_entropy_with_logits(embeddings, weights, targets):
     return loss
 
 
-@torch.compile(mode="max-autotune", fullgraph=True)
+@torch.compile(
+    mode="max-autotune", fullgraph=True
+)  # mode="reduce-overhead", fullgraph=True
+def _cross_entropy_with_logits_checkpointed(
+    embeddings, weights, targets
+) -> torch.Tensor:
+    return checkpoint.checkpoint(  # type: ignore
+        _cross_entropy_with_logits,
+        embeddings,
+        weights,
+        targets,
+        use_reentrant=False,
+        preserve_rng_state=False,
+    )
+
+
 def cross_entropy_with_logits_by_segment(embeddings, weights, targets):
     """Splits the batch into segments and computes the loss for each segment.
 
@@ -26,7 +41,7 @@ def cross_entropy_with_logits_by_segment(embeddings, weights, targets):
     assert embeddings.shape[0] == targets.shape[0]
     assert embeddings.ndim == 2
     batch_size = embeddings.shape[0]
-    segment_size = 4096
+    segment_size = 4096 * 2
     num_segments = (batch_size + segment_size - 1) // segment_size
     losses = torch.zeros(num_segments, device=embeddings.device, dtype=torch.float32)
     for i in range(num_segments):
@@ -34,11 +49,7 @@ def cross_entropy_with_logits_by_segment(embeddings, weights, targets):
         end = min((i + 1) * segment_size, batch_size)
         segment_embeddings = embeddings[start:end]
         segment_targets = targets[start:end]
-        losses[i] = checkpoint.checkpoint(  # type: ignore
-            _cross_entropy_with_logits,
-            segment_embeddings,
-            weights,
-            segment_targets,
-            use_reentrant=False,
+        losses[i] = _cross_entropy_with_logits_checkpointed(
+            segment_embeddings, weights, segment_targets
         )
     return losses.mean()

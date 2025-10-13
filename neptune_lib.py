@@ -35,7 +35,7 @@ class NeptuneRunWrapper:
         use_neptune: bool,
         description: str,
         run_name: str | None = None,
-        print_calls: bool = True,
+        print_calls: bool = False,
     ):
         self.print_calls = print_calls
         if use_neptune:
