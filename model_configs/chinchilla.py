@@ -201,6 +201,116 @@ def chinchilla_509m() -> transformer.TransformerConfig:
     )
 
 
+@registry.register("chinchilla-552m")
+def chinchilla_552m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=24,
+        num_heads=10,
+        head_dim=128,
+        mlp_inner_size=5120,
+        embedding_size=1280,
+    )
+
+
+@registry.register("chinchilla-587m")
+def chinchilla_587m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=21,
+        num_heads=11,
+        head_dim=128,
+        mlp_inner_size=5632,
+        embedding_size=1408,
+    )
+
+
+@registry.register("chinchilla-632m")
+def chinchilla_632m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=19,
+        num_heads=12,
+        head_dim=128,
+        mlp_inner_size=6144,
+        embedding_size=1536,
+    )
+
+
+@registry.register("chinchilla-724m")
+def chinchilla_724m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=22,
+        num_heads=12,
+        head_dim=128,
+        mlp_inner_size=6144,
+        embedding_size=1536,
+    )
+
+
+@registry.register("chinchilla-816m")
+def chinchilla_816m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=25,
+        num_heads=12,
+        head_dim=128,
+        mlp_inner_size=6144,
+        embedding_size=1536,
+    )
+
+
+@registry.register("chinchilla-1266m")
+def chinchilla_1266m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=22,
+        num_heads=16,
+        head_dim=128,
+        mlp_inner_size=8192,
+        embedding_size=2048,
+    )
+
+
+@registry.register("chinchilla-1593m")
+def chinchilla_1593m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=28,
+        num_heads=16,
+        head_dim=128,
+        mlp_inner_size=8192,
+        embedding_size=2048,
+    )
+
+
+@registry.register("chinchilla-2298m")
+def chinchilla_2298m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=26,
+        num_heads=20,
+        head_dim=128,
+        mlp_inner_size=10240,
+        embedding_size=2560,
+    )
+
+
+@registry.register("chinchilla-4516m")
+def chinchilla_4516m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=36,
+        num_heads=24,
+        head_dim=128,
+        mlp_inner_size=12288,
+        embedding_size=3072,
+    )
+
+
+@registry.register("chinchilla-9293m")
+def chinchilla_9293m() -> transformer.TransformerConfig:
+    return transformer.TransformerConfig(
+        num_layers=42,
+        num_heads=32,
+        head_dim=128,
+        mlp_inner_size=16384,
+        embedding_size=4096,
+    )
+
+
 # Parameters (million) d_model ffw_size kv_size n_heads n_layers
 # 44 512 2048 64 8 8
 # 57 576 2304 64 9 9
