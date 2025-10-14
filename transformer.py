@@ -27,19 +27,24 @@ class TransformerConfig:
     use_flash_attention: bool = True
 
     # classic architectural options
-    gqa: bool = False
+    gqa: bool = True
     glu: bool = False
     nonlinearity: str = "relu"
     embedding_norm: bool = False
 
     # experimental architectural choices
-    pre_projection_transform: str | None = None
-    early_mlp_scaling: float = 1
+    pre_projection_transform: str | None = (
+        # one of "proj_down", "proj_up", "down_add", "down_select", "down_add_128"
+        None
+    )
+    early_mlp_scaling: float = 1.0  # TODO: try omitting the first and last layer
     middle_mlp_scaling: float = 1
     late_mlp_scaling: float = 1
+    crown_mlp_scaling: float = 1
     early_attention_scaling: float = 1
     middle_attention_scaling: float = 1
     late_attention_scaling: float = 1
+    crown_attention_scaling: float = 1
     segmented_norm: int | None = (
         None  # Try 128 and 512. The goal is that nothing changes.
     )
@@ -52,7 +57,9 @@ class TransformerConfig:
             num_heads_kv = self.num_heads
             if self.gqa:
                 num_heads_kv = math.ceil(self.num_heads / 8)
-                assert self.num_heads % num_heads_kv == 0
+                while self.num_heads % num_heads_kv != 0:
+                    num_heads_kv += 1
+                assert self.num_heads >= num_heads_kv
             object.__setattr__(
                 self,
                 "num_heads_kv",
@@ -61,13 +68,15 @@ class TransformerConfig:
 
     def get_layer_stage(self, layer_idx: int) -> str:
         """Returns "early", "middle", or "late"."""
+        if layer_idx == 0 or layer_idx == self.num_layers - 1:
+            return "crown"
         is_early = layer_idx < self.num_layers / 3
+        is_middle = layer_idx <= (self.num_layers * 2 / 3) and not is_early
+        is_late = not (is_early or is_middle)
         if is_early:
             return "early"
-        is_middle = layer_idx <= (self.num_layers * 2 / 3) and not is_early
         if is_middle:
             return "middle"
-        is_late = not (is_early or is_middle)
         if is_late:
             return "late"
         raise ValueError("unreachable")
@@ -407,6 +416,7 @@ class TransformerBlock(nn.Module):
             "early": config.early_mlp_scaling,
             "middle": config.middle_mlp_scaling,
             "late": config.late_mlp_scaling,
+            "crown": config.crown_mlp_scaling,
         }[layer_stage]
         mlp_inner_size = int(mlp_inner_size * mlp_scaling_factor)
         print(f"Scaling MLP inner dim of block {block_idx} to {mlp_inner_size}.")
@@ -425,6 +435,7 @@ class TransformerBlock(nn.Module):
             "early": config.early_attention_scaling,
             "middle": config.middle_attention_scaling,
             "late": config.late_attention_scaling,
+            "crown": config.crown_attention_scaling,
         }[layer_stage]
         self.attention = SelfAttention(
             input_size=config.embedding_size,
