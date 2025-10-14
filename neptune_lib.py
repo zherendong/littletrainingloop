@@ -49,10 +49,10 @@ class NeptuneRunWrapper:
             self.run = neptune.init_run(
                 project="markusrabeworkspace/training-exploration",
                 api_token=neptune_api_token,
-                description=description,
-                # run_name=run_name,
+                description=description or run_name,
+                name=run_name,
+                source_files="*.py",
             )
-            assert run_name is None, "Not implemented."
         else:
             self.run = NullNeptuneRun()
 
