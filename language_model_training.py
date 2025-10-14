@@ -295,9 +295,14 @@ def run(
     run_name: str | None = None,
     use_neptune: bool = False,
     profile_only: bool = False,
+    gpu_id: int | None = None,
 ):
     # Add device detection at the top of your training function
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = f"cuda:{gpu_id}" if gpu_id is not None else "cuda"
+    else:
+        device = "cpu"
+    device = torch.device(device)
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
@@ -342,17 +347,15 @@ if __name__ == "__main__":
     parser.add_argument("--model_config", type=str, default="chinchilla-44m")
     parser.add_argument("--profile_only", action="store_true", default=False)
     parser.add_argument("--description", "-d", type=str, default=None)
-    parser.add_argument("--id", type=str, default=None)
+    parser.add_argument("--name", "-n", type=str, default=None)
+    parser.add_argument("--gpu_id", "-g", type=int, default=None)
     args = parser.parse_args()
-
-    assert (
-        args.description is not None or args.profile_only
-    ), "Must provide a description"
 
     run(
         use_neptune=not args.no_neptune and not args.profile_only,
         model_config_str=args.model_config,
         profile_only=args.profile_only,
         description=args.description,
-        run_name=args.id,
+        run_name=args.name,
+        gpu_id=args.gpu_id,
     )
