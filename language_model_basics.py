@@ -27,6 +27,7 @@ class EvalConfig(training_basics.EvalConfig):
 
 @dataclasses.dataclass(frozen=True)
 class LanguageModelTrainingConfig:
+    name: str = "default_name"
     vocab_size: int = 100277
     warmup_steps: int = 0  # 0 means 5% of training steps
     learning_rate: float = 0.1
@@ -35,6 +36,9 @@ class LanguageModelTrainingConfig:
     sequence_length: int = 256
     shuffle_buffer_size: int = 0
     model_config: Any = None
+
+    adam_eps: float = 1e-7
+    adam_betas: tuple[float, float] = (0.9, 0.99)
 
     training_config: training_basics.TrainingConfig = dataclasses.field(
         default_factory=lambda: training_basics.TrainingConfig()

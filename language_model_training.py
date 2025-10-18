@@ -106,9 +106,9 @@ class LanguageModelTrainingState(TrainingState[LMData]):
                 lr=config.learning_rate,
                 # eps 1e-8 is the default in pytorch AdamW, and
                 # 1e-6 in optimi.
-                eps=1e-7,
+                eps=config.adam_eps,
+                betas=config.adam_betas,
                 # weight_decay=0.01,
-                # betas=(0.9, 0.999),
             )
 
         # linear learning rate schedule with warmup
@@ -290,11 +290,10 @@ def train_language_model(
 
 
 def run(
-    model_config_str: str,
+    config: LanguageModelTrainingConfig,
     description: str,
     run_name: str | None = None,
     use_neptune: bool = False,
-    profile_only: bool = False,
     gpu_id: int | None = None,
 ):
     # Add device detection at the top of your training function
@@ -306,14 +305,29 @@ def run(
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
+    neptune_run = neptune_lib.NeptuneRunWrapper(use_neptune, description, run_name)
+    try:
+        losses = train_language_model(config, neptune_run=neptune_run)
+        print(f"Losses: {losses}")
+    finally:
+        neptune_run.stop()
+
+
+def get_model_config(
+    model_config_str: str,
+    profile_only: bool = False,
+):
     model_config = transformer.transformer_config_registry.get(model_config_str)
-    config = LanguageModelTrainingConfig(
+    return LanguageModelTrainingConfig(
+        name=model_config_str.replace("chinchilla-", "c"),
         vocab_size=100277,
         warmup_steps=100,
         learning_rate=0.001,
         batch_size=256,
         sequence_length=512,
         shuffle_buffer_size=100,
+        adam_eps=1e-7,
+        adam_betas=(0.9, 0.99),
         training_config=TrainingConfig(
             num_epochs=1,
             training_steps_per_epoch=(
@@ -330,14 +344,6 @@ def run(
         model_config=model_config,
     )
 
-    neptune_run = neptune_lib.NeptuneRunWrapper(use_neptune, description, run_name)
-    neptune_run["model_config"] = model_config_str
-    try:
-        losses = train_language_model(config, neptune_run=neptune_run)
-        print(f"Losses: {losses}")
-    finally:
-        neptune_run.stop()
-
 
 if __name__ == "__main__":
 
@@ -351,10 +357,10 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_id", "-g", type=int, default=None)
     args = parser.parse_args()
 
+    config = get_model_config(args.model_config, args.profile_only)
     run(
+        config=config,
         use_neptune=not args.no_neptune and not args.profile_only,
-        model_config_str=args.model_config,
-        profile_only=args.profile_only,
         description=args.description,
         run_name=args.name,
         gpu_id=args.gpu_id,

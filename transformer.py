@@ -29,18 +29,19 @@ class TransformerConfig:
     # classic architectural options
     gqa: bool = True
     glu: bool = False
-    nonlinearity: str = "relu"
-    embedding_norm: bool = False
+    nonlinearity: str = "gelu"
+    embedding_norm: bool = True
 
     # experimental architectural choices
     pre_projection_transform: str | None = (
-        # one of "proj_down", "proj_up", "down_add", "down_select", "down_add_128"
-        None
+        # one of "proj_down", "down_add", "down_select", "down_add_128"
+        "proj_down"
     )
+    pre_projection_factor: float = 0.5
     early_mlp_scaling: float = 1.0  # TODO: try omitting the first and last layer
     middle_mlp_scaling: float = 1
     late_mlp_scaling: float = 1
-    crown_mlp_scaling: float = 1
+    crown_mlp_scaling: float = 1  # https://arxiv.org/pdf/2509.06518#page=3.45
     early_attention_scaling: float = 1
     middle_attention_scaling: float = 1
     late_attention_scaling: float = 1
@@ -229,17 +230,27 @@ class MLP(nn.Module):
         *,
         dtype: torch.dtype,
         input_size: int,
+        mlp_scaling_factor: float | None = None,
         output_size: int | None = None,
-        inner_size: int | None = None,
         nonlinearity: str = "relu",
         segmented_norm: int | None = None,
         glu: bool = False,
         skinny: bool = False,
+        inner_size_multiple_of: int = 256,
     ):
         super(MLP, self).__init__()
         self.input_size = input_size
-        self.inner_size = inner_size or input_size * 4
-        del inner_size
+        self.inner_size = input_size * 4
+        if mlp_scaling_factor:
+            self.inner_size = int(self.inner_size * mlp_scaling_factor)
+        if glu:
+            self.inner_size = int(self.inner_size * 2 / 3)
+        self.inner_size = inner_size_multiple_of * (
+            (self.inner_size + inner_size_multiple_of - 1) // inner_size_multiple_of
+        )
+        print(
+            f"MLP inner size: {self.inner_size}, {mlp_scaling_factor=}, {glu=}, {inner_size_multiple_of=}"
+        )
         self.output_size = output_size or input_size
         del output_size
         self.segmented_norm = segmented_norm
@@ -256,13 +267,15 @@ class MLP(nn.Module):
             )
 
         if glu:
-            self.linear_gelu = nn.Linear(
+            self.linear_glu = nn.Linear(
                 input_size, self.inner_size, bias=False, dtype=dtype
             )
         if nonlinearity == "relu":
             self.nonlinearity = nn.ReLU()
         elif nonlinearity == "gelu":
             self.nonlinearity = nn.GELU()
+        elif nonlinearity == "swish":
+            self.nonlinearity = nn.SiLU()
         else:
             raise NotImplementedError
         self.linear_out = nn.Linear(
@@ -282,7 +295,7 @@ class MLP(nn.Module):
 
         if self.glu:
             x1 = self.linear_in(x)
-            x2 = self.linear_gelu(x)
+            x2 = self.linear_glu(x)
             x = self.nonlinearity(x1) * x2
         else:
             x = self.linear_in(x)
@@ -410,7 +423,6 @@ class TransformerBlock(nn.Module):
         super(TransformerBlock, self).__init__()
         self.block_idx = block_idx
 
-        mlp_inner_size = config.mlp_inner_size
         layer_stage = config.get_layer_stage(block_idx)
         mlp_scaling_factor = {
             "early": config.early_mlp_scaling,
@@ -418,13 +430,11 @@ class TransformerBlock(nn.Module):
             "late": config.late_mlp_scaling,
             "crown": config.crown_mlp_scaling,
         }[layer_stage]
-        mlp_inner_size = int(mlp_inner_size * mlp_scaling_factor)
-        print(f"Scaling MLP inner dim of block {block_idx} to {mlp_inner_size}.")
 
         self.mlp = MLP(
             dtype=params_dtype,
+            mlp_scaling_factor=mlp_scaling_factor,
             input_size=config.embedding_size,
-            inner_size=mlp_inner_size,
             nonlinearity=config.nonlinearity,
             segmented_norm=config.segmented_norm,
             glu=config.glu,
@@ -506,39 +516,34 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
 
         # output projection
-        self.final_norm = FP32LayerNorm(self.dim, config.segmented_norm)
-
         proj_input_dim = self.dim
+        layernorm_dim = self.dim
         if self.config.pre_projection_transform == "down_add":
             proj_input_dim = proj_input_dim // 2
+            layernorm_dim = proj_input_dim
         if self.config.pre_projection_transform == "down_select":
             proj_input_dim = proj_input_dim // 2
+            layernorm_dim = proj_input_dim
         if self.config.pre_projection_transform == "down_add_128":
             proj_input_dim = 128
-
+            layernorm_dim = proj_input_dim
         if self.config.pre_projection_transform == "proj_down":
-            self.output_projection = SkinnyLinear(
+            proj_input_dim = int(self.dim * config.pre_projection_factor)
+            self.output_compressor = nn.Linear(
+                self.dim,
                 proj_input_dim,
-                vocab_size,
-                dtype=self.params_dtype,
-                inner_size=self.dim // 2,
-            )
-        elif self.config.pre_projection_transform == "proj_up":
-            self.output_projection = SkinnyLinear(
-                proj_input_dim,
-                vocab_size,
-                dtype=self.params_dtype,
-                inner_size=self.dim * 2,
-            )
-        else:
-            assert self.config.pre_projection_transform is None
-            print("Plain output projection.")
-            self.output_projection = nn.Linear(
-                proj_input_dim,
-                vocab_size,
                 dtype=self.params_dtype,
                 bias=False,
             )
+            layernorm_dim = self.dim
+
+        self.final_norm = FP32LayerNorm(layernorm_dim, config.segmented_norm)
+        self.output_projection = nn.Linear(
+            proj_input_dim,
+            vocab_size,
+            dtype=self.params_dtype,
+            bias=False,
+        )
         print(
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
@@ -555,20 +560,25 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
+        """Transform the embeddings before the output projection - default is norm."""
         batch, seq_len, emb_dim = x.shape
-        if self.config.pre_projection_transform in [None, "proj_down", "proj_up"]:
-            return x
+        if self.config.pre_projection_transform == "proj_down":
+            x = self.final_norm(x)
+            x = self.output_compressor(x)
+            return x  # stand-out return statement to enable norm before compression
+
+        if self.config.pre_projection_transform is None:
+            x = x
         elif self.config.pre_projection_transform == "down_add":
-            return x[..., : emb_dim // 2] + x[..., emb_dim // 2]
+            x = x[..., : emb_dim // 2] + x[..., emb_dim // 2 :]
         elif self.config.pre_projection_transform == "down_select":
-            return x[..., : emb_dim // 2]
+            x = x[..., : emb_dim // 2]
         elif self.config.pre_projection_transform == "down_add_128":
             x = x.view(batch, seq_len, 128, emb_dim // 128)
-            return x.sum(
-                -1
-            )  # TODO: does this return a new tensor? does the dim selector work?
+            x = x.sum(-1)
         else:
             raise NotImplementedError
+        return self.final_norm(x)
 
     def _forward(self, x: torch.Tensor):
         """Returns embeddings, not logits.
@@ -578,10 +588,12 @@ class TransformerModel(language_model_basics.LanguageModel):
         x = self.embedding(x).to(self.activation_dtype)
         x = self.transformer_blocks(x)
         x = self.emb_transformation(x)
-        x = self.final_norm(x)
         # don't apply the output projection, as it's handled differently in
         # compute_loss and forward.
         return x
+
+    def get_output_projection_weights(self):
+        return self.output_projection.weight
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
 
@@ -593,11 +605,12 @@ class TransformerModel(language_model_basics.LanguageModel):
         assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
 
+        emb_dim = final_emb.shape[-1]
         # flatten batch and sequence length for cross entropy
-        final_emb = final_emb.view(-1, self.dim)
+        final_emb = final_emb.view(-1, emb_dim)
         targets = targets.view(-1)
 
-        weights = self.output_projection.weight
+        weights = self.get_output_projection_weights()
 
         # loss = cut_cross_entropy.linear_cross_entropy(
         #     e=final_emb,
