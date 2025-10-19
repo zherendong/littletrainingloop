@@ -76,7 +76,7 @@ def save_batch(batch: list[dict], directory: str, idx: int):
     print(f"Saved batch {idx}")
 
 
-def download_slimpajama(split: str = "train"):
+def download_slimpajama(split: str = "train", output_dir: str = "data/slimpajama"):
     # https://huggingface.co/datasets/cerebras/SlimPajama-627B
     ds = load_dataset("cerebras/SlimPajama-627B", streaming=True)
     ds_train, ds_test = ds["train"], ds["test"]
@@ -87,7 +87,7 @@ def download_slimpajama(split: str = "train"):
     batched_ds = split_in_batches(ds, batch_size=5000)
     for idx, batch in enumerate(batched_ds):
         print(f"Batch {idx}")
-        path = f"data/slimpajama_{split}"
+        path = f"{output_dir}_{split}"
         os.makedirs(path, exist_ok=True)
         save_batch(batch, path, idx)
         if idx >= 999:
@@ -122,7 +122,7 @@ def upsample_long_popular_repos(ds: Iterable[dict]) -> Iterable[dict]:
             )
 
 
-def download_stackv2():
+def download_stackv2(output_dir: str = "data/stackv2_long"):
     # https://huggingface.co/datasets/bigcode/the-stack-v2-train-full-ids
 
     # load_dotenv(dotenv_path=os.path.expanduser("~/.aws/.env"))
@@ -144,7 +144,7 @@ def download_stackv2():
         batched_ds = split_in_batches(long_repos_ds, batch_size=100)
         for idx, batch in enumerate(batched_ds):
             batch = hydrate_batch(batch, executor, s3)
-            executor.submit(save_batch, batch, directory="data/stackv2_long", idx=idx)
+            executor.submit(save_batch, batch, directory=output_dir, idx=idx)
 
             if idx >= 999:
                 break
@@ -160,12 +160,16 @@ def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=str, default="slimpajama")
     parser.add_argument("--split", type=str, default="train")
+    parser.add_argument("--output-dir", type=str, default="data",
+                        help="Output directory for the downloaded dataset (default: 'data')")
     args = parser.parse_args()
 
     if args.dataset == "slimpajama":
-        download_slimpajama(args.split)
+        output_dir = f"{args.output_dir}/slimpajama"
+        download_slimpajama(args.split, output_dir)
     elif args.dataset == "stackv2":
-        download_stackv2()
+        output_dir = f"{args.output_dir}/stackv2_long"
+        download_stackv2(output_dir)
     else:
         raise ValueError(f"Unknown dataset {args.dataset}")
 
