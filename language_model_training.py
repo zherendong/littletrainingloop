@@ -37,11 +37,17 @@ import cross_entropy
 # import bf16_fused_adam
 import optimi  # for 16-bit optimizers
 
-os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
+# cache for torch.compile to improve startup times.
+# os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
+os.environ["TORCHINDUCTOR_CACHE_DIR"] = (
+    "~/shv-storage-us-east-3/littletrainingloop/torchinductor_cache"
+)
 os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
 os.environ["TORCHINDUCTOR_AUTOGRAD_CACHE"] = "1"
 
 torch.set_float32_matmul_precision("high")  # enable use TF32 to enable tensor cores
+
+assert torch.cuda.is_available(), "CUDA required"
 
 
 class DummyLanguageModel(language_model_basics.LanguageModel):
@@ -295,6 +301,7 @@ def run(
     run_name: str | None = None,
     use_neptune: bool = False,
     gpu_id: int | None = None,
+    neptune_tags: list[str] = [],
 ):
     # Add device detection at the top of your training function
     if torch.cuda.is_available():
@@ -305,7 +312,12 @@ def run(
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
-    neptune_run = neptune_lib.NeptuneRunWrapper(use_neptune, description, run_name)
+    neptune_run = neptune_lib.NeptuneRunWrapper(
+        use_neptune,
+        description,
+        run_name,
+        tags=neptune_tags,
+    )
     try:
         losses = train_language_model(config, neptune_run=neptune_run)
         print(f"Losses: {losses}")

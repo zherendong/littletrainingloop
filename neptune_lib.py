@@ -36,6 +36,7 @@ class NeptuneRunWrapper:
         description: str,
         run_name: str | None = None,
         print_calls: bool = False,
+        tags: list[str] = [],
     ):
         self.print_calls = print_calls
         if use_neptune:
@@ -52,6 +53,7 @@ class NeptuneRunWrapper:
                 description=description or run_name,
                 name=run_name,
                 source_files="*.py",
+                tags=tags,
             )
         else:
             self.run = NullNeptuneRun()
