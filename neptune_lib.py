@@ -44,7 +44,7 @@ class NeptuneRunWrapper:
             from dotenv import load_dotenv
 
             print("Using neptune")
-            load_dotenv(dotenv_path=os.path.expanduser("~/.neptune/.env"))
+            load_dotenv(dotenv_path=os.path.expanduser(".env"))
             neptune_api_token = os.environ["NEPTUNE_API_TOKEN"]
 
             self.run = neptune.init_run(
