@@ -19,6 +19,8 @@ import language_model_training
 from dataclasses import replace
 import argparse
 
+import subprocess
+
 
 def config_variants(
     config: language_model_training.LanguageModelTrainingConfig,
@@ -28,6 +30,7 @@ def config_variants(
 
     eps_variants = []
     for config in variants:
+        # for eps in [1e-7, 1e-6, 1e-8]:
         for eps in [1e-7, 1e-6, 1e-8]:
             eps_variants.append(
                 replace(
@@ -40,7 +43,9 @@ def config_variants(
 
     betas_variants = []
     for config in variants:
-        for betas in [(0.9, 0.99), (0.9, 0.95), (0.9, 0.995)]:
+        # for betas in [(0.9, 0.99), (0.9, 0.95), (0.9, 0.995)]:
+        # for betas in [(0.9, 0.99), (0.9, 0.995)]:
+        for betas in [(0.9, 0.995)]:
             betas_variants.append(
                 replace(
                     config,
@@ -52,7 +57,7 @@ def config_variants(
 
     bs_variants = []
     for config in variants:
-        for bs in [128, 256, 512]:
+        for bs in [192]:
             bs_variants.append(
                 replace(
                     config,
@@ -64,7 +69,7 @@ def config_variants(
 
     lr_variants = []
     for config in variants:
-        for lr in [0.001, 0.0005, 0.0002]:
+        for lr in [0.001, 0.0015, 0.002]:
             lr_variants.append(
                 replace(
                     config,
@@ -74,17 +79,6 @@ def config_variants(
             )
     variants = lr_variants
 
-    warmup_variants = []
-    for config in variants:
-        for warmup_steps in [100, 500]:
-            warmup_variants.append(
-                replace(
-                    config,
-                    warmup_steps=warmup_steps,
-                    name=config.name + f"_warmup{warmup_steps}",
-                )
-            )
-    variants = warmup_variants
     print(f"Generated {len(variants)} variants")
     return variants
 
@@ -95,12 +89,13 @@ def main(split: int, num_splits: int, neptune_tags: list[str]):
         "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
-        "chinchilla-140m",
-        # "chinchilla-163m",
-        "chinchilla-251m",
+        # "chinchilla-117m",
+        # "chinchilla-140m",
+        "chinchilla-163m",
+        # "chinchilla-251m",
         # "chinchilla-306m",
         # "chinchilla-425m",
-        "chinchilla-489m",
+        # "chinchilla-489m",
         # "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",
@@ -129,9 +124,108 @@ def main(split: int, num_splits: int, neptune_tags: list[str]):
             run_name=cfg.name,
             description=cfg.name,
             use_neptune=True,
-            gpu_id=split,
             neptune_tags=neptune_tags,
         )
+
+
+# Define GPU machines (excluding lambdagh200_1 for development)
+gpu_machines = [
+    "lambdagh200",
+    "lambdagh200_2",
+    "lambdagh200_3",
+    "lambdagh200_4",
+    "lambdagh200_5",
+    "lambdagh200_6",
+    "lambdagh200_7",
+    "lambdagh200_8",
+]
+
+
+def multi_gpu_main(neptune_tags: list[str], gpus_to_use: list[int] | None = None):
+    """Run multiple experiments in parallel on multiple GPUs.
+
+    We have lambdagh200_2, lambdagh200_3, ..., lambdagh200_8 and we want to split the work over them.
+    This is 7 GPUs. There is also lambdagh200_1, but it is reserved for development.
+
+    We ssh into each of them with `ssh lambdagh200_X`, then attach to tmux session "train" and run this script with
+    python run_scaling_series.py --split 0 --num_splits 7 --neptune_tags [...]
+    python run_scaling_series.py --split 1 --num_splits 7 --neptune_tags [...]
+    ...
+    etc.
+    """
+
+    if gpus_to_use is not None:
+        gpu_machines_this_run = [gpu_machines[i] for i in gpus_to_use]
+    else:
+        gpu_machines_this_run = gpu_machines
+
+    num_splits = len(gpu_machines_this_run)
+
+    for split_idx, machine in enumerate(gpu_machines_this_run):
+        # Build the Python command
+        python_cmd = f"python run_scaling_series.py --split {split_idx} --num_splits {num_splits} --neptune_tags {' '.join(neptune_tags)}"
+
+        # SSH into machine and send command to tmux session "train"
+        # tmux send-keys sends the command and Enter to execute it
+        ssh_cmd = [
+            "ssh",
+            machine,
+            f"tmux send-keys -t train '{python_cmd}' Enter",
+        ]
+
+        print(f"Launching on {machine} (split {split_idx}/{num_splits})")
+
+        # Execute the SSH command
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print(f"  ✓ Command sent to {machine}:train")
+        else:
+            print(f"  ✗ Failed to send command to {machine}")
+            print(f"    Error: {result.stderr}")
+
+    print(f"\nAll {num_splits} jobs dispatched!")
+    print("To monitor progress, SSH into each machine and attach to tmux:")
+    for machine in gpu_machines:
+        print(f"  ssh {machine} -t 'tmux attach -t train'")
+
+
+def stop_all_jobs():
+    """Stop all jobs on all machines."""
+    for machine in gpu_machines:
+        ssh_cmd = [
+            "ssh",
+            machine,
+            "tmux send-keys -t train C-c C-c Enter",
+        ]
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"  ✓ Stop command sent to {machine}:train")
+        else:
+            print(f"  ✗ Failed to send stop command to {machine}")
+
+
+def check_jobs():
+    """Check if jobs are running on all machines."""
+    # the session is always there, but the process might have died
+    for machine in gpu_machines:
+        # check if there is a python process running in the tmux session
+        if machine == gpu_machines[0]:
+            # go direct, not via ssh
+            ssh_cmd = ["pgrep", "-f", "python run_scaling_series.py"]
+        else:
+            ssh_cmd = [
+                "ssh",
+                machine,
+                'pgrep -f "python run_scaling_series.py"',
+            ]
+        # print(f"Checking {machine}:train")
+        result = subprocess.run(ssh_cmd, capture_output=True, text=True)
+        # print(f"{result.returncode=}, {result.stdout=}, {result.stderr=}")
+        if result.returncode == 0:
+            print(f"  ✓ {machine}:train is running")
+        else:
+            print(f"  ✗ {machine}:train is not running")
 
 
 if __name__ == "__main__":
@@ -141,6 +235,21 @@ if __name__ == "__main__":
     parser.add_argument("--split", type=int, default=0)
     parser.add_argument("--num_splits", type=int, default=1)
     parser.add_argument("--neptune_tags", type=str, nargs="+", default=[])
+    parser.add_argument("--stop_all_jobs", action="store_true", default=False)
+    parser.add_argument("--multi_gpu", action="store_true", default=False)
+    parser.add_argument("--check_jobs", action="store_true", default=False)
+    parser.add_argument("--gpus_to_use", type=int, nargs="+", default=None)
     args = parser.parse_args()
 
-    main(args.split, args.num_splits, args.neptune_tags)
+    assert (
+        args.stop_all_jobs or args.check_jobs or args.neptune_tags
+    ), "Please provide neptune tags"
+
+    if args.stop_all_jobs:
+        stop_all_jobs()
+    elif args.check_jobs:
+        check_jobs()
+    elif args.multi_gpu:
+        multi_gpu_main(args.neptune_tags, args.gpus_to_use)
+    else:
+        main(args.split, args.num_splits, args.neptune_tags)
