@@ -24,7 +24,6 @@ from training_loop import train
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from dotenv import load_dotenv
 
 import stackv2_dataloader
 import slimpajama_dataloader
@@ -38,10 +37,7 @@ import cross_entropy
 import optimi  # for 16-bit optimizers
 
 # cache for torch.compile to improve startup times.
-# os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
-os.environ["TORCHINDUCTOR_CACHE_DIR"] = (
-    "~/shv-storage-us-east-3/littletrainingloop/torchinductor_cache"
-)
+os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
 os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
 os.environ["TORCHINDUCTOR_AUTOGRAD_CACHE"] = "1"
 
@@ -334,12 +330,12 @@ def get_model_config(
         name=model_config_str.replace("chinchilla-", "c"),
         vocab_size=100277,
         warmup_steps=100,
-        learning_rate=0.001,
-        batch_size=256,
+        learning_rate=0.0015,
+        batch_size=192,
         sequence_length=512,
         shuffle_buffer_size=100,
         adam_eps=1e-7,
-        adam_betas=(0.9, 0.99),
+        adam_betas=(0.9, 0.995),
         training_config=TrainingConfig(
             num_epochs=1,
             training_steps_per_epoch=(
@@ -367,6 +363,7 @@ if __name__ == "__main__":
     parser.add_argument("--description", "-d", type=str, default=None)
     parser.add_argument("--name", "-n", type=str, default=None)
     parser.add_argument("--gpu_id", "-g", type=int, default=None)
+    parser.add_argument("--neptune_tags", type=str, nargs="+", default=[])
     args = parser.parse_args()
 
     config = get_model_config(args.model_config, args.profile_only)
@@ -376,4 +373,5 @@ if __name__ == "__main__":
         description=args.description,
         run_name=args.name,
         gpu_id=args.gpu_id,
+        neptune_tags=args.neptune_tags,
     )
