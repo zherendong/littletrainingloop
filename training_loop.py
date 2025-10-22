@@ -110,7 +110,10 @@ def train(
                 # print(snap)
 
             metrics = state.step(data)
-            process_metrics(metrics, neptune_run=neptune_run, step=idx, mode="train")
+            if idx % config.train_metrics_every_n_steps == 0:
+                process_metrics(
+                    metrics, neptune_run=neptune_run, step=idx, mode="train"
+                )
 
         print(f"Epoch {epoch + 1} completed.")
         do_eval(

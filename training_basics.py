@@ -16,6 +16,7 @@ class TrainingConfig:
     num_epochs: int = 1
     training_steps_per_epoch: int | None = 100
     seed: int = 42
+    train_metrics_every_n_steps: int = 10
 
 
 @dataclasses.dataclass(frozen=True)
