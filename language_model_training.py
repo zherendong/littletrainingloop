@@ -235,7 +235,9 @@ def train_language_model(
         # Chinchilla-optimal amount of data, which is 20 tokens per parameter
         num_parameters = model.num_non_embedding_parameters()
         num_tokens_per_step = config.batch_size * config.sequence_length
-        chinchilla_optimal_steps = int(20 * num_parameters / num_tokens_per_step)
+        chinchilla_optimal_steps = int(
+            20 * num_parameters * config.chinchilla_factor / num_tokens_per_step
+        )
         print(f"Using Chinchilla-optimal number of steps: {chinchilla_optimal_steps}")
         config = dataclasses.replace(
             config,

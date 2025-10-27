@@ -51,6 +51,7 @@ class LanguageModelTrainingConfig:
             sequence_length=256,
         )
     )
+    chinchilla_factor: float = 1.0
 
 
 class LanguageModel(abc.ABC, torch.nn.Module):
