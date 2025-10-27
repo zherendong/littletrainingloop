@@ -38,7 +38,7 @@ class TransformerConfig:
         "proj_down"
     )
     pre_projection_factor: float = 0.5
-    early_mlp_scaling: float = 1.0  # TODO: try omitting the first and last layer
+    early_mlp_scaling: float = 1
     middle_mlp_scaling: float = 1
     late_mlp_scaling: float = 1
     crown_mlp_scaling: float = 1  # https://arxiv.org/pdf/2509.06518#page=3.45
@@ -52,6 +52,8 @@ class TransformerConfig:
     skinny_mlps: bool = False
     skinny_queries: bool = False
     copy_values: bool = False
+    # output scaling one of None, "scalar", "per_channel", "scalar0", "per_channel0", "per_channel_sigmoid", "per_channel_sigmoid_minus"
+    output_scaling_mode: str | None = None
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -222,6 +224,44 @@ class SkinnyLinear(nn.Module):
         return x
 
 
+class OutputScaling(nn.Module):
+    def __init__(
+        self,
+        size: int,
+        dtype: torch.dtype,
+        mode: str | None = None,
+    ):
+        super(OutputScaling, self).__init__()
+        self.size = size
+        self.mode = mode
+
+        if mode is None:
+            pass
+        elif mode == "scalar":
+            self.scale = nn.Parameter(torch.ones(1, dtype=dtype))
+        elif mode == "per_channel":
+            self.scale = nn.Parameter(torch.ones(size, dtype=dtype))
+        elif mode == "scalar0":
+            self.scale = nn.Parameter(torch.zeros(1, dtype=dtype))
+        elif mode == "per_channel0":
+            self.scale = nn.Parameter(torch.zeros(size, dtype=dtype))
+        elif mode == "per_channel_sigmoid":
+            self.scale = nn.Parameter(torch.zeros(size, dtype=dtype))
+        elif mode == "per_channel_sigmoid_minus":
+            init_value = torch.zeros(size, dtype=dtype)
+            init_value.fill_(-1.0)
+            self.scale = nn.Parameter(init_value)
+        else:
+            raise ValueError(f"Unknown output scaling mode: {mode}")
+
+    def forward(self, x):
+        if self.mode is None:
+            return x
+        if self.mode in ["per_channel_sigmoid", "per_channel_sigmoid_minus"]:
+            return x * torch.sigmoid(self.scale)
+        return x * self.scale
+
+
 class MLP(nn.Module):
     """MLP with optional GLU."""
 
@@ -237,6 +277,7 @@ class MLP(nn.Module):
         glu: bool = False,
         skinny: bool = False,
         inner_size_multiple_of: int = 256,
+        output_scaling_mode: str | None = None,
     ):
         super(MLP, self).__init__()
         self.input_size = input_size
@@ -278,8 +319,14 @@ class MLP(nn.Module):
             self.nonlinearity = nn.SiLU()
         else:
             raise NotImplementedError
+
         self.linear_out = nn.Linear(
             self.inner_size, self.output_size, bias=False, dtype=dtype
+        )
+        # with torch.no_grad():
+        #     self.linear_out.weight.data.zero_()  # initialize as zero
+        self.output_scaling = OutputScaling(
+            self.output_size, dtype=dtype, mode=output_scaling_mode
         )
 
         # with torch.no_grad():
@@ -302,6 +349,7 @@ class MLP(nn.Module):
             x = self.nonlinearity(x)
 
         x = self.linear_out(x)
+        x = self.output_scaling(x)
         return x
 
 
@@ -318,6 +366,7 @@ class SelfAttention(nn.Module):
         segmented_norm: int | None = None,
         skinny_queries: bool = False,
         copy_values: bool = False,
+        output_scaling_mode: str | None = None,
     ):
         super(SelfAttention, self).__init__()
         self.input_size = input_size
@@ -329,7 +378,7 @@ class SelfAttention(nn.Module):
 
         assert (
             self.q_per_kv * num_heads_kv == num_heads_q
-        ), "num_heads_q must be a multiple of num_heads_kv"
+        ), f"num_heads_q must be a multiple of num_heads_kv, but got {num_heads_q=} and {num_heads_kv=} and {self.q_per_kv=}"
 
         self.use_flash_attention = use_flash_attention
 
@@ -371,8 +420,15 @@ class SelfAttention(nn.Module):
             bias=False,
             dtype=dtype,
         )
+
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
             dim=head_dim, max_seq_len=8192
+        )
+
+        self.output_scaling = OutputScaling(
+            self.input_size,
+            dtype=dtype,
+            mode=output_scaling_mode,
         )
 
         # with torch.no_grad():
@@ -410,6 +466,7 @@ class SelfAttention(nn.Module):
             batch_size, sequence_length, self.num_heads_q * self.head_dim_v
         )
         out = self.linear_out(out)
+        out = self.output_scaling(out)
         return out
 
 
@@ -439,6 +496,7 @@ class TransformerBlock(nn.Module):
             segmented_norm=config.segmented_norm,
             glu=config.glu,
             skinny=config.skinny_mlps,
+            output_scaling_mode=config.output_scaling_mode,
         )
 
         attention_scaling_factor = {
@@ -447,16 +505,29 @@ class TransformerBlock(nn.Module):
             "late": config.late_attention_scaling,
             "crown": config.crown_attention_scaling,
         }[layer_stage]
+        num_heads_q = int(config.num_heads * attention_scaling_factor)
+        num_heads_kv = config.num_heads_kv
+        if num_heads_q % num_heads_kv != 0:
+            num_heads_kv = math.ceil(num_heads_q / 8)
+            while num_heads_q % num_heads_kv != 0:
+                if attention_scaling_factor > 1.0:
+                    num_heads_kv += 1
+                else:
+                    num_heads_kv -= 1
+        print(
+            f"Block {block_idx} has {num_heads_q} heads_q and {num_heads_kv} heads_kv"
+        )
         self.attention = SelfAttention(
             input_size=config.embedding_size,
-            num_heads_q=int(config.num_heads * attention_scaling_factor),
-            num_heads_kv=int(config.num_heads_kv * attention_scaling_factor),
+            num_heads_q=num_heads_q,
+            num_heads_kv=num_heads_kv,
             head_dim=config.head_dim,
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
             segmented_norm=config.segmented_norm,
             skinny_queries=config.skinny_queries,
             copy_values=config.copy_values,
+            output_scaling_mode=config.output_scaling_mode,
         )
 
     def _forward(self, x):

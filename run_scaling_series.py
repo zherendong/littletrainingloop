@@ -28,48 +28,25 @@ def config_variants(
     """Generate variants of a config."""
     variants = [config]
 
-    eps_variants = []
-    for config in variants:
-        # for eps in [1e-7, 1e-6, 1e-8]:
-        for eps in [1e-7, 1e-6, 1e-8]:
-            eps_variants.append(
-                replace(
-                    config,
-                    adam_eps=eps,
-                    name=config.name + f"_eps{eps}",
-                )
-            )
-    variants = eps_variants
-
-    betas_variants = []
-    for config in variants:
-        # for betas in [(0.9, 0.99), (0.9, 0.95), (0.9, 0.995)]:
-        # for betas in [(0.9, 0.99), (0.9, 0.995)]:
-        for betas in [(0.9, 0.995)]:
-            betas_variants.append(
-                replace(
-                    config,
-                    adam_betas=betas,
-                    name=config.name + f"_betas{betas[1]}",
-                )
-            )
-    variants = betas_variants
-
-    bs_variants = []
-    for config in variants:
-        for bs in [192]:
-            bs_variants.append(
-                replace(
-                    config,
-                    batch_size=bs,
-                    name=config.name + f"_bs{bs}",
-                )
-            )
-    variants = bs_variants
-
     lr_variants = []
     for config in variants:
-        for lr in [0.001, 0.0015, 0.002]:
+        # get chinchilla num params from config.name
+        try:
+            chinchilla_size = int(
+                config.name.split("_")[0].replace("m", "").replace("c", "")
+            )
+        except IndexError:
+            print(f"Could not parse chinchilla size from {config.name}")
+            continue
+        if chinchilla_size <= 100:
+            lrs = [0.002]
+        elif chinchilla_size <= 200:
+            lrs = [0.0015]
+        elif chinchilla_size <= 300:
+            lrs = [0.001]
+        else:
+            lrs = [0.0005, 0.0007, 0.001]
+        for lr in lrs:
             lr_variants.append(
                 replace(
                     config,
@@ -79,24 +56,113 @@ def config_variants(
             )
     variants = lr_variants
 
+    # eps_variants = []
+    # for config in variants:
+    #     # for eps in [1e-7, 1e-6, 1e-8]:
+    #     for eps in [1e-7]:
+    #         eps_variants.append(
+    #             replace(
+    #                 config,
+    #                 adam_eps=eps,
+    #                 name=config.name + f"_eps{eps}",
+    #             )
+    #         )
+    # variants = eps_variants
+
+    # betas_variants = []
+    # for config in variants:
+    #     # for betas in [(0.9, 0.99), (0.9, 0.995)]:
+    #     for betas in [(0.9, 0.995)]:
+    #         betas_variants.append(
+    #             replace(
+    #                 config,
+    #                 adam_betas=betas,
+    #                 name=config.name + f"_betas{betas[1]}",
+    #             )
+    #         )
+    # variants = betas_variants
+
+    # bs_variants = []
+    # for config in variants:
+    #     for bs in [192]:
+    #         bs_variants.append(
+    #             replace(
+    #                 config,
+    #                 batch_size=bs,
+    #                 name=config.name + f"_bs{bs}",
+    #             )
+    #         )
+    # variants = bs_variants
+
+    new_variants = []
+    for config in variants:
+        new_variants.append(config)
+        new_variants.append(
+            replace(
+                config,
+                model_config=replace(
+                    config.model_config,
+                    skinny_queries=True,
+                ),
+                name=config.name + "_skinnyq",
+            )
+        )
+    variants = new_variants
+
+    # output_scaling_variants = []
+    # for config in variants:
+    #     for mode in [
+    #         # None,
+    #         # "scalar",
+    #         # "per_channel",
+    #         # "scalar0",
+    #         # "per_channel0",
+    #         # "per_channel_sigmoid",
+    #         "per_channel_sigmoid_minus",
+    #     ]:
+    #         output_scaling_variants.append(
+    #             replace(
+    #                 config,
+    #                 model_config=replace(
+    #                     config.model_config,
+    #                     output_scaling_mode=mode,
+    #                 ),
+    #                 name=config.name + f"_os-{mode}",
+    #             )
+    #         )
+    # variants = output_scaling_variants
+
     print(f"Generated {len(variants)} variants")
     return variants
 
 
-def main(split: int, num_splits: int, neptune_tags: list[str]):
-    configs = [
+def main(
+    split: int,
+    num_splits: int,
+    neptune_tags: list[str],
+    no_neptune: bool = False,
+):
+    # configs = [  # core group of models
+    #     "chinchilla-74m",
+    #     "chinchilla-106m",
+    #     "chinchilla-163m",
+    #     "chinchilla-251m",
+    #     "chinchilla-489m",
+    # ]
+    configs = [  # extended group of models
         # "chinchilla-44m",
-        "chinchilla-74m",
+        # "chinchilla-74m",
         # "chinchilla-90m",
-        # "chinchilla-106m",
+        # # "chinchilla-106m",
         # "chinchilla-117m",
         # "chinchilla-140m",
-        "chinchilla-163m",
+        # "chinchilla-163m",
+        # "chinchilla-196m",
         # "chinchilla-251m",
-        # "chinchilla-306m",
-        # "chinchilla-425m",
-        # "chinchilla-489m",
-        # "chinchilla-632m",
+        "chinchilla-306m",
+        "chinchilla-425m",
+        "chinchilla-489m",
+        "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
@@ -141,7 +207,11 @@ gpu_machines = [
 ]
 
 
-def multi_gpu_main(neptune_tags: list[str], gpus_to_use: list[int] | None = None):
+def multi_gpu_main(
+    neptune_tags: list[str],
+    gpus_to_use: list[int] | None = None,
+    no_neptune: bool = False,
+):
     """Run multiple experiments in parallel on multiple GPUs.
 
     We have lambdagh200_2, lambdagh200_3, ..., lambdagh200_8 and we want to split the work over them.
@@ -164,6 +234,8 @@ def multi_gpu_main(neptune_tags: list[str], gpus_to_use: list[int] | None = None
     for split_idx, machine in enumerate(gpu_machines_this_run):
         # Build the Python command
         python_cmd = f"python run_scaling_series.py --split {split_idx} --num_splits {num_splits} --neptune_tags {' '.join(neptune_tags)}"
+        if no_neptune:
+            python_cmd += " --no_neptune"
 
         # SSH into machine and send command to tmux session "train"
         # tmux send-keys sends the command and Enter to execute it
@@ -186,8 +258,7 @@ def multi_gpu_main(neptune_tags: list[str], gpus_to_use: list[int] | None = None
 
     print(f"\nAll {num_splits} jobs dispatched!")
     print("To monitor progress, SSH into each machine and attach to tmux:")
-    for machine in gpu_machines:
-        print(f"  ssh {machine} -t 'tmux attach -t train'")
+    print(f"  ssh {gpu_machines_this_run[0]} -t 'tmux attach -t train'")
 
 
 def stop_all_jobs():
@@ -239,6 +310,7 @@ if __name__ == "__main__":
     parser.add_argument("--multi_gpu", action="store_true", default=False)
     parser.add_argument("--check_jobs", action="store_true", default=False)
     parser.add_argument("--gpus_to_use", type=int, nargs="+", default=None)
+    parser.add_argument("--no_neptune", action="store_true", default=False)
     args = parser.parse_args()
 
     assert (
@@ -250,6 +322,6 @@ if __name__ == "__main__":
     elif args.check_jobs:
         check_jobs()
     elif args.multi_gpu:
-        multi_gpu_main(args.neptune_tags, args.gpus_to_use)
+        multi_gpu_main(args.neptune_tags, args.gpus_to_use, args.no_neptune)
     else:
-        main(args.split, args.num_splits, args.neptune_tags)
+        main(args.split, args.num_splits, args.neptune_tags, args.no_neptune)
