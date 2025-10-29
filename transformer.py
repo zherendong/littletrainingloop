@@ -31,6 +31,7 @@ class TransformerConfig:
     glu: bool = False
     nonlinearity: str = "gelu"
     embedding_norm: bool = True
+    inner_size_multiple_of: int = 256  # Rounding for MLP hidden size (use 64 for GLU parameter parity)
 
     # experimental architectural choices
     pre_projection_transform: str | None = (
@@ -496,6 +497,7 @@ class TransformerBlock(nn.Module):
             segmented_norm=config.segmented_norm,
             glu=config.glu,
             skinny=config.skinny_mlps,
+            inner_size_multiple_of=config.inner_size_multiple_of,
             output_scaling_mode=config.output_scaling_mode,
         )
 
