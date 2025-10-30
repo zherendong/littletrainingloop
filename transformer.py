@@ -13,7 +13,7 @@ import attention
 import cross_entropy
 import language_model_basics
 
-# import cut_cross_entropy
+torch._dynamo.config.cache_size_limit = 64
 
 
 @dataclasses.dataclass(frozen=True)
@@ -118,7 +118,7 @@ class FP32LayerNorm(nn.Module):
         self.input_size = input_size
         self.segment_size = segment_size
         self.norm = nn.LayerNorm(
-            input_size,
+            segment_size or input_size,
             eps=1e-5,  # supposedly helps with stability
             bias=False,
             dtype=torch.float32,
@@ -383,7 +383,7 @@ class SelfAttention(nn.Module):
 
         self.use_flash_attention = use_flash_attention
 
-        self.norm = FP32LayerNorm(self.input_size, segment_size=segmented_norm)
+        self.norm = FP32LayerNorm(self.input_size)
         if skinny_queries:
             self.linear_q = SkinnyLinear(
                 input_size,
@@ -547,15 +547,6 @@ class TransformerBlock(nn.Module):
         return x
 
 
-def mem_gb():
-    s = torch.cuda.memory_stats()
-    alloc = s["allocated_bytes.all.current"] / 1e9
-    peak = s["allocated_bytes.all.peak"] / 1e9
-    resv = s["reserved_bytes.all.current"] / 1e9
-    frag = resv - alloc
-    return alloc, peak, resv, frag
-
-
 class TransformerModel(language_model_basics.LanguageModel):
     """Simple transformer model."""
 
@@ -580,7 +571,7 @@ class TransformerModel(language_model_basics.LanguageModel):
             dtype=torch.float32,
         )
         if config.embedding_norm:
-            self.embedding_norm = FP32LayerNorm(self.dim, config.segmented_norm)
+            self.embedding_norm = FP32LayerNorm(self.dim)
         self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(config, i, params_dtype)
@@ -610,7 +601,7 @@ class TransformerModel(language_model_basics.LanguageModel):
             )
             layernorm_dim = self.dim
 
-        self.final_norm = FP32LayerNorm(layernorm_dim, config.segmented_norm)
+        self.final_norm = FP32LayerNorm(layernorm_dim)
         self.output_projection = nn.Linear(
             proj_input_dim,
             vocab_size,
@@ -631,6 +622,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         self._forward_opt = torch.compile(
             self._forward, mode="max-autotune", fullgraph=True
         )
+        # self._forward_opt = self._forward
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""
@@ -669,12 +661,6 @@ class TransformerModel(language_model_basics.LanguageModel):
         return self.output_projection.weight
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
-
-        alloc, peak, resv, frag = mem_gb()
-        print(f"beginning of step: {alloc=:.2f}, {peak=:.2f}, {resv=:.2f}, {frag=:.2f}")
-        # reset memory stats
-        torch.cuda.reset_peak_memory_stats()
-
         assert targets.dtype == torch.long
         final_emb = self._forward_opt(inputs)
 

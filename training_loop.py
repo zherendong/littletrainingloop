@@ -33,6 +33,17 @@ def process_metrics(metrics: Metrics, neptune_run, step=None, mode="train") -> N
         neptune_run[f"{mode}/{name}"].append(value, step=step)
 
 
+def mem_gb():
+    s = torch.cuda.memory_stats()
+    alloc = s["allocated_bytes.all.current"] / 1e9
+    peak = s["allocated_bytes.all.peak"] / 1e9
+    resv = s["reserved_bytes.all.current"] / 1e9
+    frag = resv - alloc
+    print(f"beginning of step: {alloc=:.2f}, {peak=:.2f}, {resv=:.2f}, {frag=:.2f}")
+    torch.cuda.reset_peak_memory_stats()
+    return alloc, peak, resv, frag
+
+
 def do_eval(
     config: EvalConfig,
     state: TrainingState[D],
@@ -111,6 +122,7 @@ def train(
 
             metrics = state.step(data)
             if idx % config.train_metrics_every_n_steps == 0:
+                mem_gb()
                 process_metrics(
                     metrics, neptune_run=neptune_run, step=idx, mode="train"
                 )
