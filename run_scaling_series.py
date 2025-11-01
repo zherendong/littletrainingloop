@@ -22,6 +22,10 @@ import argparse
 import subprocess
 
 
+def get_chinchilla_size(name: str) -> int:
+    return int(name.split("_")[0].replace("c", "").replace("m", ""))
+
+
 def config_variants(
     config: language_model_training.LanguageModelTrainingConfig,
 ) -> list[language_model_training.LanguageModelTrainingConfig]:
@@ -32,9 +36,7 @@ def config_variants(
     for config in variants:
         # get chinchilla num params from config.name
         try:
-            chinchilla_size = int(
-                config.name.split("_")[0].replace("m", "").replace("c", "")
-            )
+            chinchilla_size = get_chinchilla_size(config.name)
         except IndexError:
             print(f"Could not parse chinchilla size from {config.name}")
             continue
@@ -43,9 +45,15 @@ def config_variants(
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
+            lrs = [0.002]
+        elif chinchilla_size <= 500:
             lrs = [0.001]
+        elif chinchilla_size <= 1000:
+            lrs = [0.0007]
+        elif chinchilla_size <= 1500:
+            lrs = [0.0005]
         else:
-            lrs = [0.0005, 0.0007, 0.001]
+            lrs = [0.0003]
         for lr in lrs:
             lr_variants.append(
                 replace(
@@ -82,32 +90,56 @@ def config_variants(
     #         )
     # variants = betas_variants
 
-    # bs_variants = []
-    # for config in variants:
-    #     for bs in [192]:
-    #         bs_variants.append(
-    #             replace(
-    #                 config,
-    #                 batch_size=bs,
-    #                 name=config.name + f"_bs{bs}",
-    #             )
-    #         )
-    # variants = bs_variants
-
-    new_variants = []
+    bs_variants = []
     for config in variants:
-        new_variants.append(config)
-        new_variants.append(
-            replace(
-                config,
-                model_config=replace(
-                    config.model_config,
-                    skinny_queries=True,
-                ),
-                name=config.name + "_skinnyq",
+        try:
+            chinchilla_size = get_chinchilla_size(config.name)
+        except IndexError:
+            print(f"Could not parse chinchilla size from {config.name}")
+            continue
+        if chinchilla_size <= 400:
+            batch_sizes = [192]
+        else:
+            batch_sizes = [256]
+        for bs in batch_sizes:
+            bs_variants.append(
+                replace(
+                    config,
+                    batch_size=bs,
+                    name=config.name + f"_bs{bs}",
+                )
             )
-        )
-    variants = new_variants
+    variants = bs_variants
+
+    # new_variants = []
+    # for config in variants:
+    #     new_variants.append(config)
+    #     new_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 skinny_queries=True,
+    #             ),
+    #             name=config.name + "_skinnyq",
+    #         )
+    #     )
+    # variants = new_variants
+
+    segmented_variants = []
+    for config in variants:
+        for segmented_norm in [128]:
+            segmented_variants.append(
+                replace(
+                    config,
+                    model_config=replace(
+                        config.model_config,
+                        segmented_norm=segmented_norm,
+                    ),
+                    name=config.name + f"_snorm{segmented_norm}",
+                )
+            )
+    variants = segmented_variants
 
     # output_scaling_variants = []
     # for config in variants:
@@ -143,11 +175,11 @@ def main(
     no_neptune: bool = False,
 ):
     # configs = [  # core group of models
-    #     "chinchilla-74m",
+    #     #     "chinchilla-74m",
     #     "chinchilla-106m",
     #     "chinchilla-163m",
     #     "chinchilla-251m",
-    #     "chinchilla-489m",
+    #     #     "chinchilla-489m",
     # ]
     configs = [  # extended group of models
         # "chinchilla-44m",
@@ -159,11 +191,11 @@ def main(
         # "chinchilla-163m",
         # "chinchilla-196m",
         # "chinchilla-251m",
-        "chinchilla-306m",
+        # "chinchilla-306m",
         "chinchilla-425m",
-        "chinchilla-489m",
-        "chinchilla-632m",
-        # "chinchilla-816m",
+        # "chinchilla-489m",
+        # "chinchilla-632m",
+        "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
         # "chinchilla-2298m",

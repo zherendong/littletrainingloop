@@ -133,7 +133,6 @@ class FP32LayerNorm(nn.Module):
             orig_shape = x.shape
             x = x.view(-1, num_segments, self.segment_size)
             x = self.norm(x)
-            x *= 1.0 / num_segments
             x = x.view(*orig_shape)
         else:
             x = self.norm(x)
