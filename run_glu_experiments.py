@@ -3,7 +3,7 @@
 GLU Experiment Runner - Local Sequential Execution
 
 This script runs a series of experiments to compare GLU variants against baseline FFN.
-Unlike run_scaling_series.py, this is designed for local execution on a single GPU.
+Similar to run_scaling_series.py, but designed for local execution on a single GPU.
 
 The script tests:
 1. Baseline (glu=False, nonlinearity="gelu")
@@ -13,25 +13,25 @@ The script tests:
 All experiments use inner_size_multiple_of=64 for fair parameter matching.
 
 Usage:
-    # Run all experiments with Chinchilla-optimal steps (recommended)
+    # Run with Neptune logging
+    python run_glu_experiments.py --model_size chinchilla-44m --neptune_tags glu_lr_sweep
+
+    # Run without Neptune (uses local JSON logging)
     python run_glu_experiments.py --model_size chinchilla-44m --no_neptune
 
     # Quick test run (manual step override)
     python run_glu_experiments.py --model_size chinchilla-44m --steps 500 --no_neptune
 
     # Run with specific LR sweep
-    python run_glu_experiments.py --model_size chinchilla-44m --lr_sweep 0.0015 0.001 0.0007
+    python run_glu_experiments.py --model_size chinchilla-44m --lr_sweep 0.01 0.005 0.002
 
     # Run only specific variants (baseline + SwiGLU)
-    python run_glu_experiments.py --model_size chinchilla-44m --variants baseline swiglu --no_neptune
+    python run_glu_experiments.py --model_size chinchilla-44m --variants baseline swiglu --neptune_tags glu_comparison
 """
 
 import argparse
-import subprocess
-import sys
 import time
 from dataclasses import replace
-from pathlib import Path
 
 import language_model_training
 import transformer
@@ -133,13 +133,22 @@ def create_glu_variants(
 def run_experiment_local(
     config: language_model_training.LanguageModelTrainingConfig,
     use_neptune: bool,
+    neptune_tags: list[str],
     max_steps: int | None = None,
     description: str | None = None,
     gpu_id: int | None = None,
 ) -> bool:
     """
     Run a single experiment locally using language_model_training.py.
-    
+
+    Args:
+        config: Training configuration
+        use_neptune: Whether to use Neptune logging
+        neptune_tags: Tags to apply to Neptune run
+        max_steps: Override for training steps (None = Chinchilla-optimal)
+        description: Experiment description
+        gpu_id: GPU ID to use
+
     Returns:
         True if successful, False otherwise
     """
@@ -153,34 +162,15 @@ def run_experiment_local(
     if max_steps:
         print(f"  Max training steps: {max_steps}")
     print(f"  Neptune logging: {use_neptune}")
+    if use_neptune and neptune_tags:
+        print(f"  Neptune tags: {neptune_tags}")
     print(f"{'='*80}\n")
-    
-    # Build command
-    cmd = [
-        sys.executable,
-        "language_model_training.py",
-        "--model_config", "chinchilla-44m",  # We'll override with our config
-        "--name", config.name,
-    ]
-    
-    if not use_neptune:
-        cmd.append("--no_neptune")
-    
-    if description:
-        cmd.extend(["--description", description])
-    
-    if gpu_id is not None:
-        cmd.extend(["--gpu_id", str(gpu_id)])
-    
-    # Note: We can't easily pass the full config via command line
-    # Instead, we'll need to modify this to call the run() function directly
-    # For now, let's use a simpler approach with direct function call
-    
+
     try:
         # Import and run directly instead of subprocess
         # This allows us to pass the custom config
         from language_model_training import run
-        
+
         # Override training steps if specified
         # If max_steps is None, training_steps_per_epoch stays None and Chinchilla-optimal is used
         if max_steps is not None:
@@ -191,20 +181,20 @@ def run_experiment_local(
                     training_steps_per_epoch=max_steps,
                 ),
             )
-        
+
         run(
             config=config,
             use_neptune=use_neptune,
-            description=description,
+            description=description or config.name,
             run_name=config.name,
             gpu_id=gpu_id,
-            neptune_tags=["glu_experiment"],
+            neptune_tags=neptune_tags,
             use_metrics_logger=not use_neptune,  # Use metrics logger when Neptune is disabled
         )
-        
+
         print(f"\n✓ Experiment {config.name} completed successfully\n")
         return True
-        
+
     except Exception as e:
         print(f"\n✗ Experiment {config.name} failed with error: {e}\n")
         return False
@@ -267,7 +257,15 @@ def main():
         action="store_true",
         help="Disable Neptune logging",
     )
-    
+
+    parser.add_argument(
+        "--neptune_tags",
+        type=str,
+        nargs="+",
+        default=[],
+        help="Tags to apply to Neptune runs (e.g., --neptune_tags glu_experiment lr_sweep)",
+    )
+
     parser.add_argument(
         "--description",
         "-d",
@@ -275,7 +273,7 @@ def main():
         default="GLU variant comparison experiment",
         help="Experiment description for Neptune",
     )
-    
+
     parser.add_argument(
         "--gpu_id",
         "-g",
@@ -283,8 +281,12 @@ def main():
         default=None,
         help="GPU ID to use (default: auto-select)",
     )
-    
+
     args = parser.parse_args()
+
+    # Set default Neptune tags if none provided
+    if not args.neptune_tags:
+        args.neptune_tags = ["glu_experiment"]
     
     # Determine learning rates
     if args.lr_sweep:
@@ -320,6 +322,8 @@ def main():
     print(f"inner_size_multiple_of: {args.inner_size_multiple_of}")
     print(f"Variants: {args.variants if args.variants else 'all (baseline, geglu, swiglu)'}")
     print(f"Neptune logging: {not args.no_neptune}")
+    if not args.no_neptune:
+        print(f"Neptune tags: {args.neptune_tags}")
     print(f"{'='*80}\n")
     
     # Create experiment configs
@@ -339,15 +343,16 @@ def main():
     
     for i, (variant_name, config) in enumerate(configs, 1):
         print(f"\n[{i}/{len(configs)}] Running: {variant_name}")
-        
+
         success = run_experiment_local(
             config=config,
             use_neptune=not args.no_neptune,
+            neptune_tags=args.neptune_tags,
             max_steps=args.steps,
             description=args.description,
             gpu_id=args.gpu_id,
         )
-        
+
         results.append((variant_name, success))
     
     # Summary
