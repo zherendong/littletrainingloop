@@ -66,7 +66,24 @@ class NeptuneRunWrapper:
     def __setitem__(self, key, value):
         if self.print_calls:
             print(f"Neptune setitem: {key}={value}")
+        # Convert unsupported types to Neptune-compatible formats
+        value = self._convert_value(value)
         self.run[key] = value
+
+    def _convert_value(self, value):
+        """Convert unsupported Neptune types to supported ones."""
+        if value is None:
+            return "None"
+        elif isinstance(value, tuple):
+            return list(value)
+        elif isinstance(value, dict):
+            # Recursively convert dict values
+            return {k: self._convert_value(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            # Recursively convert list items
+            return [self._convert_value(item) for item in value]
+        else:
+            return value
 
     def stop(self):
         if self.print_calls:
