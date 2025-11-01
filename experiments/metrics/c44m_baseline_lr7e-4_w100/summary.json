@@ -1,0 +1,65 @@
+{
+  "eval/SlimPajama_validation/loss": {
+    "final": 4.14111328125,
+    "min": 4.14111328125,
+    "max": 11.5625,
+    "count": 98,
+    "final_step": 9624
+  },
+  "eval/SlimPajama_validation/num_tokens/loss": {
+    "final": 4.14111328125,
+    "min": 4.14111328125,
+    "max": 11.5625,
+    "count": 98,
+    "final_step": 946077696
+  },
+  "eval/SlimPajama_validation/pflops/loss": {
+    "final": 4.14111328125,
+    "min": 4.14111328125,
+    "max": 11.5625,
+    "count": 98,
+    "final_step": 268.5366307997614
+  },
+  "train/learning_rate": {
+    "final": 7.152141957159896e-05,
+    "min": 7.152141957159896e-05,
+    "max": 0.0006999338513229735,
+    "count": 97,
+    "final_step": 9600
+  },
+  "train/loss": {
+    "final": 4.03125,
+    "min": 3.9466147422790527,
+    "max": 11.5625,
+    "count": 97,
+    "final_step": 9600
+  },
+  "train/num_tokens": {
+    "final": 943816704.0,
+    "min": 98304.0,
+    "max": 943816704.0,
+    "count": 97,
+    "final_step": 9600
+  },
+  "train/pflops_total": {
+    "final": 267.8948661999698,
+    "min": 0.027902808686592,
+    "max": 267.8948661999698,
+    "count": 97,
+    "final_step": 9600
+  },
+  "train/step_time_seconds": {
+    "final": 0.44175171852111816,
+    "min": -1.4508700370788574,
+    "max": 15.732706308364868,
+    "count": 97,
+    "final_step": 9600
+  },
+  "train/tflops_per_second": {
+    "final": 63.1640071033659,
+    "min": -19.231776777726253,
+    "max": 68.58047920509273,
+    "count": 97,
+    "final_step": 9600
+  }
+}

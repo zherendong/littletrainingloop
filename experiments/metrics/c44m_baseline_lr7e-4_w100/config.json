@@ -1,0 +1,57 @@
+{
+  "name": "c44m_baseline_lr7e-4_w100",
+  "vocab_size": 100277,
+  "warmup_steps": 100,
+  "learning_rate": 0.0007,
+  "seed": 42,
+  "batch_size": 192,
+  "sequence_length": 512,
+  "shuffle_buffer_size": 100,
+  "model_config": {
+    "num_layers": 8,
+    "num_heads": 8,
+    "num_heads_kv": 1,
+    "head_dim": 64,
+    "mlp_inner_size": 2048,
+    "embedding_size": 512,
+    "use_flash_attention": true,
+    "gqa": true,
+    "glu": false,
+    "nonlinearity": "gelu",
+    "embedding_norm": true,
+    "inner_size_multiple_of": 64,
+    "pre_projection_transform": "proj_down",
+    "pre_projection_factor": 0.5,
+    "early_mlp_scaling": 1,
+    "middle_mlp_scaling": 1,
+    "late_mlp_scaling": 1,
+    "crown_mlp_scaling": 1,
+    "early_attention_scaling": 1,
+    "middle_attention_scaling": 1,
+    "late_attention_scaling": 1,
+    "crown_attention_scaling": 1,
+    "segmented_norm": null,
+    "skinny_mlps": false,
+    "skinny_queries": false,
+    "copy_values": false,
+    "output_scaling_mode": null
+  },
+  "adam_eps": 1e-07,
+  "adam_betas": [
+    0.9,
+    0.995
+  ],
+  "training_config": {
+    "num_epochs": 1,
+    "training_steps_per_epoch": 9624,
+    "seed": 42,
+    "train_metrics_every_n_steps": 100
+  },
+  "eval_config": {
+    "every_n_steps": 100,
+    "steps": 5,
+    "batch_size": 256,
+    "sequence_length": 512
+  },
+  "chinchilla_factor": 1.0
+}

@@ -300,6 +300,7 @@ def run(
     use_neptune: bool = False,
     gpu_id: int | None = None,
     neptune_tags: list[str] = [],
+    use_metrics_logger: bool = True,
 ):
     # Add device detection at the top of your training function
     if torch.cuda.is_available():
@@ -310,12 +311,22 @@ def run(
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
-    neptune_run = neptune_lib.NeptuneRunWrapper(
-        use_neptune,
-        description,
-        run_name,
-        tags=neptune_tags,
-    )
+    # Use metrics logger if Neptune is disabled
+    if use_neptune:
+        neptune_run = neptune_lib.NeptuneRunWrapper(
+            use_neptune,
+            description,
+            run_name,
+            tags=neptune_tags,
+        )
+    elif use_metrics_logger:
+        import metrics_logger
+        neptune_run = metrics_logger.NeptuneCompatibleLogger(
+            run_name or config.name,
+        )
+    else:
+        neptune_run = neptune_lib.NullNeptuneRun()
+
     try:
         losses = train_language_model(config, neptune_run=neptune_run)
         print(f"Losses: {losses}")
