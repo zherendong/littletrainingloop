@@ -126,20 +126,20 @@ def config_variants(
     #     )
     # variants = new_variants
 
-    segmented_variants = []
-    for config in variants:
-        for segmented_norm in [128]:
-            segmented_variants.append(
-                replace(
-                    config,
-                    model_config=replace(
-                        config.model_config,
-                        segmented_norm=segmented_norm,
-                    ),
-                    name=config.name + f"_snorm{segmented_norm}",
-                )
-            )
-    variants = segmented_variants
+    # segmented_variants = []
+    # for config in variants:
+    #     for segmented_norm in [128]:
+    #         segmented_variants.append(
+    #             replace(
+    #                 config,
+    #                 model_config=replace(
+    #                     config.model_config,
+    #                     segmented_norm=segmented_norm,
+    #                 ),
+    #                 name=config.name + f"_snorm{segmented_norm}",
+    #             )
+    #         )
+    # variants = segmented_variants
 
     # output_scaling_variants = []
     # for config in variants:
