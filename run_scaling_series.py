@@ -64,27 +64,6 @@ def config_variants(
             )
     variants = lr_variants
 
-    bs_variants = []
-    for config in variants:
-        try:
-            chinchilla_size = get_chinchilla_size(config.name)
-        except IndexError:
-            print(f"Could not parse chinchilla size from {config.name}")
-            continue
-        if chinchilla_size <= 400:
-            batch_sizes = [192]
-        else:
-            batch_sizes = [256]
-        for bs in batch_sizes:
-            bs_variants.append(
-                replace(
-                    config,
-                    batch_size=bs,
-                    name=config.name + f"_bs{bs}",
-                )
-            )
-    variants = bs_variants
-
     # new_variants = []
     # for config in variants:
     #     new_variants.append(config)
@@ -113,44 +92,6 @@ def config_variants(
     #             )
     #         )
     # variants = chinchilla_variants
-
-    # segmented_variants = []
-    # for config in variants:
-    #     for segmented_norm in [128]:
-    #         segmented_variants.append(
-    #             replace(
-    #                 config,
-    #                 model_config=replace(
-    #                     config.model_config,
-    #                     segmented_norm=segmented_norm,
-    #                 ),
-    #                 name=config.name + f"_snorm{segmented_norm}",
-    #             )
-    #         )
-    # variants = segmented_variants
-
-    # output_scaling_variants = []
-    # for config in variants:
-    #     for mode in [
-    #         # None,
-    #         # "scalar",
-    #         # "per_channel",
-    #         # "scalar0",
-    #         # "per_channel0",
-    #         # "per_channel_sigmoid",
-    #         "per_channel_sigmoid_minus",
-    #     ]:
-    #         output_scaling_variants.append(
-    #             replace(
-    #                 config,
-    #                 model_config=replace(
-    #                     config.model_config,
-    #                     output_scaling_mode=mode,
-    #                 ),
-    #                 name=config.name + f"_os-{mode}",
-    #             )
-    #         )
-    # variants = output_scaling_variants
 
     print(f"Generated {len(variants)} variants")
     return variants
