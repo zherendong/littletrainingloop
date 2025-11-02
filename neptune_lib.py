@@ -71,19 +71,37 @@ class NeptuneRunWrapper:
         self.run[key] = value
 
     def _convert_value(self, value):
-        """Convert unsupported Neptune types to supported ones."""
-        if value is None:
-            return "None"
-        elif isinstance(value, tuple):
-            return list(value)
-        elif isinstance(value, dict):
-            # Recursively convert dict values
+        """Convert unsupported Neptune types to Neptune-supported values.
+
+        Strategy:
+        - Keep dicts as dicts but recursively convert their values
+        - Stringify None, lists, tuples, and sets using Neptune's stringify_unsupported
+          (falls back to str() if Neptune is not installed)
+        - Leave supported scalar types (str, int, float, bool) as-is
+        """
+        # Dict: recursively sanitize values while preserving structure
+        if isinstance(value, dict):
             return {k: self._convert_value(v) for k, v in value.items()}
-        elif isinstance(value, list):
-            # Recursively convert list items
-            return [self._convert_value(item) for item in value]
-        else:
-            return value
+
+        # None and common collections (not directly supported by Neptune)
+        if value is None or isinstance(value, (list, tuple, set)):
+            return self._stringify(value)
+
+        # Pass through supported scalar types and anything else
+        return value
+
+    def _stringify(self, obj):
+        """Return a Neptune-compatible stringified wrapper if available.
+
+        Tries to use neptune.utils.stringify_unsupported which returns a
+        StringifyValue understood by Neptune. If Neptune isn't installed
+        (e.g., local runs with use_neptune=False), fall back to str(obj).
+        """
+        try:
+            from neptune.utils import stringify_unsupported  # type: ignore
+            return stringify_unsupported(obj)
+        except Exception:
+            return str(obj)
 
     def stop(self):
         if self.print_calls:
