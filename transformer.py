@@ -31,7 +31,9 @@ class TransformerConfig:
     glu: bool = True
     nonlinearity: str = "swish"
     embedding_norm: bool = True
-    inner_size_multiple_of: int = 256  # Rounding for MLP hidden size (use 64 for GLU parameter parity)
+    inner_size_multiple_of: int = (
+        256  # Rounding for MLP hidden size (use 64 for GLU parameter parity)
+    )
 
     # experimental architectural choices
     pre_projection_transform: str | None = (
@@ -39,14 +41,6 @@ class TransformerConfig:
         "proj_down"
     )
     pre_projection_factor: float = 0.5
-    early_mlp_scaling: float = 1
-    middle_mlp_scaling: float = 1
-    late_mlp_scaling: float = 1
-    crown_mlp_scaling: float = 1  # https://arxiv.org/pdf/2509.06518#page=3.45
-    early_attention_scaling: float = 1
-    middle_attention_scaling: float = 1
-    late_attention_scaling: float = 1
-    crown_attention_scaling: float = 1
     segmented_norm: int | None = (
         None  # Try 128 and 512. The goal is that nothing changes.
     )
@@ -69,21 +63,6 @@ class TransformerConfig:
                 "num_heads_kv",
                 num_heads_kv,
             )
-
-    def get_layer_stage(self, layer_idx: int) -> str:
-        """Returns "early", "middle", or "late"."""
-        if layer_idx == 0 or layer_idx == self.num_layers - 1:
-            return "crown"
-        is_early = layer_idx < self.num_layers / 3
-        is_middle = layer_idx <= (self.num_layers * 2 / 3) and not is_early
-        is_late = not (is_early or is_middle)
-        if is_early:
-            return "early"
-        if is_middle:
-            return "middle"
-        if is_late:
-            return "late"
-        raise ValueError("unreachable")
 
 
 class ConfigRegistry:
@@ -480,17 +459,8 @@ class TransformerBlock(nn.Module):
         super(TransformerBlock, self).__init__()
         self.block_idx = block_idx
 
-        layer_stage = config.get_layer_stage(block_idx)
-        mlp_scaling_factor = {
-            "early": config.early_mlp_scaling,
-            "middle": config.middle_mlp_scaling,
-            "late": config.late_mlp_scaling,
-            "crown": config.crown_mlp_scaling,
-        }[layer_stage]
-
         self.mlp = MLP(
             dtype=params_dtype,
-            mlp_scaling_factor=mlp_scaling_factor,
             input_size=config.embedding_size,
             nonlinearity=config.nonlinearity,
             segmented_norm=config.segmented_norm,
@@ -500,28 +470,13 @@ class TransformerBlock(nn.Module):
             output_scaling_mode=config.output_scaling_mode,
         )
 
-        attention_scaling_factor = {
-            "early": config.early_attention_scaling,
-            "middle": config.middle_attention_scaling,
-            "late": config.late_attention_scaling,
-            "crown": config.crown_attention_scaling,
-        }[layer_stage]
-        num_heads_q = int(config.num_heads * attention_scaling_factor)
-        num_heads_kv = config.num_heads_kv
-        if num_heads_q % num_heads_kv != 0:
-            num_heads_kv = math.ceil(num_heads_q / 8)
-            while num_heads_q % num_heads_kv != 0:
-                if attention_scaling_factor > 1.0:
-                    num_heads_kv += 1
-                else:
-                    num_heads_kv -= 1
         print(
-            f"Block {block_idx} has {num_heads_q} heads_q and {num_heads_kv} heads_kv"
+            f"Block {block_idx} has {config.num_heads} heads_q and {config.num_heads_kv} heads_kv"
         )
         self.attention = SelfAttention(
             input_size=config.embedding_size,
-            num_heads_q=num_heads_q,
-            num_heads_kv=num_heads_kv,
+            num_heads_q=config.num_heads,
+            num_heads_kv=config.num_heads_kv,
             head_dim=config.head_dim,
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
