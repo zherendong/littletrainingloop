@@ -28,8 +28,8 @@ class TransformerConfig:
 
     # classic architectural options
     gqa: bool = True
-    glu: bool = False
-    nonlinearity: str = "gelu"
+    glu: bool = True
+    nonlinearity: str = "swish"
     embedding_norm: bool = True
     inner_size_multiple_of: int = 256  # Rounding for MLP hidden size (use 64 for GLU parameter parity)
 
