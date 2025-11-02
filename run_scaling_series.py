@@ -64,32 +64,6 @@ def config_variants(
             )
     variants = lr_variants
 
-    # eps_variants = []
-    # for config in variants:
-    #     # for eps in [1e-7, 1e-6, 1e-8]:
-    #     for eps in [1e-7]:
-    #         eps_variants.append(
-    #             replace(
-    #                 config,
-    #                 adam_eps=eps,
-    #                 name=config.name + f"_eps{eps}",
-    #             )
-    #         )
-    # variants = eps_variants
-
-    # betas_variants = []
-    # for config in variants:
-    #     # for betas in [(0.9, 0.99), (0.9, 0.995)]:
-    #     for betas in [(0.9, 0.995)]:
-    #         betas_variants.append(
-    #             replace(
-    #                 config,
-    #                 adam_betas=betas,
-    #                 name=config.name + f"_betas{betas[1]}",
-    #             )
-    #         )
-    # variants = betas_variants
-
     bs_variants = []
     for config in variants:
         try:
@@ -125,6 +99,20 @@ def config_variants(
     #         )
     #     )
     # variants = new_variants
+
+    # chinchilla_variants = []
+    # for config in variants:
+    #     # chinchilla_variants.append(config)
+    #     factors = [2, 5]
+    #     for factor in factors:
+    #         chinchilla_variants.append(
+    #             replace(
+    #                 config,
+    #                 chinchilla_factor=factor,
+    #                 name=config.name + f"_ch{factor}",
+    #             )
+    #         )
+    # variants = chinchilla_variants
 
     # segmented_variants = []
     # for config in variants:
