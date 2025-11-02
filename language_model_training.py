@@ -76,6 +76,58 @@ def get_auto_learning_rate(num_parameters: int) -> float:
         return 0.0003
 
 
+def create_lr_scheduler(
+    optimizer: optim.Optimizer,
+    config: LanguageModelTrainingConfig,
+    num_steps: int,
+) -> optim.lr_scheduler.LRScheduler:
+    """Create learning rate scheduler with warmup and decay.
+
+    Args:
+        optimizer: The optimizer to schedule
+        config: Training configuration containing LR schedule settings
+        num_steps: Total number of training steps
+
+    Returns:
+        Learning rate scheduler (warmup + decay)
+    """
+    switch_step = config.warmup_steps or int(num_steps * 0.05)
+
+    # Linear warmup (same for all schedules)
+    linear_warmup = optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=0.1, end_factor=1.0, total_iters=switch_step
+    )
+
+    # Choose decay schedule based on config
+    if config.lr_decay_schedule == "cosine":
+        # Cosine annealing decay after warmup
+        decay_scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=num_steps - switch_step,
+            eta_min=config.learning_rate * config.min_lr_factor,
+        )
+    elif config.lr_decay_schedule == "linear":
+        # Linear decay after warmup (default for backward compatibility)
+        decay_scheduler = optim.lr_scheduler.LinearLR(
+            optimizer,
+            start_factor=1.0,
+            end_factor=config.min_lr_factor,
+            total_iters=num_steps - switch_step,
+        )
+    else:
+        raise ValueError(
+            f"Unknown lr_decay_schedule: {config.lr_decay_schedule}. "
+            f"Must be 'linear' or 'cosine'."
+        )
+
+    # Combine warmup and decay
+    return optim.lr_scheduler.SequentialLR(
+        optimizer,
+        schedulers=[linear_warmup, decay_scheduler],
+        milestones=[switch_step],
+    )
+
+
 class DummyLanguageModel(language_model_basics.LanguageModel):
     """Simple language model: y = Wx + b"""
 
@@ -143,27 +195,13 @@ class LanguageModelTrainingState(TrainingState[LMData]):
                 # weight_decay=0.01,
             )
 
-        # linear learning rate schedule with warmup
+        # Create learning rate scheduler with warmup and decay
         assert config.training_config.training_steps_per_epoch is not None
         num_steps = (
             config.training_config.num_epochs
             * config.training_config.training_steps_per_epoch
         )
-        switch_step = config.warmup_steps or int(num_steps * 0.05)
-        linear_warmup = optim.lr_scheduler.LinearLR(
-            self.optimizer, start_factor=0.1, end_factor=1.0, total_iters=switch_step
-        )
-        linear_decay = optim.lr_scheduler.LinearLR(
-            self.optimizer,
-            start_factor=1.0,
-            end_factor=0.1,
-            total_iters=num_steps - switch_step,
-        )
-        self.scheduler = optim.lr_scheduler.SequentialLR(
-            self.optimizer,
-            schedulers=[linear_warmup, linear_decay],
-            milestones=[switch_step],
-        )
+        self.scheduler = create_lr_scheduler(self.optimizer, config, num_steps)
         self.training_flops_total = 0
         self.num_tokens_seen = 0
 
