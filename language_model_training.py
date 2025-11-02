@@ -46,6 +46,36 @@ torch.set_float32_matmul_precision("high")  # enable use TF32 to enable tensor c
 assert torch.cuda.is_available(), "CUDA required"
 
 
+def get_auto_learning_rate(num_parameters: int) -> float:
+    """Automatically select learning rate based on model size (number of parameters).
+
+    This uses heuristics based on Chinchilla scaling laws.
+
+    Args:
+        num_parameters: Number of non-embedding parameters in the model
+
+    Returns:
+        Appropriate learning rate for the model size
+    """
+    # Convert to millions for easier comparison
+    size_m = num_parameters / 1_000_000
+
+    if size_m <= 100:
+        return 0.002
+    elif size_m <= 200:
+        return 0.0015
+    elif size_m <= 300:
+        return 0.002
+    elif size_m <= 500:
+        return 0.001
+    elif size_m <= 1000:
+        return 0.0007
+    elif size_m <= 1500:
+        return 0.0005
+    else:
+        return 0.0003
+
+
 class DummyLanguageModel(language_model_basics.LanguageModel):
     """Simple language model: y = Wx + b"""
 
@@ -231,6 +261,13 @@ def train_language_model(
     with prng.PRNG(config.seed + 123123):
         model = transformer.TransformerModel(config.vocab_size, config.model_config)
 
+    # Auto-select learning rate if not provided
+    if config.learning_rate is None:
+        num_parameters = model.num_non_embedding_parameters()
+        auto_lr = get_auto_learning_rate(num_parameters)
+        print(f"Auto-selecting learning rate based on model size ({num_parameters:,} params): {auto_lr}")
+        config = dataclasses.replace(config, learning_rate=auto_lr)
+
     if config.training_config.training_steps_per_epoch is None:
         # Chinchilla-optimal amount of data, which is 20 tokens per parameter
         num_parameters = model.num_non_embedding_parameters()
@@ -332,7 +369,7 @@ def get_model_config(
         name=model_config_str.replace("chinchilla-", "c"),
         vocab_size=100277,
         warmup_steps=100,
-        learning_rate=0.0015,
+        learning_rate=None,  # Auto-select based on model size
         batch_size=192,
         sequence_length=512,
         shuffle_buffer_size=100,
