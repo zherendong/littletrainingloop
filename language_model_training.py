@@ -65,7 +65,7 @@ def get_auto_learning_rate(num_parameters: int) -> float:
     elif size_m <= 200:
         return 0.0015
     elif size_m <= 300:
-        return 0.002
+        return 0.00125
     elif size_m <= 500:
         return 0.001
     elif size_m <= 1000:

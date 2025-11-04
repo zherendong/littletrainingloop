@@ -80,15 +80,15 @@ def main(
 
     # Default models to train if none specified
     default_model_names = [
-        "chinchilla-74m",
-        "chinchilla-106m",
-        "chinchilla-163m",
-        "chinchilla-196m",
-        # "chinchilla-251m",
-        # "chinchilla-306m",
-        # "chinchilla-425m",
-        # "chinchilla-489m",
-        # "chinchilla-632m",
+        # "chinchilla-74m",
+        # "chinchilla-106m",
+        # "chinchilla-163m",
+        # "chinchilla-196m",
+        "chinchilla-251m",
+        "chinchilla-306m",
+        "chinchilla-425m",
+        "chinchilla-489m",
+        "chinchilla-632m",
         # "chinchilla-816m",
     ]
 
