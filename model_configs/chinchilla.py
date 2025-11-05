@@ -77,6 +77,8 @@ def chinchilla_117m() -> transformer.TransformerConfig:
         head_dim=64,
         mlp_inner_size=3072,
         embedding_size=768,
+        use_proper_init=True,        # Enable activation-aware initialization
+        use_depth_scaling=False,     # Optional: enable depth scaling
     )
 
 
