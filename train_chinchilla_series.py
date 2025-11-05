@@ -64,6 +64,7 @@ def main(
     warmup_steps: int | None = None,
     depth_scaling_variants: bool = False,
     chinchilla_factor: float | None = None,
+    depth_scaling_only: bool = False,
 ):
     """Train Chinchilla models sequentially.
 
@@ -81,6 +82,8 @@ def main(
         chinchilla_factor: Optional multiplier for Chinchilla-optimal training steps.
                            Default is 1.0 (20 tokens per parameter).
                            Use 2.0 for 40 tokens per parameter, 0.5 for 10 tokens per parameter, etc.
+        depth_scaling_only: If True, only trains with depth_scaling=True (skips baseline).
+                            Overrides depth_scaling_variants if both are set.
     """
     # Get all available Chinchilla models from registry
     all_available_models = get_all_chinchilla_models()
@@ -114,7 +117,10 @@ def main(
         model_names = default_model_names
 
     # Create list of (model_name, use_depth_scaling) tuples
-    if depth_scaling_variants:
+    if depth_scaling_only:
+        # Train each model once with depth_scaling=True only
+        training_configs = [(model_name, True) for model_name in model_names]
+    elif depth_scaling_variants:
         # Train each model twice: once with depth_scaling=False, once with depth_scaling=True
         training_configs = []
         for model_name in model_names:
@@ -129,7 +135,9 @@ def main(
     print(f"{mode_str}: {len(training_configs)} training runs")
     print(f"{'=' * 80}")
     print(f"Models: {', '.join([m.replace('chinchilla-', '') for m in model_names])}")
-    if depth_scaling_variants:
+    if depth_scaling_only:
+        print(f"Depth scaling: Training with depth_scaling=True only")
+    elif depth_scaling_variants:
         print(f"Depth scaling variants: Training each model with depth_scaling=False and depth_scaling=True")
     print(f"Neptune tags: {neptune_tags}")
     print(f"Dry run mode: {dry_run}")
@@ -194,13 +202,14 @@ def main(
         learning_rate = language_model_training.get_auto_learning_rate(num_parameters)
         del temp_model  # Free memory
 
-        # Create run name with learning rate, nonlinearity, and depth scaling
-        # Format: c117_lr0.002_swish_depthscale or c117_lr0.002_swish
+        # Create run name with learning rate, nonlinearity, chinchilla_factor, and depth scaling
+        # Format: c117_lr0.002_swish_cf2.0_depthscale or c117_lr0.002_swish
         lr_str = f"{learning_rate:.4f}".rstrip('0').rstrip('.')
+        cf_str = f"_cf{chinchilla_factor}" if chinchilla_factor is not None else ""
         if use_depth_scaling:
-            run_name = f"{config.name}_lr{lr_str}_{nonlinearity}_cf{chinchilla_factor}_depthscale"
+            run_name = f"{config.name}_lr{lr_str}_{nonlinearity}{cf_str}_depthscale"
         else:
-            run_name = f"{config.name}_lr{lr_str}_cf{chinchilla_factor}_{nonlinearity}"
+            run_name = f"{config.name}_lr{lr_str}{cf_str}_{nonlinearity}"
 
         print(f"Configuration:")
         print(f"  Model: {model_name}")
@@ -310,6 +319,9 @@ Examples:
   # Dry run to preview depth scaling variants
   python train_chinchilla_series.py --neptune_tags test --model_sizes 117m --depth_scaling_variants --dry_run
 
+  # Train with depth scaling only (skip baseline)
+  python train_chinchilla_series.py --neptune_tags depth_scaling_only --model_sizes 117m --depth_scaling_only
+
   # Train with 2x Chinchilla-optimal data (40 tokens per parameter)
   python train_chinchilla_series.py --neptune_tags extended_training --model_sizes 117m --chinchilla_factor 2.0
 
@@ -356,6 +368,12 @@ Examples:
         help="Train each model twice: once with depth_scaling=False and once with depth_scaling=True",
     )
     parser.add_argument(
+        "--depth_scaling_only",
+        action="store_true",
+        default=False,
+        help="Train with depth_scaling=True only (skips baseline without depth scaling)",
+    )
+    parser.add_argument(
         "--chinchilla_factor",
         type=float,
         default=None,
@@ -373,5 +391,6 @@ Examples:
         warmup_steps=args.warmup_steps,
         depth_scaling_variants=args.depth_scaling_variants,
         chinchilla_factor=args.chinchilla_factor,
+        depth_scaling_only=args.depth_scaling_only,
     )
 
