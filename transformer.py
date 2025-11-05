@@ -12,6 +12,7 @@ import math
 import attention
 import cross_entropy
 import language_model_basics
+import initialization
 
 torch._dynamo.config.cache_size_limit = 64
 
@@ -49,6 +50,10 @@ class TransformerConfig:
     copy_values: bool = False
     # output scaling one of None, "scalar", "per_channel", "scalar0", "per_channel0", "per_channel_sigmoid", "per_channel_sigmoid_minus"
     output_scaling_mode: str | None = None
+
+    # Initialization options
+    use_proper_init: bool = True  # Use activation-aware initialization (SiLU, GELU, etc.)
+    use_depth_scaling: bool = False  # Apply depth-dependent scaling to output projections
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -257,6 +262,9 @@ class MLP(nn.Module):
         skinny: bool = False,
         inner_size_multiple_of: int = 256,
         output_scaling_mode: str | None = None,
+        use_proper_init: bool = True,
+        depth: int | None = None,
+        use_depth_scaling: bool = False,
     ):
         super(MLP, self).__init__()
         self.input_size = input_size
@@ -302,19 +310,65 @@ class MLP(nn.Module):
         self.linear_out = nn.Linear(
             self.inner_size, self.output_size, bias=False, dtype=dtype
         )
-        # with torch.no_grad():
-        #     self.linear_out.weight.data.zero_()  # initialize as zero
         self.output_scaling = OutputScaling(
             self.output_size, dtype=dtype, mode=output_scaling_mode
         )
 
-        # with torch.no_grad():
-        #     # initialization
-        #     # init with variance 1/fan_in
-        #     self.linear_in.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     # TODO: use smaller variance for initializing the output layer,
-        #     # a la Section D.2 in the mu parameterization paper
-        #     self.linear_out.weight.normal_(mean=0.0, std=1.0 / math.sqrt(inner_size))
+        # Apply proper initialization if requested
+        if use_proper_init:
+            self._initialize_weights(nonlinearity, glu, depth, use_depth_scaling)
+
+    def _initialize_weights(
+        self,
+        nonlinearity: str,
+        glu: bool,
+        depth: int | None,
+        use_depth_scaling: bool,
+    ):
+        """Initialize weights with activation-aware and optionally depth-scaled initialization."""
+        if self.skinny:
+            # SkinnyLinear has its own initialization, skip for now
+            # TODO: Update SkinnyLinear to support proper initialization
+            pass
+        else:
+            if glu:
+                # SwiGLU: both linear_in and linear_glu need proper initialization
+                if nonlinearity in ["swish", "silu"]:
+                    initialization.init_swiglu_weights(
+                        self.linear_in, self.linear_glu, self.input_size
+                    )
+                elif nonlinearity == "gelu":
+                    # GeGLU variant
+                    initialization.init_linear_weight(
+                        self.linear_in.weight, activation="gelu"
+                    )
+                    initialization.init_linear_weight(
+                        self.linear_glu.weight, activation="linear"
+                    )
+                else:
+                    # ReLU or other GLU variants
+                    initialization.init_linear_weight(
+                        self.linear_in.weight, activation=nonlinearity
+                    )
+                    initialization.init_linear_weight(
+                        self.linear_glu.weight, activation="linear"
+                    )
+            else:
+                # Standard MLP: just linear_in with activation
+                activation_map = {
+                    "relu": "relu",
+                    "gelu": "gelu",
+                    "swish": "silu",
+                }
+                activation = activation_map.get(nonlinearity, "linear")
+                initialization.init_linear_weight(
+                    self.linear_in.weight, activation=activation
+                )
+
+        # Initialize output projection with optional depth scaling
+        initialization.init_output_projection(
+            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
+        )
 
     def forward(self, x):
         x = self.norm(x)
@@ -346,6 +400,9 @@ class SelfAttention(nn.Module):
         skinny_queries: bool = False,
         copy_values: bool = False,
         output_scaling_mode: str | None = None,
+        use_proper_init: bool = True,
+        depth: int | None = None,
+        use_depth_scaling: bool = False,
     ):
         super(SelfAttention, self).__init__()
         self.input_size = input_size
@@ -410,14 +467,34 @@ class SelfAttention(nn.Module):
             mode=output_scaling_mode,
         )
 
-        # with torch.no_grad():
-        #     # initialization
-        #     self.linear_q.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_k.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_v.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_out.weight.normal_(
-        #         mean=0.0, std=1.0 / math.sqrt(num_heads_q * head_dim_v)
-        #     )
+        # Apply proper initialization if requested
+        if use_proper_init:
+            self._initialize_weights(
+                skinny_queries, copy_values, depth, use_depth_scaling
+            )
+
+    def _initialize_weights(
+        self,
+        skinny_queries: bool,
+        copy_values: bool,
+        depth: int | None,
+        use_depth_scaling: bool,
+    ):
+        """Initialize weights with proper variance-preserving initialization."""
+        # Q, K, V projections use linear activation (no nonlinearity before them)
+        if not skinny_queries and hasattr(self.linear_q, "weight"):
+            initialization.init_linear_weight(self.linear_q.weight, activation="linear")
+
+        if hasattr(self.linear_k, "weight"):
+            initialization.init_linear_weight(self.linear_k.weight, activation="linear")
+
+        if not copy_values and hasattr(self.linear_v, "weight"):
+            initialization.init_linear_weight(self.linear_v.weight, activation="linear")
+
+        # Output projection with optional depth scaling
+        initialization.init_output_projection(
+            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
+        )
 
     def forward(self, x):
         x = self.norm(x)
@@ -468,6 +545,9 @@ class TransformerBlock(nn.Module):
             skinny=config.skinny_mlps,
             inner_size_multiple_of=config.inner_size_multiple_of,
             output_scaling_mode=config.output_scaling_mode,
+            use_proper_init=config.use_proper_init,
+            depth=config.num_layers,
+            use_depth_scaling=config.use_depth_scaling,
         )
 
         print(
@@ -484,6 +564,9 @@ class TransformerBlock(nn.Module):
             skinny_queries=config.skinny_queries,
             copy_values=config.copy_values,
             output_scaling_mode=config.output_scaling_mode,
+            use_proper_init=config.use_proper_init,
+            depth=config.num_layers,
+            use_depth_scaling=config.use_depth_scaling,
         )
 
     def _forward(self, x):
@@ -566,17 +649,31 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        # with torch.no_grad():
-        #     # initialization
-        #     self.embedding.weight.normal_(mean=0.0, std=1.0 / math.sqrt(self.dim))
-        #     self.output_projection.weight.normal_(
-        #         mean=0.0, std=1.0 / math.sqrt(self.dim)
-        #     )
+        # Apply proper initialization if requested
+        if config.use_proper_init:
+            self._initialize_weights()
 
         self._forward_opt = torch.compile(
             self._forward, mode="max-autotune", fullgraph=True
         )
         # self._forward_opt = self._forward
+
+    def _initialize_weights(self):
+        """Initialize embedding and output projection weights."""
+        # Initialize embedding
+        initialization.init_embedding(self.embedding)
+
+        # Initialize output compressor if it exists
+        if hasattr(self, "output_compressor"):
+            initialization.init_linear_weight(
+                self.output_compressor.weight, activation="linear"
+            )
+
+        # Initialize output projection
+        # Note: We don't use depth scaling here as this is the final projection
+        initialization.init_output_projection(
+            self.output_projection, depth=None, use_depth_scaling=False
+        )
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""
