@@ -12,7 +12,7 @@ set -e  # Exit on error
 
 python run_custom_experiment.py \
     --model_size 117m \
-    --neptune_tags proper_init_experiment \
+    --neptune_tags silu-init-zheren \
     --learning_rate 0.003 \
     --weight_decay 0.1 \
     --warmup_steps 500 \
