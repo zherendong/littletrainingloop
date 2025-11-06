@@ -299,7 +299,7 @@ Examples:
         description=args.description,
         name=args.name,
         use_proper_init=args.use_proper_init,
-        use_depth_scaling=False,
+        use_depth_scaling=args.use_depth_scaling,
         batch_size=args.batch_size,
         dry_run=args.dry_run,
     )
