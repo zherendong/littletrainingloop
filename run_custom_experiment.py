@@ -298,7 +298,7 @@ Examples:
         chinchilla_factor=args.chinchilla_factor,
         description=args.description,
         name=args.name,
-        use_proper_init=False,
+        use_proper_init=args.use_proper_init,
         use_depth_scaling=False,
         batch_size=args.batch_size,
         dry_run=args.dry_run,
