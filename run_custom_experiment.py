@@ -25,6 +25,8 @@ def run_custom_experiment(
     weight_decay: float | None = None,
     warmup_steps: int | None = None,
     chinchilla_factor: float = 1.0,
+    description: str | None = None,
+    name: str | None = None,
     use_proper_init: bool = True,
     use_depth_scaling: bool = False,
     batch_size: int | None = None,
@@ -100,7 +102,10 @@ def run_custom_experiment(
     wd_str = f"_wd{weight_decay}" if weight_decay is not None and weight_decay != 0.0 else ""
     init_str = "_depthscale" if use_depth_scaling else ""
     
-    run_name = f"{config.name}_lr{lr_str}{cf_str}{wd_str}_{nonlinearity}{init_str}"
+    if name is None:
+        run_name = f"{config.name}_lr{lr_str}{cf_str}{wd_str}_{nonlinearity}{init_str}"
+    else:
+        run_name = name
     
     # Calculate training details
     num_tokens_per_step = config.batch_size * config.sequence_length
@@ -139,11 +144,12 @@ def run_custom_experiment(
         return
     
     # Create description
-    description = (
-        f"Training {model_name} with lr={actual_lr}, wd={config.weight_decay}, "
-        f"warmup={config.warmup_steps}, proper_init={use_proper_init}, "
-        f"depth_scaling={use_depth_scaling}"
-    )
+    if description is None:
+        description = (
+            f"Training {model_name} with lr={actual_lr}, wd={config.weight_decay}, "
+            f"warmup={config.warmup_steps}, proper_init={use_proper_init}, "
+            f"depth_scaling={use_depth_scaling}"
+        )
 
     # Run training
     language_model_training.run(
@@ -207,6 +213,12 @@ Examples:
         help="Tags for Neptune logging",
     )
     parser.add_argument(
+        "--description",
+        type=str,
+        default=None,
+        help="Description for Neptune logging (if not provided, use default)",
+    )
+    parser.add_argument(
         "--learning_rate",
         type=float,
         default=None,
@@ -266,7 +278,12 @@ Examples:
         default=False,
         help="Print configuration without actually running training",
     )
-    
+    parser.add_argument(
+        "--name",
+        type=str,
+        default=None,
+        help="Name for the run (if not provided, use default)",
+    )
     # Set defaults for proper_init
     parser.set_defaults(use_proper_init=True)
     
@@ -279,8 +296,10 @@ Examples:
         weight_decay=args.weight_decay,
         warmup_steps=args.warmup_steps,
         chinchilla_factor=args.chinchilla_factor,
-        use_proper_init=args.use_proper_init,
-        use_depth_scaling=args.use_depth_scaling,
+        description=args.description,
+        name=args.name,
+        use_proper_init=False,
+        use_depth_scaling=False,
         batch_size=args.batch_size,
         dry_run=args.dry_run,
     )
