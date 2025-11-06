@@ -101,20 +101,30 @@ def config_variants(
         # nonlinearity_variants.append(gelu)
     variants = nonlinearity_variants
 
-    tt_init_variants = []
+    init_variants = []
     for config in variants:
-        tt_init_variants.append(
+        # init_variants.append(
+        #     replace(
+        #         config,
+        #         model_config=replace(
+        #             config.model_config,
+        #             tt_init=True,
+        #             depth_init=True,
+        #         ),
+        #         name=config.name + "_tti+",
+        #     )
+        # )
+        init_variants.append(
             replace(
                 config,
                 model_config=replace(
                     config.model_config,
-                    tt_init=True,
-                    depth_init=True,
+                    zheren_init=True,
                 ),
-                name=config.name + "_tti+",
+                name=config.name + "_zi",
             )
         )
-    variants = tt_init_variants
+    variants = init_variants
 
     # adam_variants = []
     # for config in variants:
@@ -170,7 +180,7 @@ def config_variants(
 
     warmup_variants = []
     for config in variants:
-        warmups = [100]
+        warmups = [500]
         for warmup in warmups:
             warmup_variants.append(
                 replace(
@@ -181,21 +191,21 @@ def config_variants(
             )
     variants = warmup_variants
 
-    final_proj_init_variants = []
-    for config in variants:
-        stds = [2.0]
-        for std in stds:
-            final_proj_init_variants.append(
-                replace(
-                    config,
-                    model_config=replace(
-                        config.model_config,
-                        final_proj_init_std=std,
-                    ),
-                    name=config.name + f"_fpis{std}",
-                )
-            )
-    variants = final_proj_init_variants
+    # final_proj_init_variants = []
+    # for config in variants:
+    #     stds = [2.0]
+    #     for std in stds:
+    #         final_proj_init_variants.append(
+    #             replace(
+    #                 config,
+    #                 model_config=replace(
+    #                     config.model_config,
+    #                     final_proj_init_std=std,
+    #                 ),
+    #                 name=config.name + f"_fpis{std}",
+    #             )
+    #         )
+    # variants = final_proj_init_variants
 
     # new_variants = []
     # for config in variants:

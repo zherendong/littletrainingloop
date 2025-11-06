@@ -13,6 +13,7 @@ import math
 import attention
 import cross_entropy
 import language_model_basics
+import initialization
 
 torch._dynamo.config.cache_size_limit = 64
 
@@ -46,11 +47,13 @@ class TransformerConfig:
     segmented_norm: int | None = (
         None  # Try 128 and 512. The goal is that nothing changes.
     )
-    skinny_mlps: bool = False
     skinny_queries: bool = False
-    tt_init: bool = False
+
+    # initialization options
+    tt_init: bool = False  # init like torch titan
     depth_init: bool = False
     final_proj_init_std: float = 1.0
+    zheren_init: bool = False
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -141,7 +144,7 @@ class RMSNorm(nn.Module):
 
 
 class FlexLinear(nn.Module):
-    """Can implement Linear or down and up projection.
+    """Can implement Linear or skinny projection.
 
     This module is a drop-in replacement of linear layers and meant to
     save half of the weights compared to a linear layer. So it defaults
@@ -185,6 +188,15 @@ class FlexLinear(nn.Module):
             nn.init.trunc_normal_(
                 self.expander.weight, mean=0.0, std=init_std
             )  # TODO: divide init_std by compression factor?
+
+    def init_weights_zheren(self):
+        if not self.is_skinny:
+            initialization.init_linear_weight(self.linear.weight, activation="linear")
+        else:
+            initialization.init_linear_weight(
+                self.compressor.weight, activation="linear"
+            )
+            initialization.init_linear_weight(self.expander.weight, activation="linear")
 
     def forward(self, x):
         if not self.is_skinny:
@@ -258,7 +270,6 @@ class MLP(nn.Module):
         nonlinearity: str = "relu",
         segmented_norm: int | None = None,
         glu: bool = False,
-        skinny: bool = False,
         inner_size_multiple_of: int = 256,
     ):
         super(MLP, self).__init__()
@@ -278,7 +289,6 @@ class MLP(nn.Module):
         del output_size
         self.segmented_norm = segmented_norm
         self.glu = glu
-        self.skinny = skinny
 
         self.norm = FP32LayerNorm(input_size, segment_size=segmented_norm)
 
@@ -288,16 +298,17 @@ class MLP(nn.Module):
             self.linear_glu = nn.Linear(
                 input_size, self.inner_size, bias=False, dtype=dtype
             )
+        self.nonlinearity = nonlinearity
         if nonlinearity == "relu":
-            self.nonlinearity = nn.ReLU()
+            self.nonlinear_fn = nn.ReLU()
         elif nonlinearity == "gelu":
-            self.nonlinearity = nn.GELU()
+            self.nonlinear_fn = nn.GELU()
         elif nonlinearity == "swish":
-            self.nonlinearity = nn.SiLU()
+            self.nonlinear_fn = nn.SiLU()
         elif nonlinearity == "PolyNorm":
-            self.nonlinearity = PolyNorm()
+            self.nonlinear_fn = PolyNorm()
         elif nonlinearity == "PolyReLU":
-            self.nonlinearity = PolyReLU()
+            self.nonlinear_fn = PolyReLU()
         else:
             raise NotImplementedError
 
@@ -312,18 +323,63 @@ class MLP(nn.Module):
         if self.glu:
             nn.init.trunc_normal_(self.linear_glu.weight, mean=0.0, std=init_std)
 
+    def init_weights_zheren(
+        self,
+        depth: int | None,
+        use_depth_scaling: bool,
+    ):
+        """Initialize weights with activation-aware and optionally depth-scaled initialization."""
+        if self.glu:
+            # SwiGLU: both linear_in and linear_glu need proper initialization
+            if self.nonlinearity in ["swish", "silu"]:
+                initialization.init_swiglu_weights(
+                    self.linear_in, self.linear_glu, self.input_size
+                )
+            elif self.nonlinearity == "gelu":
+                # GeGLU variant
+                initialization.init_linear_weight(
+                    self.linear_in.weight, activation="gelu"
+                )
+                initialization.init_linear_weight(
+                    self.linear_glu.weight, activation="linear"
+                )
+            else:
+                # ReLU or other GLU variants
+                initialization.init_linear_weight(
+                    self.linear_in.weight, activation=self.nonlinearity
+                )
+                initialization.init_linear_weight(
+                    self.linear_glu.weight, activation="linear"
+                )
+        else:
+            # Standard MLP: just linear_in with activation
+            activation_map = {
+                "relu": "relu",
+                "gelu": "gelu",
+                "swish": "silu",
+            }
+            activation = activation_map.get(self.nonlinearity, "linear")
+            initialization.init_linear_weight(
+                self.linear_in.weight, activation=activation
+            )
+
+        # Initialize output projection with optional depth scaling
+        initialization.init_output_projection(
+            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
+        )
+
     def forward(self, x):
         if self.glu:
             x = self.norm(x)
             x1 = self.linear_in(x)
             x2 = self.linear_glu(x)
-            x = self.nonlinearity(x1) * x2
+            x = self.nonlinear_fn(x1) * x2
             x = self.linear_out(x)
             return x
         else:
             x = self.norm(x)
             x = self.linear_in(x)
-            x = self.nonlinearity(x)
+            x = self.nonlinear_fn(x)
             x = self.linear_out(x)
             return x
 
@@ -396,6 +452,21 @@ class SelfAttention(nn.Module):
         nn.init.trunc_normal_(self.linear_v.weight, mean=0.0, std=0.02)
         nn.init.trunc_normal_(self.linear_out.weight, mean=0.0, std=init_std)
 
+    def init_weights_zheren(
+        self,
+        depth: int | None,
+        use_depth_scaling: bool,
+    ):
+        """Initialize weights with proper variance-preserving initialization."""
+        self.linear_q.init_weights_zheren()
+        initialization.init_linear_weight(self.linear_k.weight, activation="linear")
+        initialization.init_linear_weight(self.linear_v.weight, activation="linear")
+
+        # Output projection with optional depth scaling
+        initialization.init_output_projection(
+            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
+        )
+
     def forward(self, x):
         x = self.norm(x)
         batch_size, sequence_length, _ = x.shape
@@ -442,7 +513,6 @@ class TransformerBlock(nn.Module):
             nonlinearity=config.nonlinearity,
             segmented_norm=config.segmented_norm,
             glu=config.glu,
-            skinny=config.skinny_mlps,
             inner_size_multiple_of=config.inner_size_multiple_of,
         )
 
@@ -469,6 +539,15 @@ class TransformerBlock(nn.Module):
             init_std = 0.02 / (2 * self.config.num_layers) ** 0.5
         self.attention.init_weights(init_std)
         self.mlp.init_weights(init_std)
+
+    def init_weights_zheren(self):
+        print(f"Initializing block {self.block_idx}")
+        self.attention.init_weights_zheren(
+            depth=self.block_idx, use_depth_scaling=self.config.depth_init
+        )
+        self.mlp.init_weights_zheren(
+            depth=self.block_idx, use_depth_scaling=self.config.depth_init
+        )
 
     def _forward(self, x):
         x = x + self.attention(x)
@@ -557,6 +636,8 @@ class TransformerModel(language_model_basics.LanguageModel):
 
         if config.tt_init:
             self.init_weights()
+        if config.zheren_init:
+            self.init_weights_zheren()
 
     def init_weights(self):
         """Explicit weight initialization.
@@ -588,6 +669,28 @@ class TransformerModel(language_model_basics.LanguageModel):
                 a=-cutoff_factor * out_proj_std,
                 b=cutoff_factor * out_proj_std,
             )
+
+    def init_weights_zheren(self):
+        """Explicit weight initialization.
+
+        Avoids double initialization when modifying weights of
+        submodules via pytorch builtin `reset_parameters`.
+        """
+        print("Initializing weights with Zheren's scheme")
+        initialization.init_embedding(self.embedding)
+        if self.config.embedding_norm:
+            self.embedding_norm.init_weights()
+
+        if hasattr(self, "output_compressor"):
+            initialization.init_linear_weight(
+                self.output_compressor.weight, activation="linear"
+            )
+
+        for block in self.transformer_blocks:
+            block.init_weights_zheren()  # type: ignore
+
+        self.final_norm.init_weights()
+        initialization.init_output_projection(self.output_projection)
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""
