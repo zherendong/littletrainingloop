@@ -140,7 +140,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
                 # 1e-6 in optimi.
                 eps=config.adam_eps,
                 betas=config.adam_betas,
-                # weight_decay=0.01,
+                weight_decay=config.weight_decay,
             )
 
         # linear learning rate schedule with warmup
