@@ -40,12 +40,16 @@ def config_variants(
         except IndexError:
             print(f"Could not parse chinchilla size from {config.name}")
             continue
-        if chinchilla_size <= 100:
-            lrs = [0.002]
+        if chinchilla_size <= 50:
+            lrs = [0.003]
+        elif chinchilla_size <= 120:
+            # lrs = [0.002]
+            # lrs = [0.0015, 0.0025, 0.003]
+            lrs = [0.003]
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
-            lrs = [0.002]
+            lrs = [0.0015]
         elif chinchilla_size <= 500:
             lrs = [0.001]
         elif chinchilla_size <= 1000:
@@ -64,6 +68,135 @@ def config_variants(
             )
     variants = lr_variants
 
+    nonlinearity_variants = []
+    for config in variants:
+        swiglu = replace(
+            config,
+            model_config=replace(
+                config.model_config,
+                nonlinearity="swish",
+                glu=True,
+            ),
+            name=config.name + "_swiglu",
+        )
+        nonlinearity_variants.append(swiglu)
+        # geglu = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="gelu",
+        #         glu=True,
+        #     ),
+        #     name=config.name + "_geglu",
+        # )
+        # gelu = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="gelu",
+        #         glu=False,
+        #     ),
+        #     name=config.name + "_gelu",
+        # )
+        # nonlinearity_variants.append(gelu)
+    variants = nonlinearity_variants
+
+    tt_init_variants = []
+    for config in variants:
+        tt_init_variants.append(
+            replace(
+                config,
+                model_config=replace(
+                    config.model_config,
+                    tt_init=True,
+                    depth_init=True,
+                ),
+                name=config.name + "_tti+",
+            )
+        )
+    variants = tt_init_variants
+
+    # adam_variants = []
+    # for config in variants:
+    #     adam_variants.append(
+    #         replace(
+    #             config,
+    #             adam_betas=(0.9, 0.99),
+    #             name=config.name + "_b0.9_0.99",
+    #         )
+    #     )
+    # variants = adam_variants
+
+    # chinchilla_variants = []
+    # for config in variants:
+    #     factors = [4]
+    #     for factor in factors:
+    #         chinchilla_variants.append(
+    #             replace(
+    #                 config,
+    #                 chinchilla_factor=factor,
+    #                 name=config.name + f"_ch{factor}",
+    #             )
+    #         )
+    # variants = chinchilla_variants
+
+    weight_decay_variants = []
+    for config in variants:
+        weight_decays = [0.1]
+        for weight_decay in weight_decays:
+            weight_decay_variants.append(
+                replace(
+                    config,
+                    weight_decay=weight_decay,
+                    name=config.name + f"_wd{weight_decay}",
+                )
+            )
+    variants = weight_decay_variants
+
+    # outproj_variants = []
+    # for config in variants:
+    #     outproj_variants.append(config)
+    #     outproj_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 pre_projection_transform=None,
+    #             ),
+    #             name=config.name + "_opNone",
+    #         )
+    #     )
+    # variants = outproj_variants
+
+    warmup_variants = []
+    for config in variants:
+        warmups = [100]
+        for warmup in warmups:
+            warmup_variants.append(
+                replace(
+                    config,
+                    warmup_steps=warmup,
+                    name=config.name + f"_wu{warmup}",
+                )
+            )
+    variants = warmup_variants
+
+    final_proj_init_variants = []
+    for config in variants:
+        stds = [2.0]
+        for std in stds:
+            final_proj_init_variants.append(
+                replace(
+                    config,
+                    model_config=replace(
+                        config.model_config,
+                        final_proj_init_std=std,
+                    ),
+                    name=config.name + f"_fpis{std}",
+                )
+            )
+    variants = final_proj_init_variants
+
     # new_variants = []
     # for config in variants:
     #     new_variants.append(config)
@@ -79,20 +212,6 @@ def config_variants(
     #     )
     # variants = new_variants
 
-    # chinchilla_variants = []
-    # for config in variants:
-    #     # chinchilla_variants.append(config)
-    #     factors = [2, 5]
-    #     for factor in factors:
-    #         chinchilla_variants.append(
-    #             replace(
-    #                 config,
-    #                 chinchilla_factor=factor,
-    #                 name=config.name + f"_ch{factor}",
-    #             )
-    #         )
-    # variants = chinchilla_variants
-
     print(f"Generated {len(variants)} variants")
     return variants
 
@@ -104,27 +223,27 @@ def main(
     no_neptune: bool = False,
 ):
     # configs = [  # core group of models
-    #     #     "chinchilla-74m",
+    #     "chinchilla-74m",
     #     "chinchilla-106m",
     #     "chinchilla-163m",
     #     "chinchilla-251m",
-    #     #     "chinchilla-489m",
+    #     "chinchilla-489m",
     # ]
     configs = [  # extended group of models
         # "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
-        # # "chinchilla-106m",
-        # "chinchilla-117m",
+        # "chinchilla-106m",
+        "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
         # "chinchilla-196m",
         # "chinchilla-251m",
         # "chinchilla-306m",
-        "chinchilla-425m",
+        # "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
-        "chinchilla-816m",
+        # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
         # "chinchilla-2298m",
@@ -136,6 +255,7 @@ def main(
     all_configs = []
     for config_str in configs:
         cfg = language_model_training.get_model_config(config_str)
+        cfg = replace(cfg, name=config_str.replace("chinchilla-", "c"))
         all_configs.extend(config_variants(cfg))
 
     print(f"Sweeping a total of {len(all_configs)} configs")

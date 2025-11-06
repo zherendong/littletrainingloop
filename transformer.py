@@ -6,6 +6,7 @@ import dataclasses
 from torch.utils import checkpoint
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torchtune
 import math
 
@@ -29,6 +30,7 @@ class TransformerConfig:
     # classic architectural options
     gqa: bool = True
     glu: bool = True
+    # one of "swish", "gelu", "relu", "PolyReLU", "PolyNorm"
     nonlinearity: str = "swish"
     embedding_norm: bool = True
     inner_size_multiple_of: int = (
@@ -46,9 +48,9 @@ class TransformerConfig:
     )
     skinny_mlps: bool = False
     skinny_queries: bool = False
-    copy_values: bool = False
-    # output scaling one of None, "scalar", "per_channel", "scalar0", "per_channel0", "per_channel_sigmoid", "per_channel_sigmoid_minus"
-    output_scaling_mode: str | None = None
+    tt_init: bool = False
+    depth_init: bool = False
+    final_proj_init_std: float = 1.0
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -103,6 +105,9 @@ class FP32LayerNorm(nn.Module):
             dtype=torch.float32,
         )
 
+    def init_weights(self):
+        self.norm.reset_parameters()
+
     def forward(self, x):
         input_dtype = x.dtype
         x = x.to(torch.float32)
@@ -118,59 +123,25 @@ class FP32LayerNorm(nn.Module):
         return x.to(input_dtype)
 
 
-def generate_fuzzy_diagonal(input_size: int, output_size: int, dtype):
-    x = torch.arange(input_size, dtype=dtype).unsqueeze(1)
-    y = torch.arange(output_size, dtype=dtype).unsqueeze(0)
+class RMSNorm(nn.Module):
+    def __init__(self, dim: int, eps: float = 1e-5):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(dim))
 
-    # compress to range from 0 to 1
-    x = x / (input_size - 1)
-    y = y / (output_size - 1)
+    def init_weights(self):
+        nn.init.ones_(self.weight)
 
-    diff = 1 + 10 * torch.abs(x - y)
-    diff_diag = 1 / (diff * diff)
-    assert diff_diag.shape == (input_size, output_size)
-    return diff_diag
-
-
-class CopyLinear(nn.Module):
-    """A linear layer encouraged to copy information."""
-
-    def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-        dtype: torch.dtype,
-    ):
-        super(CopyLinear, self).__init__()
-        self.input_size = input_size
-        self.output_size = output_size
-
-        self.linear = nn.Linear(input_size, output_size, bias=False, dtype=dtype)
-
-        with torch.no_grad():
-            # initialization
-            # init with variance 1/fan_in
-            # self.linear.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-            # We add the diagonal instead of assigning it directly to get some sort of variance away from the diagonal
-            pre_std = torch.std(self.linear.weight)
-            print(f"{pre_std=}")
-            self.linear.weight += generate_fuzzy_diagonal(
-                output_size, input_size, dtype=dtype
-            )
-            # renormalize to std
-            post_std = torch.std(self.linear.weight)
-            print(f"{post_std=}")
-            self.linear.weight *= pre_std / post_std
-            re_std = torch.std(self.linear.weight)
-            print(f"{re_std=}")
+    def _norm(self, x):
+        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
 
     def forward(self, x):
-        x = self.linear(x)
-        return x
+        output = self._norm(x.float()).type_as(x)
+        return output * self.weight
 
 
-class SkinnyLinear(nn.Module):
-    """Down and up projection; never use bias.
+class FlexLinear(nn.Module):
+    """Can implement Linear or down and up projection.
 
     This module is a drop-in replacement of linear layers and meant to
     save half of the weights compared to a linear layer. So it defaults
@@ -182,63 +153,96 @@ class SkinnyLinear(nn.Module):
         input_size: int,
         output_size: int,
         dtype: torch.dtype,
+        bias: bool = False,
         inner_size: int | None = None,
+        is_skinny: bool = False,
     ):
-        super(SkinnyLinear, self).__init__()
+        super(FlexLinear, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
+        self.bias = bias
+        self.is_skinny = is_skinny
 
-        assert self.input_size % 4 == 0
-        self.compressed_size = inner_size or self.input_size // 4
-        self.compressor = nn.Linear(
-            input_size, self.compressed_size, bias=False, dtype=dtype
-        )
-        self.expander = nn.Linear(
-            self.compressed_size, self.output_size, bias=False, dtype=dtype
-        )
+        if is_skinny:
+            assert self.input_size % 4 == 0
+            self.compressed_size = inner_size or self.input_size // 4
+            self.compressor = nn.Linear(
+                input_size, self.compressed_size, bias=self.bias, dtype=dtype
+            )
+            self.expander = nn.Linear(
+                self.compressed_size, self.output_size, bias=self.bias, dtype=dtype
+            )
+        else:
+            self.linear = nn.Linear(
+                input_size, self.output_size, bias=self.bias, dtype=dtype
+            )
+
+    def init_weights(self, init_std: float):
+        if not self.is_skinny:
+            nn.init.trunc_normal_(self.linear.weight, mean=0.0, std=init_std)
+        else:
+            nn.init.trunc_normal_(self.compressor.weight, mean=0.0, std=init_std)
+            nn.init.trunc_normal_(
+                self.expander.weight, mean=0.0, std=init_std
+            )  # TODO: divide init_std by compression factor?
 
     def forward(self, x):
+        if not self.is_skinny:
+            return self.linear(x)
         x = self.compressor(x)
         x = self.expander(x)
         return x
 
 
-class OutputScaling(nn.Module):
-    def __init__(
-        self,
-        size: int,
-        dtype: torch.dtype,
-        mode: str | None = None,
-    ):
-        super(OutputScaling, self).__init__()
-        self.size = size
-        self.mode = mode
+def _poly(x, weight, bias, order=3):
+    return sum(weight[i] * (x ** (i + 1)) for i in range(order)) + bias
 
-        if mode is None:
-            pass
-        elif mode == "scalar":
-            self.scale = nn.Parameter(torch.ones(1, dtype=dtype))
-        elif mode == "per_channel":
-            self.scale = nn.Parameter(torch.ones(size, dtype=dtype))
-        elif mode == "scalar0":
-            self.scale = nn.Parameter(torch.zeros(1, dtype=dtype))
-        elif mode == "per_channel0":
-            self.scale = nn.Parameter(torch.zeros(size, dtype=dtype))
-        elif mode == "per_channel_sigmoid":
-            self.scale = nn.Parameter(torch.zeros(size, dtype=dtype))
-        elif mode == "per_channel_sigmoid_minus":
-            init_value = torch.zeros(size, dtype=dtype)
-            init_value.fill_(-1.0)
-            self.scale = nn.Parameter(init_value)
-        else:
-            raise ValueError(f"Unknown output scaling mode: {mode}")
 
-    def forward(self, x):
-        if self.mode is None:
-            return x
-        if self.mode in ["per_channel_sigmoid", "per_channel_sigmoid_minus"]:
-            return x * torch.sigmoid(self.scale)
-        return x * self.scale
+class PolyReLU(nn.Module):
+    """Polynomial ReLU.
+
+    https://arxiv.org/pdf/2411.03884
+    """
+
+    def __init__(self):
+        super(PolyReLU, self).__init__()
+        self.weight = torch.nn.Parameter(torch.ones(3) / 3)
+        self.bias = torch.nn.Parameter(torch.zeros(1))
+
+    def forward(self, x, checkpointing=False):
+        x = F.relu(x)
+        if checkpointing:
+            return checkpoint.checkpoint(
+                _poly, x, self.weight, self.bias, use_reentrant=False
+            )
+        return _poly(x, self.weight, self.bias)
+
+
+def _norm(x, eps=1e-6):
+    return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + eps)
+
+
+def _poly_norm(x, weight, bias, order=3):
+    return sum(weight[i] * _norm(x ** (i + 1)) for i in range(order)) + bias
+
+
+class PolyNorm(nn.Module):
+    """Polynomial normalization.
+
+    https://arxiv.org/pdf/2411.03884
+    """
+
+    def __init__(self):
+        super(PolyNorm, self).__init__()
+        self.weight = torch.nn.Parameter(torch.ones(3) / 3)
+        self.bias = torch.nn.Parameter(torch.zeros(1))
+
+    def forward(self, x, checkpointing=False):
+        if checkpointing:
+            return checkpoint.checkpoint(
+                _poly_norm, x, self.weight, self.bias, use_reentrant=False
+            )
+        return _poly_norm(x, self.weight, self.bias)
 
 
 class MLP(nn.Module):
@@ -256,7 +260,6 @@ class MLP(nn.Module):
         glu: bool = False,
         skinny: bool = False,
         inner_size_multiple_of: int = 256,
-        output_scaling_mode: str | None = None,
     ):
         super(MLP, self).__init__()
         self.input_size = input_size
@@ -279,12 +282,7 @@ class MLP(nn.Module):
 
         self.norm = FP32LayerNorm(input_size, segment_size=segmented_norm)
 
-        if skinny:
-            self.linear_in = SkinnyLinear(input_size, self.inner_size, dtype=dtype)
-        else:
-            self.linear_in = nn.Linear(
-                input_size, self.inner_size, bias=False, dtype=dtype
-            )
+        self.linear_in = nn.Linear(input_size, self.inner_size, bias=False, dtype=dtype)
 
         if glu:
             self.linear_glu = nn.Linear(
@@ -296,40 +294,38 @@ class MLP(nn.Module):
             self.nonlinearity = nn.GELU()
         elif nonlinearity == "swish":
             self.nonlinearity = nn.SiLU()
+        elif nonlinearity == "PolyNorm":
+            self.nonlinearity = PolyNorm()
+        elif nonlinearity == "PolyReLU":
+            self.nonlinearity = PolyReLU()
         else:
             raise NotImplementedError
 
         self.linear_out = nn.Linear(
             self.inner_size, self.output_size, bias=False, dtype=dtype
         )
-        # with torch.no_grad():
-        #     self.linear_out.weight.data.zero_()  # initialize as zero
-        self.output_scaling = OutputScaling(
-            self.output_size, dtype=dtype, mode=output_scaling_mode
-        )
 
-        # with torch.no_grad():
-        #     # initialization
-        #     # init with variance 1/fan_in
-        #     self.linear_in.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     # TODO: use smaller variance for initializing the output layer,
-        #     # a la Section D.2 in the mu parameterization paper
-        #     self.linear_out.weight.normal_(mean=0.0, std=1.0 / math.sqrt(inner_size))
+    def init_weights(self, init_std: float):
+        self.norm.init_weights()
+        nn.init.trunc_normal_(self.linear_in.weight, mean=0.0, std=0.02)
+        nn.init.trunc_normal_(self.linear_out.weight, mean=0.0, std=init_std)
+        if self.glu:
+            nn.init.trunc_normal_(self.linear_glu.weight, mean=0.0, std=init_std)
 
     def forward(self, x):
-        x = self.norm(x)
-
         if self.glu:
+            x = self.norm(x)
             x1 = self.linear_in(x)
             x2 = self.linear_glu(x)
             x = self.nonlinearity(x1) * x2
+            x = self.linear_out(x)
+            return x
         else:
+            x = self.norm(x)
             x = self.linear_in(x)
             x = self.nonlinearity(x)
-
-        x = self.linear_out(x)
-        x = self.output_scaling(x)
-        return x
+            x = self.linear_out(x)
+            return x
 
 
 class SelfAttention(nn.Module):
@@ -342,10 +338,7 @@ class SelfAttention(nn.Module):
         use_flash_attention: bool,
         dtype: torch.dtype,
         head_dim_v: int | None = None,
-        segmented_norm: int | None = None,
         skinny_queries: bool = False,
-        copy_values: bool = False,
-        output_scaling_mode: str | None = None,
     ):
         super(SelfAttention, self).__init__()
         self.input_size = input_size
@@ -362,37 +355,25 @@ class SelfAttention(nn.Module):
         self.use_flash_attention = use_flash_attention
 
         self.norm = FP32LayerNorm(self.input_size)
-        if skinny_queries:
-            self.linear_q = SkinnyLinear(
-                input_size,
-                num_heads_q * head_dim,
-                dtype=dtype,
-            )
-        else:
-            self.linear_q = nn.Linear(
-                input_size,
-                num_heads_q * head_dim,
-                bias=False,
-                dtype=dtype,
-            )
+        self.linear_q = FlexLinear(
+            input_size,
+            num_heads_q * head_dim,
+            bias=False,
+            dtype=dtype,
+            is_skinny=skinny_queries,
+        )
         self.linear_k = nn.Linear(
             input_size,
             num_heads_kv * head_dim,
             bias=False,
             dtype=dtype,
         )
-        if copy_values:
-            self.linear_v = CopyLinear(
-                input_size, num_heads_kv * self.head_dim_v, dtype=dtype
-            )
-        else:
-            self.linear_v = nn.Linear(
-                input_size,
-                num_heads_kv * self.head_dim_v,
-                bias=False,
-                dtype=dtype,
-            )
-
+        self.linear_v = nn.Linear(
+            input_size,
+            num_heads_kv * self.head_dim_v,
+            bias=False,
+            dtype=dtype,
+        )
         self.linear_out = nn.Linear(
             num_heads_q * self.head_dim_v,
             input_size,
@@ -404,20 +385,16 @@ class SelfAttention(nn.Module):
             dim=head_dim, max_seq_len=8192
         )
 
-        self.output_scaling = OutputScaling(
-            self.input_size,
-            dtype=dtype,
-            mode=output_scaling_mode,
-        )
+    def init_weights(self, init_std: float):
 
-        # with torch.no_grad():
-        #     # initialization
-        #     self.linear_q.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_k.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_v.weight.normal_(mean=0.0, std=1.0 / math.sqrt(input_size))
-        #     self.linear_out.weight.normal_(
-        #         mean=0.0, std=1.0 / math.sqrt(num_heads_q * head_dim_v)
-        #     )
+        self.norm.init_weights()
+
+        # fixed std for q, k, and v like in Qwen
+        # https://github.com/pytorch/torchtitan/blob/bb308da6bd85ed31a2670993326322e3631af436/torchtitan/models/qwen3/model/model.py#L177C13-L177C69
+        self.linear_q.init_weights(0.02)
+        nn.init.trunc_normal_(self.linear_k.weight, mean=0.0, std=0.02)
+        nn.init.trunc_normal_(self.linear_v.weight, mean=0.0, std=0.02)
+        nn.init.trunc_normal_(self.linear_out.weight, mean=0.0, std=init_std)
 
     def forward(self, x):
         x = self.norm(x)
@@ -445,7 +422,6 @@ class SelfAttention(nn.Module):
             batch_size, sequence_length, self.num_heads_q * self.head_dim_v
         )
         out = self.linear_out(out)
-        out = self.output_scaling(out)
         return out
 
 
@@ -458,6 +434,7 @@ class TransformerBlock(nn.Module):
     ):
         super(TransformerBlock, self).__init__()
         self.block_idx = block_idx
+        self.config = config
 
         self.mlp = MLP(
             dtype=params_dtype,
@@ -467,7 +444,6 @@ class TransformerBlock(nn.Module):
             glu=config.glu,
             skinny=config.skinny_mlps,
             inner_size_multiple_of=config.inner_size_multiple_of,
-            output_scaling_mode=config.output_scaling_mode,
         )
 
         print(
@@ -480,11 +456,19 @@ class TransformerBlock(nn.Module):
             head_dim=config.head_dim,
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
-            segmented_norm=config.segmented_norm,
             skinny_queries=config.skinny_queries,
-            copy_values=config.copy_values,
-            output_scaling_mode=config.output_scaling_mode,
         )
+
+    def init_weights(self):
+        print(f"Initializing block {self.block_idx}")
+        # Initialization scheme from torchtitan/Qwen
+        # compare https://github.com/pytorch/torchtitan/blob/bb308da6bd85ed31a2670993326322e3631af436/torchtitan/models/qwen3/model/model.py#L326
+        if self.config.depth_init:
+            init_std = 0.02 / (2 * (self.block_idx + 1)) ** 0.5
+        else:
+            init_std = 0.02 / (2 * self.config.num_layers) ** 0.5
+        self.attention.init_weights(init_std)
+        self.mlp.init_weights(init_std)
 
     def _forward(self, x):
         x = x + self.attention(x)
@@ -566,17 +550,44 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        # with torch.no_grad():
-        #     # initialization
-        #     self.embedding.weight.normal_(mean=0.0, std=1.0 / math.sqrt(self.dim))
-        #     self.output_projection.weight.normal_(
-        #         mean=0.0, std=1.0 / math.sqrt(self.dim)
-        #     )
-
         self._forward_opt = torch.compile(
             self._forward, mode="max-autotune", fullgraph=True
         )
         # self._forward_opt = self._forward
+
+        if config.tt_init:
+            self.init_weights()
+
+    def init_weights(self):
+        """Explicit weight initialization.
+
+        Avoids double initialization when modifying weights of
+        submodules via pytorch builtin `reset_parameters`.
+        """
+        print("Initializing weights - model")
+        nn.init.normal_(self.embedding.weight)
+        if self.config.embedding_norm:
+            self.embedding_norm.init_weights()
+
+        for block in self.transformer_blocks:
+            block.init_weights()  # type: ignore
+
+        self.final_norm.init_weights()
+
+        cutoff_factor = 3
+        out_projs = [self.output_projection]
+        if hasattr(self, "output_compressor"):
+            out_projs.append(self.output_compressor)
+        for out_proj in out_projs:
+            input_dim = out_proj.weight.shape[1]
+            out_proj_std = self.config.final_proj_init_std * input_dim**-0.5
+            nn.init.trunc_normal_(
+                out_proj.weight,
+                mean=0.0,
+                std=out_proj_std,
+                a=-cutoff_factor * out_proj_std,
+                b=cutoff_factor * out_proj_std,
+            )
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""

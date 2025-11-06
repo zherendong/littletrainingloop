@@ -39,6 +39,7 @@ class LanguageModelTrainingConfig:
 
     adam_eps: float = 1e-7
     adam_betas: tuple[float, float] = (0.9, 0.99)
+    weight_decay: float = 0.01
 
     training_config: training_basics.TrainingConfig = dataclasses.field(
         default_factory=lambda: training_basics.TrainingConfig()

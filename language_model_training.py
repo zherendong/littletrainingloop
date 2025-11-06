@@ -140,7 +140,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
                 # 1e-6 in optimi.
                 eps=config.adam_eps,
                 betas=config.adam_betas,
-                # weight_decay=0.01,
+                weight_decay=config.weight_decay,
             )
 
         # linear learning rate schedule with warmup
@@ -366,7 +366,7 @@ def get_model_config(
 ):
     model_config = transformer.transformer_config_registry.get(model_config_str)
     return LanguageModelTrainingConfig(
-        name=model_config_str.replace("chinchilla-", "c"),
+        name=model_config_str,
         vocab_size=100277,
         warmup_steps=100,
         learning_rate=None,  # Auto-select based on model size
