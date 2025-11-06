@@ -29,11 +29,12 @@ python run_custom_experiment.py --model_size 117m --neptune_tags silu-init-zhere
 
 echo ""
 
-python run_custom_experiment.py --model_size 117m --neptune_tags silu-init-zheren --learning_rate 0.003 --weight_decay 0.1 --warmup_steps 500 --chinchilla_factor 1.0 --use_depth_scaling --description "Training chinchilla-117m with lr=0.003, wd=0.1, warmup=500, proper_init=True, depth_scaling=True. This is to compare with the previous run TRAIN-830."
+python run_custom_experiment.py --model_size 117m --neptune_tags silu-init-zheren --learning_rate 0.003 --weight_decay 0.1 --warmup_steps 100 --chinchilla_factor 1.0 --use_depth_scaling --description "Training chinchilla-117m with lr=0.003, wd=0.1, warmup=100, proper_init=True, depth_scaling=True. This is to compare with the previous run TRAIN-830."
 
 echo ""
 
-python run_custom_experiment.py --model_size 117m --neptune_tags silu-init-zheren --learning_rate 0.003 --weight_decay 0.1 --warmup_steps 100 --chinchilla_factor 1.0 --use_depth_scaling --description "Training chinchilla-117m with lr=0.003, wd=0.1, warmup=100, proper_init=True, depth_scaling=True. This is to compare with the previous run TRAIN-830."
+python run_custom_experiment.py --model_size 117m --neptune_tags silu-init-zheren --learning_rate 0.003 --weight_decay 0.1 --warmup_steps 500 --chinchilla_factor 1.0 --use_depth_scaling --description "Training chinchilla-117m with lr=0.003, wd=0.1, warmup=500, proper_init=True, depth_scaling=True. This is to compare with the previous run TRAIN-830."
+
 
 echo ""
 
