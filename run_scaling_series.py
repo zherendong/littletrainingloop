@@ -55,7 +55,7 @@ def config_variants(
         elif chinchilla_size <= 1000:
             lrs = [0.0007]
         elif chinchilla_size <= 1500:
-            lrs = [0.0005]
+            lrs = [0.0007]
         else:
             lrs = [0.0003]
         for lr in lrs:
@@ -70,50 +70,43 @@ def config_variants(
 
     nonlinearity_variants = []
     for config in variants:
-        swiglu = replace(
+        # swiglu = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="swish",
+        #         glu=True,
+        #     ),
+        #     name=config.name + "_swiglu",
+        # )
+        # nonlinearity_variants.append(swiglu)
+
+        # nonlinearity_variants.append(gelu)
+        # polyrelu = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="polyrelu",
+        #         glu=False,
+        #     ),
+        #     name=config.name + "_polyrelu",
+        # )
+        # nonlinearity_variants.append(polyrelu)
+
+        polynorm = replace(
             config,
             model_config=replace(
                 config.model_config,
-                nonlinearity="swish",
-                glu=True,
+                nonlinearity="polynorm",
+                glu=False,
             ),
-            name=config.name + "_swiglu",
+            name=config.name + "_polynorm",
         )
-        nonlinearity_variants.append(swiglu)
-        # geglu = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="gelu",
-        #         glu=True,
-        #     ),
-        #     name=config.name + "_geglu",
-        # )
-        # gelu = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="gelu",
-        #         glu=False,
-        #     ),
-        #     name=config.name + "_gelu",
-        # )
-        # nonlinearity_variants.append(gelu)
+        nonlinearity_variants.append(polynorm)
     variants = nonlinearity_variants
 
     init_variants = []
     for config in variants:
-        # init_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             tt_init=True,
-        #             depth_init=True,
-        #         ),
-        #         name=config.name + "_tti+",
-        #     )
-        # )
         init_variants.append(
             replace(
                 config,
@@ -135,11 +128,18 @@ def config_variants(
     #             name=config.name + "_b0.9_0.99",
     #         )
     #     )
+    #     adam_variants.append(
+    #         replace(
+    #             config,
+    #             adam_betas=(0.9, 0.95),
+    #             name=config.name + "_b0.9_0.95",
+    #         )
+    #     )
     # variants = adam_variants
 
     # chinchilla_variants = []
     # for config in variants:
-    #     factors = [4]
+    #     factors = [1, 4]
     #     for factor in factors:
     #         chinchilla_variants.append(
     #             replace(
@@ -191,25 +191,9 @@ def config_variants(
             )
     variants = warmup_variants
 
-    # final_proj_init_variants = []
-    # for config in variants:
-    #     stds = [2.0]
-    #     for std in stds:
-    #         final_proj_init_variants.append(
-    #             replace(
-    #                 config,
-    #                 model_config=replace(
-    #                     config.model_config,
-    #                     final_proj_init_std=std,
-    #                 ),
-    #                 name=config.name + f"_fpis{std}",
-    #             )
-    #         )
-    # variants = final_proj_init_variants
-
     # new_variants = []
     # for config in variants:
-    #     new_variants.append(config)
+    #     # new_variants.append(config)
     #     new_variants.append(
     #         replace(
     #             config,
@@ -266,6 +250,7 @@ def main(
     for config_str in configs:
         cfg = language_model_training.get_model_config(config_str)
         cfg = replace(cfg, name=config_str.replace("chinchilla-", "c"))
+        cfg = replace(cfg, name=cfg.name + "_poly32")
         all_configs.extend(config_variants(cfg))
 
     print(f"Sweeping a total of {len(all_configs)} configs")
@@ -280,7 +265,7 @@ def main(
             config=cfg,
             run_name=cfg.name,
             description=cfg.name,
-            use_neptune=True,
+            use_neptune=not no_neptune,
             neptune_tags=neptune_tags,
         )
 

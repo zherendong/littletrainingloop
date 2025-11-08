@@ -63,6 +63,12 @@ def init_linear_weight(
         gain = calculate_silu_gain()
     elif activation == "gelu":
         gain = calculate_gelu_gain()
+    elif activation == "polyrelu":
+        gain = 0.8460  # determined with ChatGPT
+    elif activation == "polynorm":
+        gain = 1.0
+    elif activation == "segmented":
+        gain = 1.0
     else:
         raise ValueError(f"Unknown activation: {activation}")
 

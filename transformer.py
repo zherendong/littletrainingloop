@@ -218,8 +218,8 @@ class PolyReLU(nn.Module):
 
     def __init__(self):
         super(PolyReLU, self).__init__()
-        self.weight = torch.nn.Parameter(torch.ones(3) / 3)
-        self.bias = torch.nn.Parameter(torch.zeros(1))
+        self.weight = torch.nn.Parameter(torch.ones(3, dtype=torch.bfloat16) / 3)
+        self.bias = torch.nn.Parameter(torch.zeros(1, dtype=torch.bfloat16))
 
     def forward(self, x, checkpointing=False):
         x = F.relu(x)
@@ -234,8 +234,16 @@ def _norm(x, eps=1e-6):
     return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + eps)
 
 
-def _poly_norm(x, weight, bias, order=3):
-    return sum(weight[i] * _norm(x ** (i + 1)) for i in range(order)) + bias
+def _poly_norm(
+    x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor | None, order=3
+):
+    orig_dtype = x.dtype
+    x = x.to(torch.float32)
+    assert x.ndim == 3
+    x = sum(weight[i] * _norm(x ** (i + 1)) for i in range(order))
+    if bias is not None:
+        x += bias
+    return x.to(orig_dtype)
 
 
 class PolyNorm(nn.Module):
@@ -246,8 +254,11 @@ class PolyNorm(nn.Module):
 
     def __init__(self):
         super(PolyNorm, self).__init__()
-        self.weight = torch.nn.Parameter(torch.ones(3) / 3)
-        self.bias = torch.nn.Parameter(torch.zeros(1))
+        self.weight = torch.nn.Parameter(
+            (torch.ones(3, dtype=torch.float32) / 3) * 1.41
+        )  # 1.41 is experimentally determined to preserve the output variance.
+        # self.weight = torch.nn.Parameter(torch.ones(3, dtype=torch.float32) / 3)
+        self.bias = torch.nn.Parameter(torch.zeros(1, dtype=torch.float32))
 
     def forward(self, x, checkpointing=False):
         if checkpointing:
@@ -255,6 +266,32 @@ class PolyNorm(nn.Module):
                 _poly_norm, x, self.weight, self.bias, use_reentrant=False
             )
         return _poly_norm(x, self.weight, self.bias)
+
+
+class Segmented(nn.Module):
+    def __init__(self, dim: int, segment_size: int = 128):
+        super(Segmented, self).__init__()
+        self.segment_size = segment_size
+        self.num_segments = dim // segment_size
+        assert self.num_segments * segment_size == dim
+        self.dim = dim
+        self.layernorms = [
+            FP32LayerNorm(segment_size) for _ in range(self.num_segments)
+        ]
+        # TODO: try PolyNorm
+        # self.layernorms = [PolyNorm(segment_size) for _ in range(self.num_segments)]
+        self.layernorms = nn.ModuleList(self.layernorms)
+
+    def forward(self, x):
+        assert x.ndim == 3
+        assert x.shape[1] % self.segment_size == 0
+        orig_shape = x.shape
+        x = x.view(x.shape[0], -1, self.num_segments, self.segment_size)
+
+        for i in range(self.num_segments):
+            x[:, :, i, :] = self.layernorms[i](x[:, :, i, :])
+
+        return x.view(*orig_shape)
 
 
 class MLP(nn.Module):
@@ -305,12 +342,14 @@ class MLP(nn.Module):
             self.nonlinear_fn = nn.GELU()
         elif nonlinearity == "swish":
             self.nonlinear_fn = nn.SiLU()
-        elif nonlinearity == "PolyNorm":
-            self.nonlinear_fn = PolyNorm()
-        elif nonlinearity == "PolyReLU":
+        elif nonlinearity == "polynorm":
+            self.nonlinear_fn = PolyNorm(dim=None)
+        elif nonlinearity == "polyrelu":
             self.nonlinear_fn = PolyReLU()
+        elif nonlinearity == "segmented":
+            self.nonlinear_fn = Segmented(self.inner_size)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unknown nonlinearity: {nonlinearity}")
 
         self.linear_out = nn.Linear(
             self.inner_size, self.output_size, bias=False, dtype=dtype
