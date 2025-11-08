@@ -70,16 +70,16 @@ def config_variants(
 
     nonlinearity_variants = []
     for config in variants:
-        # swiglu = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="swish",
-        #         glu=True,
-        #     ),
-        #     name=config.name + "_swiglu",
-        # )
-        # nonlinearity_variants.append(swiglu)
+        swiglu = replace(
+            config,
+            model_config=replace(
+                config.model_config,
+                nonlinearity="swish",
+                glu=True,
+            ),
+            name=config.name + "_swiglu",
+        )
+        nonlinearity_variants.append(swiglu)
 
         # nonlinearity_variants.append(gelu)
         # polyrelu = replace(
@@ -93,16 +93,16 @@ def config_variants(
         # )
         # nonlinearity_variants.append(polyrelu)
 
-        polynorm = replace(
-            config,
-            model_config=replace(
-                config.model_config,
-                nonlinearity="polynorm",
-                glu=False,
-            ),
-            name=config.name + "_polynorm",
-        )
-        nonlinearity_variants.append(polynorm)
+        # polynorm = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="polynorm",
+        #         glu=False,
+        #     ),
+        #     name=config.name + "_polynorm",
+        # )
+        # nonlinearity_variants.append(polynorm)
     variants = nonlinearity_variants
 
     init_variants = []
@@ -250,7 +250,7 @@ def main(
     for config_str in configs:
         cfg = language_model_training.get_model_config(config_str)
         cfg = replace(cfg, name=config_str.replace("chinchilla-", "c"))
-        cfg = replace(cfg, name=cfg.name + "_poly32")
+        # cfg = replace(cfg, name=cfg.name + "_embnorm2")
         all_configs.extend(config_variants(cfg))
 
     print(f"Sweeping a total of {len(all_configs)} configs")

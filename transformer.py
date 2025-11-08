@@ -33,7 +33,7 @@ class TransformerConfig:
     glu: bool = True
     # one of "swish", "gelu", "relu", "PolyReLU", "PolyNorm"
     nonlinearity: str = "swish"
-    embedding_norm: bool = True
+    embedding_norm: bool = False
     inner_size_multiple_of: int = (
         256  # Rounding for MLP hidden size (use 64 for GLU parameter parity)
     )
@@ -108,8 +108,11 @@ class FP32LayerNorm(nn.Module):
             dtype=torch.float32,
         )
 
-    def init_weights(self):
-        self.norm.reset_parameters()
+    def init_weights(self, init_val: float | None = None):
+        if init_val is None:
+            self.norm.reset_parameters()
+        else:
+            self.norm.weight.data.fill_(init_val)
 
     def forward(self, x):
         input_dtype = x.dtype
@@ -718,7 +721,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         print("Initializing weights with Zheren's scheme")
         initialization.init_embedding(self.embedding)
         if self.config.embedding_norm:
-            self.embedding_norm.init_weights()
+            self.embedding_norm.init_weights(init_val=1 / math.sqrt(self.dim))
 
         if hasattr(self, "output_compressor"):
             initialization.init_linear_weight(
@@ -758,6 +761,8 @@ class TransformerModel(language_model_basics.LanguageModel):
         Use get_output_projection_weights to get the weights to compute the logits.
         """
         x = self.embedding(x).to(self.activation_dtype)
+        if self.config.embedding_norm:
+            x = self.embedding_norm(x)
         x = self.transformer_blocks(x)
         x = self.emb_transformation(x)
         # don't apply the output projection, as it's handled differently in
