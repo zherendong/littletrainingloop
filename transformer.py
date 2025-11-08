@@ -50,10 +50,8 @@ class TransformerConfig:
     skinny_queries: bool = False
 
     # initialization options
-    tt_init: bool = False  # init like torch titan
-    depth_init: bool = False
-    final_proj_init_std: float = 1.0
     zheren_init: bool = False
+    depth_init: bool = False
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -183,16 +181,7 @@ class FlexLinear(nn.Module):
                 input_size, self.output_size, bias=self.bias, dtype=dtype
             )
 
-    def init_weights(self, init_std: float):
-        if not self.is_skinny:
-            nn.init.trunc_normal_(self.linear.weight, mean=0.0, std=init_std)
-        else:
-            nn.init.trunc_normal_(self.compressor.weight, mean=0.0, std=init_std)
-            nn.init.trunc_normal_(
-                self.expander.weight, mean=0.0, std=init_std
-            )  # TODO: divide init_std by compression factor?
-
-    def init_weights_zheren(self):
+    def init_weights(self):
         if not self.is_skinny:
             initialization.init_linear_weight(self.linear.weight, activation="linear")
         else:
@@ -243,7 +232,7 @@ def _poly_norm(
     orig_dtype = x.dtype
     x = x.to(torch.float32)
     assert x.ndim == 3
-    x = sum(weight[i] * _norm(x ** (i + 1)) for i in range(order))
+    x = sum(weight[i] * _norm(x ** (i + 1)) for i in range(order))  # type: ignore
     if bias is not None:
         x += bias
     return x.to(orig_dtype)
@@ -346,7 +335,7 @@ class MLP(nn.Module):
         elif nonlinearity == "swish":
             self.nonlinear_fn = nn.SiLU()
         elif nonlinearity == "polynorm":
-            self.nonlinear_fn = PolyNorm(dim=None)
+            self.nonlinear_fn = PolyNorm()
         elif nonlinearity == "polyrelu":
             self.nonlinear_fn = PolyReLU()
         elif nonlinearity == "segmented":
@@ -358,14 +347,7 @@ class MLP(nn.Module):
             self.inner_size, self.output_size, bias=False, dtype=dtype
         )
 
-    def init_weights(self, init_std: float):
-        self.norm.init_weights()
-        nn.init.trunc_normal_(self.linear_in.weight, mean=0.0, std=0.02)
-        nn.init.trunc_normal_(self.linear_out.weight, mean=0.0, std=init_std)
-        if self.glu:
-            nn.init.trunc_normal_(self.linear_glu.weight, mean=0.0, std=init_std)
-
-    def init_weights_zheren(
+    def init_weights(
         self,
         depth: int | None,
         use_depth_scaling: bool,
@@ -483,24 +465,13 @@ class SelfAttention(nn.Module):
             dim=head_dim, max_seq_len=8192
         )
 
-    def init_weights(self, init_std: float):
-
-        self.norm.init_weights()
-
-        # fixed std for q, k, and v like in Qwen
-        # https://github.com/pytorch/torchtitan/blob/bb308da6bd85ed31a2670993326322e3631af436/torchtitan/models/qwen3/model/model.py#L177C13-L177C69
-        self.linear_q.init_weights(0.02)
-        nn.init.trunc_normal_(self.linear_k.weight, mean=0.0, std=0.02)
-        nn.init.trunc_normal_(self.linear_v.weight, mean=0.0, std=0.02)
-        nn.init.trunc_normal_(self.linear_out.weight, mean=0.0, std=init_std)
-
-    def init_weights_zheren(
+    def init_weights(
         self,
         depth: int | None,
         use_depth_scaling: bool,
     ):
         """Initialize weights with proper variance-preserving initialization."""
-        self.linear_q.init_weights_zheren()
+        self.linear_q.init_weights()
         initialization.init_linear_weight(self.linear_k.weight, activation="linear")
         initialization.init_linear_weight(self.linear_v.weight, activation="linear")
 
@@ -573,21 +544,10 @@ class TransformerBlock(nn.Module):
 
     def init_weights(self):
         print(f"Initializing block {self.block_idx}")
-        # Initialization scheme from torchtitan/Qwen
-        # compare https://github.com/pytorch/torchtitan/blob/bb308da6bd85ed31a2670993326322e3631af436/torchtitan/models/qwen3/model/model.py#L326
-        if self.config.depth_init:
-            init_std = 0.02 / (2 * (self.block_idx + 1)) ** 0.5
-        else:
-            init_std = 0.02 / (2 * self.config.num_layers) ** 0.5
-        self.attention.init_weights(init_std)
-        self.mlp.init_weights(init_std)
-
-    def init_weights_zheren(self):
-        print(f"Initializing block {self.block_idx}")
-        self.attention.init_weights_zheren(
+        self.attention.init_weights(
             depth=self.block_idx, use_depth_scaling=self.config.depth_init
         )
-        self.mlp.init_weights_zheren(
+        self.mlp.init_weights(
             depth=self.block_idx, use_depth_scaling=self.config.depth_init
         )
 
@@ -676,43 +636,10 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
         # self._forward_opt = self._forward
 
-        if config.tt_init:
-            self.init_weights()
         if config.zheren_init:
-            self.init_weights_zheren()
+            self.init_weights()
 
     def init_weights(self):
-        """Explicit weight initialization.
-
-        Avoids double initialization when modifying weights of
-        submodules via pytorch builtin `reset_parameters`.
-        """
-        print("Initializing weights - model")
-        nn.init.normal_(self.embedding.weight)
-        if self.config.embedding_norm:
-            self.embedding_norm.init_weights()
-
-        for block in self.transformer_blocks:
-            block.init_weights()  # type: ignore
-
-        self.final_norm.init_weights()
-
-        cutoff_factor = 3
-        out_projs = [self.output_projection]
-        if hasattr(self, "output_compressor"):
-            out_projs.append(self.output_compressor)
-        for out_proj in out_projs:
-            input_dim = out_proj.weight.shape[1]
-            out_proj_std = self.config.final_proj_init_std * input_dim**-0.5
-            nn.init.trunc_normal_(
-                out_proj.weight,
-                mean=0.0,
-                std=out_proj_std,
-                a=-cutoff_factor * out_proj_std,
-                b=cutoff_factor * out_proj_std,
-            )
-
-    def init_weights_zheren(self):
         """Explicit weight initialization.
 
         Avoids double initialization when modifying weights of
@@ -729,7 +656,7 @@ class TransformerModel(language_model_basics.LanguageModel):
             )
 
         for block in self.transformer_blocks:
-            block.init_weights_zheren()  # type: ignore
+            block.init_weights()  # type: ignore
 
         self.final_norm.init_weights()
         initialization.init_output_projection(self.output_projection)
