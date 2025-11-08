@@ -353,38 +353,12 @@ class MLP(nn.Module):
         use_depth_scaling: bool,
     ):
         """Initialize weights with activation-aware and optionally depth-scaled initialization."""
+        initialization.init_linear_weight(
+            self.linear_in.weight, activation=self.nonlinearity
+        )
         if self.glu:
-            # SwiGLU: both linear_in and linear_glu need proper initialization
-            if self.nonlinearity in ["swish", "silu"]:
-                initialization.init_swiglu_weights(
-                    self.linear_in, self.linear_glu, self.input_size
-                )
-            elif self.nonlinearity == "gelu":
-                # GeGLU variant
-                initialization.init_linear_weight(
-                    self.linear_in.weight, activation="gelu"
-                )
-                initialization.init_linear_weight(
-                    self.linear_glu.weight, activation="linear"
-                )
-            else:
-                # ReLU or other GLU variants
-                initialization.init_linear_weight(
-                    self.linear_in.weight, activation=self.nonlinearity
-                )
-                initialization.init_linear_weight(
-                    self.linear_glu.weight, activation="linear"
-                )
-        else:
-            # Standard MLP: just linear_in with activation
-            activation_map = {
-                "relu": "relu",
-                "gelu": "gelu",
-                "swish": "silu",
-            }
-            activation = activation_map.get(self.nonlinearity, "linear")
             initialization.init_linear_weight(
-                self.linear_in.weight, activation=activation
+                self.linear_glu.weight, activation="linear"
             )
 
         # Initialize output projection with optional depth scaling
