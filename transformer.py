@@ -50,7 +50,7 @@ class TransformerConfig:
     skinny_queries: bool = False
 
     # initialization options
-    zheren_init: bool = False
+    zheren_init: bool = True
     depth_init: bool = False
 
     def __post_init__(self):
@@ -267,11 +267,10 @@ class Segmented(nn.Module):
         self.num_segments = dim // segment_size
         assert self.num_segments * segment_size == dim
         self.dim = dim
-        self.layernorms = [
-            FP32LayerNorm(segment_size) for _ in range(self.num_segments)
-        ]
-        # TODO: try PolyNorm
-        # self.layernorms = [PolyNorm(segment_size) for _ in range(self.num_segments)]
+        # self.layernorms = [
+        #     FP32LayerNorm(segment_size) for _ in range(self.num_segments)
+        # ]
+        self.layernorms = [PolyNorm() for _ in range(self.num_segments)]
         self.layernorms = nn.ModuleList(self.layernorms)
 
     def forward(self, x):

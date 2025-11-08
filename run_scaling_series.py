@@ -103,21 +103,18 @@ def config_variants(
         #     name=config.name + "_polynorm",
         # )
         # nonlinearity_variants.append(polynorm)
-    variants = nonlinearity_variants
 
-    init_variants = []
-    for config in variants:
-        init_variants.append(
-            replace(
-                config,
-                model_config=replace(
-                    config.model_config,
-                    zheren_init=True,
-                ),
-                name=config.name + "_zi",
-            )
-        )
-    variants = init_variants
+        # segmented = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="segmented",
+        #         glu=False,
+        #     ),
+        #     name=config.name + "_segmented",
+        # )
+        # nonlinearity_variants.append(segmented)
+    variants = nonlinearity_variants
 
     # adam_variants = []
     # for config in variants:
