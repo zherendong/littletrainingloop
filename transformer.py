@@ -674,6 +674,7 @@ class TransformerModel(language_model_basics.LanguageModel):
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
         assert targets.dtype == torch.long
+        torch.compiler.cudagraph_mark_step_begin()
         final_emb = self._forward_opt(inputs)
 
         emb_dim = final_emb.shape[-1]

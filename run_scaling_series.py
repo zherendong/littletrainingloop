@@ -49,9 +49,11 @@ def config_variants(
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
-            lrs = [0.0015]
+            lrs = [0.0010]
+        elif chinchilla_size <= 400:
+            lrs = [0.0008]
         elif chinchilla_size <= 500:
-            lrs = [0.001]
+            lrs = [0.0008]
         elif chinchilla_size <= 1000:
             lrs = [0.0007]
         elif chinchilla_size <= 1500:
@@ -81,18 +83,6 @@ def config_variants(
         )
         nonlinearity_variants.append(swiglu)
 
-        # nonlinearity_variants.append(gelu)
-        # polyrelu = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="polyrelu",
-        #         glu=False,
-        #     ),
-        #     name=config.name + "_polyrelu",
-        # )
-        # nonlinearity_variants.append(polyrelu)
-
         # polynorm = replace(
         #     config,
         #     model_config=replace(
@@ -115,24 +105,6 @@ def config_variants(
         # )
         # nonlinearity_variants.append(segmented)
     variants = nonlinearity_variants
-
-    # adam_variants = []
-    # for config in variants:
-    #     adam_variants.append(
-    #         replace(
-    #             config,
-    #             adam_betas=(0.9, 0.99),
-    #             name=config.name + "_b0.9_0.99",
-    #         )
-    #     )
-    #     adam_variants.append(
-    #         replace(
-    #             config,
-    #             adam_betas=(0.9, 0.95),
-    #             name=config.name + "_b0.9_0.95",
-    #         )
-    #     )
-    # variants = adam_variants
 
     # chinchilla_variants = []
     # for config in variants:
@@ -177,7 +149,7 @@ def config_variants(
 
     warmup_variants = []
     for config in variants:
-        warmups = [500]
+        warmups = [100, 250, 500, 1000, 2000]
         for warmup in warmups:
             warmup_variants.append(
                 replace(
@@ -222,10 +194,10 @@ def main(
     # ]
     configs = [  # extended group of models
         # "chinchilla-44m",
-        # "chinchilla-74m",
+        "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
-        "chinchilla-117m",
+        # "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
         # "chinchilla-196m",
