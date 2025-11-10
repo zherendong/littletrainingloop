@@ -48,10 +48,12 @@ class TransformerConfig:
         None  # Try 128 and 512. The goal is that nothing changes.
     )
     skinny_queries: bool = False
+    skinny_scaled_init: bool = False
 
     # initialization options
     zheren_init: bool = True
     depth_init: bool = False
+    pairwise_cancelling_init: bool = False
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -160,12 +162,14 @@ class FlexLinear(nn.Module):
         bias: bool = False,
         inner_size: int | None = None,
         is_skinny: bool = False,
+        scaled_init: bool = False,
     ):
         super(FlexLinear, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.bias = bias
         self.is_skinny = is_skinny
+        self.scaled_init = scaled_init
 
         if is_skinny:
             assert self.input_size % 4 == 0
@@ -183,12 +187,13 @@ class FlexLinear(nn.Module):
 
     def init_weights(self):
         if not self.is_skinny:
-            initialization.init_linear_weight(self.linear.weight, activation="linear")
+            initialization.init_linear(self.linear, activation="linear")
         else:
-            initialization.init_linear_weight(
-                self.compressor.weight, activation="linear"
+            scaling_factor = 1 / math.sqrt(2) if self.scaled_init else 1.0
+            initialization.init_linear(
+                self.compressor, activation="linear", scaling_factor=scaling_factor
             )
-            initialization.init_linear_weight(self.expander.weight, activation="linear")
+            initialization.init_linear(self.expander, activation="linear")
 
     def forward(self, x):
         if not self.is_skinny:
@@ -299,6 +304,7 @@ class MLP(nn.Module):
         segmented_norm: int | None = None,
         glu: bool = False,
         inner_size_multiple_of: int = 256,
+        pairwise_cancelling_init: bool = False,
     ):
         super(MLP, self).__init__()
         self.input_size = input_size
@@ -317,9 +323,9 @@ class MLP(nn.Module):
         del output_size
         self.segmented_norm = segmented_norm
         self.glu = glu
+        self.pairwise_cancelling_init = pairwise_cancelling_init
 
         self.norm = FP32LayerNorm(input_size, segment_size=segmented_norm)
-
         self.linear_in = nn.Linear(input_size, self.inner_size, bias=False, dtype=dtype)
 
         if glu:
@@ -346,23 +352,24 @@ class MLP(nn.Module):
             self.inner_size, self.output_size, bias=False, dtype=dtype
         )
 
-    def init_weights(
-        self,
-        depth: int | None,
-        use_depth_scaling: bool,
-    ):
+    def init_weights(self):
         """Initialize weights with activation-aware and optionally depth-scaled initialization."""
-        initialization.init_linear_weight(
-            self.linear_in.weight, activation=self.nonlinearity
+        pairwise_mode_in = None
+        pairwise_mode_out = None
+        if self.pairwise_cancelling_init:
+            pairwise_mode_in = "equal"
+            pairwise_mode_out = "opposing"
+        initialization.init_linear(
+            self.linear_in,
+            activation=self.nonlinearity,
+            pairwise_mode=pairwise_mode_in,
         )
         if self.glu:
-            initialization.init_linear_weight(
-                self.linear_glu.weight, activation="linear"
-            )
+            initialization.init_linear(self.linear_glu, activation="linear")
 
-        # Initialize output projection with optional depth scaling
-        initialization.init_output_projection(
-            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
+        initialization.init_linear(
+            self.linear_out,
+            pairwise_mode=pairwise_mode_out,
         )
 
     def forward(self, x):
@@ -392,6 +399,7 @@ class SelfAttention(nn.Module):
         dtype: torch.dtype,
         head_dim_v: int | None = None,
         skinny_queries: bool = False,
+        skinny_scaled_init: bool = False,
     ):
         super(SelfAttention, self).__init__()
         self.input_size = input_size
@@ -414,6 +422,7 @@ class SelfAttention(nn.Module):
             bias=False,
             dtype=dtype,
             is_skinny=skinny_queries,
+            scaled_init=skinny_scaled_init,
         )
         self.linear_k = nn.Linear(
             input_size,
@@ -438,20 +447,12 @@ class SelfAttention(nn.Module):
             dim=head_dim, max_seq_len=8192
         )
 
-    def init_weights(
-        self,
-        depth: int | None,
-        use_depth_scaling: bool,
-    ):
+    def init_weights(self):
         """Initialize weights with proper variance-preserving initialization."""
         self.linear_q.init_weights()
-        initialization.init_linear_weight(self.linear_k.weight, activation="linear")
-        initialization.init_linear_weight(self.linear_v.weight, activation="linear")
-
-        # Output projection with optional depth scaling
-        initialization.init_output_projection(
-            self.linear_out, depth=depth, use_depth_scaling=use_depth_scaling
-        )
+        initialization.init_linear(self.linear_k, activation="linear")
+        initialization.init_linear(self.linear_v, activation="linear")
+        initialization.init_linear(self.linear_out)
 
     def forward(self, x):
         x = self.norm(x)
@@ -500,6 +501,7 @@ class TransformerBlock(nn.Module):
             segmented_norm=config.segmented_norm,
             glu=config.glu,
             inner_size_multiple_of=config.inner_size_multiple_of,
+            pairwise_cancelling_init=config.pairwise_cancelling_init,
         )
 
         print(
@@ -513,16 +515,13 @@ class TransformerBlock(nn.Module):
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
             skinny_queries=config.skinny_queries,
+            skinny_scaled_init=config.skinny_scaled_init,
         )
 
     def init_weights(self):
         print(f"Initializing block {self.block_idx}")
-        self.attention.init_weights(
-            depth=self.block_idx, use_depth_scaling=self.config.depth_init
-        )
-        self.mlp.init_weights(
-            depth=self.block_idx, use_depth_scaling=self.config.depth_init
-        )
+        self.attention.init_weights()
+        self.mlp.init_weights()
 
     def _forward(self, x):
         x = x + self.attention(x)
@@ -624,15 +623,13 @@ class TransformerModel(language_model_basics.LanguageModel):
             self.embedding_norm.init_weights(init_val=1 / math.sqrt(self.dim))
 
         if hasattr(self, "output_compressor"):
-            initialization.init_linear_weight(
-                self.output_compressor.weight, activation="linear"
-            )
+            initialization.init_linear(self.output_compressor, activation="linear")
 
         for block in self.transformer_blocks:
             block.init_weights()  # type: ignore
 
         self.final_norm.init_weights()
-        initialization.init_output_projection(self.output_projection)
+        initialization.init_linear(self.output_projection)
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""

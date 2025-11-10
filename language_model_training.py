@@ -265,7 +265,9 @@ def train_language_model(
     if config.learning_rate is None:
         num_parameters = model.num_non_embedding_parameters()
         auto_lr = get_auto_learning_rate(num_parameters)
-        print(f"Auto-selecting learning rate based on model size ({num_parameters:,} params): {auto_lr}")
+        print(
+            f"Auto-selecting learning rate based on model size ({num_parameters:,} params): {auto_lr}"
+        )
         config = dataclasses.replace(config, learning_rate=auto_lr)
 
     if config.training_config.training_steps_per_epoch is None:
@@ -371,22 +373,12 @@ def get_model_config(
         warmup_steps=100,
         learning_rate=None,  # Auto-select based on model size
         batch_size=192,
-        sequence_length=512,
-        shuffle_buffer_size=100,
-        adam_eps=1e-7,
-        adam_betas=(0.9, 0.995),
         training_config=TrainingConfig(
             num_epochs=1,
             training_steps_per_epoch=(
                 None if not profile_only else 10
             ),  # None defaults to Chinchilla
             seed=42,
-        ),
-        eval_config=EvalConfig(
-            every_n_steps=100,
-            steps=5,
-            batch_size=256,
-            sequence_length=512,
         ),
         model_config=model_config,
     )

@@ -45,7 +45,7 @@ def config_variants(
         elif chinchilla_size <= 120:
             # lrs = [0.002]
             # lrs = [0.0015, 0.0025, 0.003]
-            lrs = [0.003]
+            lrs = [0.002]
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
@@ -149,7 +149,7 @@ def config_variants(
 
     warmup_variants = []
     for config in variants:
-        warmups = [100, 250, 500, 1000, 2000]
+        warmups = [500]
         for warmup in warmups:
             warmup_variants.append(
                 replace(
@@ -160,10 +160,10 @@ def config_variants(
             )
     variants = warmup_variants
 
-    # new_variants = []
+    # skinny_variants = []
     # for config in variants:
     #     # new_variants.append(config)
-    #     new_variants.append(
+    #     skinny_variants.append(
     #         replace(
     #             config,
     #             model_config=replace(
@@ -173,7 +173,7 @@ def config_variants(
     #             name=config.name + "_skinnyq",
     #         )
     #     )
-    # variants = new_variants
+    # variants = skinny_variants
 
     print(f"Generated {len(variants)} variants")
     return variants
@@ -193,8 +193,8 @@ def main(
     #     "chinchilla-489m",
     # ]
     configs = [  # extended group of models
-        # "chinchilla-44m",
-        "chinchilla-74m",
+        "chinchilla-44m",
+        # "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
         # "chinchilla-117m",
