@@ -53,7 +53,7 @@ def config_variants(
         elif chinchilla_size <= 400:
             lrs = [0.0008]
         elif chinchilla_size <= 500:
-            lrs = [0.0008]
+            lrs = [0.0015]
         elif chinchilla_size <= 1000:
             lrs = [0.0007]
         elif chinchilla_size <= 1500:
@@ -82,6 +82,17 @@ def config_variants(
             name=config.name + "_swiglu",
         )
         nonlinearity_variants.append(swiglu)
+
+        # relu = replace(
+        #     config,
+        #     model_config=replace(
+        #         config.model_config,
+        #         nonlinearity="relu",
+        #         glu=False,
+        #     ),
+        #     name=config.name + "_relu",
+        # )
+        # nonlinearity_variants.append(relu)
 
         # polynorm = replace(
         #     config,
@@ -119,19 +130,6 @@ def config_variants(
     #         )
     # variants = chinchilla_variants
 
-    weight_decay_variants = []
-    for config in variants:
-        weight_decays = [0.1]
-        for weight_decay in weight_decays:
-            weight_decay_variants.append(
-                replace(
-                    config,
-                    weight_decay=weight_decay,
-                    name=config.name + f"_wd{weight_decay}",
-                )
-            )
-    variants = weight_decay_variants
-
     # outproj_variants = []
     # for config in variants:
     #     outproj_variants.append(config)
@@ -147,18 +145,20 @@ def config_variants(
     #     )
     # variants = outproj_variants
 
-    warmup_variants = []
-    for config in variants:
-        warmups = [500]
-        for warmup in warmups:
-            warmup_variants.append(
-                replace(
-                    config,
-                    warmup_steps=warmup,
-                    name=config.name + f"_wu{warmup}",
-                )
-            )
-    variants = warmup_variants
+    # pairwise_variants = []
+    # for config in variants:
+    #     # pairwise_variants.append(config)
+    #     pairwise_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 pairwise_cancelling_init=True,
+    #             ),
+    #             name=config.name + "_pairwise",
+    #         )
+    #     )
+    # variants = pairwise_variants
 
     # skinny_variants = []
     # for config in variants:
@@ -187,13 +187,13 @@ def main(
 ):
     # configs = [  # core group of models
     #     "chinchilla-74m",
-    #     "chinchilla-106m",
+    #     "chinchilla-117m"
     #     "chinchilla-163m",
     #     "chinchilla-251m",
     #     "chinchilla-489m",
     # ]
     configs = [  # extended group of models
-        "chinchilla-44m",
+        # "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
@@ -204,7 +204,7 @@ def main(
         # "chinchilla-251m",
         # "chinchilla-306m",
         # "chinchilla-425m",
-        # "chinchilla-489m",
+        "chinchilla-489m",
         # "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",

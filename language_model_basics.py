@@ -32,7 +32,7 @@ class EvalConfig(training_basics.EvalConfig):
 class LanguageModelTrainingConfig:
     name: str = "default_name"
     vocab_size: int = 100277
-    warmup_steps: int = 100  # 0 means 5% of training steps
+    warmup_steps: int = 500  # 0 means 5% of training steps
     learning_rate: float | None = None  # None means auto-select based on model size
     seed: int = 42
     batch_size: int = 16

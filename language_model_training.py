@@ -370,7 +370,6 @@ def get_model_config(
     return LanguageModelTrainingConfig(
         name=model_config_str,
         vocab_size=100277,
-        warmup_steps=100,
         learning_rate=None,  # Auto-select based on model size
         batch_size=192,
         training_config=TrainingConfig(
