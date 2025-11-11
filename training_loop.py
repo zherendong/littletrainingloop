@@ -121,7 +121,7 @@ def train(
                 # print(snap)
 
             metrics = state.step(data)
-            if idx % config.train_metrics_every_n_steps == 0:
+            if idx % config.train_metrics_every_n_steps == 0 or idx == 10:
                 mem_gb()
                 process_metrics(
                     metrics, neptune_run=neptune_run, step=idx, mode="train"

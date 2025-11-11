@@ -194,7 +194,7 @@ def main(
     # ]
     configs = [  # extended group of models
         # "chinchilla-44m",
-        # "chinchilla-74m",
+        "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
         # "chinchilla-117m",
@@ -204,7 +204,7 @@ def main(
         # "chinchilla-251m",
         # "chinchilla-306m",
         # "chinchilla-425m",
-        "chinchilla-489m",
+        # "chinchilla-489m",
         # "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",
