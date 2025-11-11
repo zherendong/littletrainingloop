@@ -81,11 +81,11 @@ def init_linear(
 
         if pairwise_mode is not None:
             assert pairwise_mode in ["equal", "opposing"]
-            for i in range(weight.shape[0] // 2):
-                if pairwise_mode == "equal":
-                    weight[2 * i] = weight[2 * i + 1]
-                elif pairwise_mode == "opposing":
-                    weight[2 * i + 1] = -weight[2 * i]
+            print("Applying pairwise initialization")
+            if pairwise_mode == "equal":
+                weight[1::2, :] = weight[::2, :]
+            elif pairwise_mode == "opposing":  # note that we flip the dims
+                weight[:, 1::2] = -weight[:, ::2]
 
 
 def init_embedding(

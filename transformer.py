@@ -354,22 +354,21 @@ class MLP(nn.Module):
 
     def init_weights(self):
         """Initialize weights with activation-aware and optionally depth-scaled initialization."""
-        pairwise_mode_in = None
-        pairwise_mode_out = None
-        if self.pairwise_cancelling_init:
-            pairwise_mode_in = "equal"
-            pairwise_mode_out = "opposing"
         initialization.init_linear(
             self.linear_in,
             activation=self.nonlinearity,
-            pairwise_mode=pairwise_mode_in,
+            pairwise_mode="equal" if self.pairwise_cancelling_init else None,
         )
         if self.glu:
-            initialization.init_linear(self.linear_glu, activation="linear")
+            initialization.init_linear(
+                self.linear_glu,
+                activation="linear",
+                pairwise_mode="equal" if self.pairwise_cancelling_init else None,
+            )
 
         initialization.init_linear(
             self.linear_out,
-            pairwise_mode=pairwise_mode_out,
+            pairwise_mode="opposing" if self.pairwise_cancelling_init else None,
         )
 
     def forward(self, x):
