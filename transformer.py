@@ -14,6 +14,8 @@ import attention
 import cross_entropy
 import language_model_basics
 import initialization
+import spelling_bee_embeddings
+import language_model_dataloader
 
 torch._dynamo.config.cache_size_limit = 64
 
@@ -49,6 +51,8 @@ class TransformerConfig:
     )
     skinny_queries: bool = False
     skinny_scaled_init: bool = False
+    spelling_bee: bool = False
+    separate_token_embedding: bool = True
 
     # initialization options
     zheren_init: bool = True
@@ -316,9 +320,6 @@ class MLP(nn.Module):
         self.inner_size = inner_size_multiple_of * (
             (self.inner_size + inner_size_multiple_of - 1) // inner_size_multiple_of
         )
-        print(
-            f"MLP inner size: {self.inner_size}, {mlp_scaling_factor=}, {glu=}, {inner_size_multiple_of=}"
-        )
         self.output_size = output_size or input_size
         del output_size
         self.segmented_norm = segmented_norm
@@ -503,9 +504,9 @@ class TransformerBlock(nn.Module):
             pairwise_cancelling_init=config.pairwise_cancelling_init,
         )
 
-        print(
-            f"Block {block_idx} has {config.num_heads} heads_q and {config.num_heads_kv} heads_kv"
-        )
+        # print(
+        #     f"Block {block_idx} has {config.num_heads} heads_q and {config.num_heads_kv} heads_kv"
+        # )
         self.attention = SelfAttention(
             input_size=config.embedding_size,
             num_heads_q=config.num_heads,
@@ -518,7 +519,7 @@ class TransformerBlock(nn.Module):
         )
 
     def init_weights(self):
-        print(f"Initializing block {self.block_idx}")
+        # print(f"Initializing block {self.block_idx}")
         self.attention.init_weights()
         self.mlp.init_weights()
 
@@ -553,13 +554,25 @@ class TransformerModel(language_model_basics.LanguageModel):
         self.config = config
         self.params_dtype = params_dtype
         self.activation_dtype = activation_dtype
-        self.embedding = nn.Embedding(
-            vocab_size,
-            self.dim,
-            # Always float32 for embedding, as recommended
-            # for optimal quality.
-            dtype=torch.float32,
-        )
+
+        if config.spelling_bee:
+            vocab = language_model_dataloader.get_default_tokenizer_vocab()
+            self.embedding = spelling_bee_embeddings.SpellingBeeEmbedding(
+                num_tokens=vocab_size,
+                embedding_dim=self.dim,
+                vocab=vocab,
+                max_characters=16,
+                weight_dtype=torch.float32,
+                separate_token_embedding=config.separate_token_embedding,
+            )
+        else:
+            self.embedding = nn.Embedding(
+                vocab_size,
+                self.dim,
+                # Always float32 for embedding, as recommended
+                # for optimal quality.
+                dtype=torch.float32,
+            )
         if config.embedding_norm:
             self.embedding_norm = FP32LayerNorm(self.dim)
         self.transformer_blocks = nn.Sequential(
@@ -602,10 +615,10 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        self._forward_opt = torch.compile(
-            self._forward, mode="max-autotune", fullgraph=True
-        )
-        # self._forward_opt = self._forward
+        # self._forward_opt = torch.compile(
+        #     self._forward, mode="max-autotune", fullgraph=True
+        # )
+        self._forward_opt = self._forward
 
         if config.zheren_init:
             self.init_weights()
@@ -617,7 +630,14 @@ class TransformerModel(language_model_basics.LanguageModel):
         submodules via pytorch builtin `reset_parameters`.
         """
         print("Initializing weights with Zheren's scheme")
-        initialization.init_embedding(self.embedding)
+        if self.config.spelling_bee:
+            assert isinstance(
+                self.embedding, spelling_bee_embeddings.SpellingBeeEmbedding
+            )
+            self.embedding.init_weights()
+        else:
+            assert isinstance(self.embedding, nn.Embedding)
+            initialization.init_embedding(self.embedding)
         if self.config.embedding_norm:
             self.embedding_norm.init_weights(init_val=1 / math.sqrt(self.dim))
 

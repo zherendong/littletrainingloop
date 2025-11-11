@@ -45,17 +45,18 @@ def config_variants(
         elif chinchilla_size <= 120:
             # lrs = [0.002]
             # lrs = [0.0015, 0.0025, 0.003]
-            lrs = [0.002]
+            lrs = [0.003]
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
-            lrs = [0.0010]
-        elif chinchilla_size <= 400:
-            lrs = [0.0008]
-        elif chinchilla_size <= 500:
             lrs = [0.0015]
+        elif chinchilla_size <= 400:
+            lrs = [0.0012]
+        elif chinchilla_size <= 500:
+            lrs = [0.0003, 0.0005, 0.0007, 0.001, 0.0012]
+            # lrs = [0.0012]
         elif chinchilla_size <= 1000:
-            lrs = [0.0007]
+            lrs = [0.001]
         elif chinchilla_size <= 1500:
             lrs = [0.0007]
         else:
@@ -174,6 +175,23 @@ def config_variants(
     #         )
     #     )
     # variants = skinny_variants
+
+    # spelling_bee_variants = []
+    # for config in variants:
+    #     # spelling_bee_variants.append(config)
+    #     spelling_bee_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 spelling_bee=True,
+    #                 separate_token_embedding=False,
+    #                 embedding_norm=True,
+    #             ),
+    #             name=config.name + "_spellingbee_norm",
+    #         )
+    #     )
+    # variants = spelling_bee_variants
 
     print(f"Generated {len(variants)} variants")
     return variants

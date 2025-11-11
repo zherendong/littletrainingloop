@@ -20,6 +20,19 @@ def default_tokenizer():
     return tiktoken.get_encoding("cl100k_base")  # used for gpt-3.5 ad gpt-4
 
 
+def get_default_tokenizer_vocab() -> list[str]:
+    tok = default_tokenizer()
+    vocab = []
+    for token in range(tok.n_vocab):
+        try:
+            vocab.append(tok.decode([token]))
+        except KeyError:
+            print(f"Could not decode token {token}")
+            vocab.append("<unk>")
+    assert len(vocab) == tok.n_vocab
+    return vocab
+
+
 class JSONLDataLoader(DataProvider[dict[str, Any]]):
     """Loads a directory of JSONL files and returns a single iterator of dictionaries."""
 
