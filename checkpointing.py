@@ -76,7 +76,7 @@ def load_checkpoint(
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint not found at {path}")
     
-    checkpoint = torch.load(path, map_location=device)
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
     
     # Create model and load state
     model = transformer.TransformerModel(vocab_size, model_config)
