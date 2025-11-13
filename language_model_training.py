@@ -191,6 +191,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         )
 
         with nvtx.range("train_step", color="blue"):
+            torch.compiler.cudagraph_mark_step_begin()
             loss = self.model.compute_loss(inputs, targets)
 
             # Backward pass
@@ -202,6 +203,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
 
             self.optimizer.step()
             self.scheduler.step()
+
             # detach loss
             loss_numpy = float(loss.to(torch.float32).detach().cpu().numpy())
 
@@ -385,6 +387,11 @@ def get_model_config(
 
 if __name__ == "__main__":
 
+    """Example usage:
+
+    python language_model_training.py --no_neptune --model_config chinchilla-44m --profile_only
+    """
+
     # command line args, including name
     parser = argparse.ArgumentParser()
     parser.add_argument("--no_neptune", action="store_true", default=False)
@@ -397,6 +404,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = get_model_config(args.model_config, args.profile_only)
+    if args.profile_only:
+        config = dataclasses.replace(
+            config,
+            training_config=dataclasses.replace(
+                config.training_config,
+                training_steps_per_epoch=10,
+                train_metrics_every_n_steps=1,
+            ),
+        )
     run(
         config=config,
         use_neptune=not args.no_neptune and not args.profile_only,

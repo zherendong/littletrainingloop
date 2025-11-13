@@ -94,12 +94,6 @@ class SpellingBeeEmbedding(nn.Module):
             self.max_characters_per_token,
             self.embedding_dim,
         )
-        if torch.isnan(embeddings).any():
-            # determine which character is NaN
-            for char_idx in range(256):
-                if torch.isnan(self.character_embedding.weight[char_idx]).any():
-                    print(f"NaN in character embedding for char {char_idx}")
-            raise ValueError("NaN in character embeddings")
         return embeddings
 
     def _apply_rotary(self, embeddings: torch.Tensor) -> torch.Tensor:
@@ -119,16 +113,12 @@ class SpellingBeeEmbedding(nn.Module):
         """input is a tensor of shape (batch_size, sequence_length) of token ids."""
         embeddings = self.get_character_embeddings(input)
         embeddings = self._apply_rotary(embeddings)
-        if torch.isnan(embeddings).any():
-            raise ValueError("NaN in character embeddings")
         embeddings = embeddings.sum(dim=-2)
-        if torch.isnan(embeddings).any():
-            raise ValueError("NaN in character embeddings")
         if self.separate_token_embedding:
             token_embeddings = self.token_embedding(input)
             embeddings += token_embeddings
-        if torch.isnan(embeddings).any():
-            raise ValueError("NaN in character embeddings")
+        # if torch.isnan(embeddings).any():
+        #     raise ValueError("NaN in character embeddings")
         # print(
         #     f"Character embeddings: mean {embeddings.mean()}, std {embeddings.std()}, max {embeddings.max()}, min {embeddings.min()}"
         # )

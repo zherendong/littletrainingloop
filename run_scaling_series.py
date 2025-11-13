@@ -185,10 +185,10 @@ def config_variants(
     #             model_config=replace(
     #                 config.model_config,
     #                 spelling_bee=True,
-    #                 separate_token_embedding=False,
+    #                 separate_token_embedding=True,
     #                 embedding_norm=True,
     #             ),
-    #             name=config.name + "_spellingbee_norm",
+    #             name=config.name + "_spellingbee_compiled",
     #         )
     #     )
     # variants = spelling_bee_variants

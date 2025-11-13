@@ -615,10 +615,10 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        # self._forward_opt = torch.compile(
-        #     self._forward, mode="max-autotune", fullgraph=True
-        # )
-        self._forward_opt = self._forward
+        self._forward_opt = torch.compile(
+            self._forward, mode="max-autotune", fullgraph=True
+        )
+        # self._forward_opt = self._forward
 
         if config.zheren_init:
             self.init_weights()
@@ -690,7 +690,6 @@ class TransformerModel(language_model_basics.LanguageModel):
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
         assert targets.dtype == torch.long
-        torch.compiler.cudagraph_mark_step_begin()
         final_emb = self._forward_opt(inputs)
 
         emb_dim = final_emb.shape[-1]
