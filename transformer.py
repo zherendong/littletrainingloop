@@ -729,3 +729,84 @@ class TransformerModel(language_model_basics.LanguageModel):
 
     def num_non_embedding_parameters(self):
         return self.num_parameters() - self.num_embedding_parameters()
+
+    @torch.inference_mode()
+    def get_logits(self, input_ids: torch.Tensor) -> torch.Tensor:
+        """Get logits for input tokens (inference mode).
+
+        Args:
+            input_ids: Token IDs of shape [batch_size, seq_len]
+
+        Returns:
+            Logits of shape [batch_size, seq_len, vocab_size]
+        """
+        return self.forward(input_ids)
+
+    @torch.inference_mode()
+    def compute_token_logprobs(
+        self, input_ids: torch.Tensor, target_ids: torch.Tensor
+    ) -> torch.Tensor:
+        """Compute log probabilities for target tokens.
+
+        Args:
+            input_ids: Context token IDs of shape [batch_size, context_len]
+            target_ids: Target token IDs of shape [batch_size, target_len]
+
+        Returns:
+            Log probabilities for each target token, shape [batch_size, target_len]
+        """
+        # Concatenate context and targets
+        full_input = torch.cat([input_ids, target_ids], dim=1)
+
+        # Get logits
+        logits = self.forward(full_input)  # [batch, seq_len, vocab]
+
+        # Extract logits for positions where we predict target tokens
+        # We want logits at positions [context_len-1 : context_len+target_len-1]
+        context_len = input_ids.shape[1]
+        target_len = target_ids.shape[1]
+        prediction_logits = logits[:, context_len - 1 : context_len + target_len - 1, :]
+
+        # Compute log probabilities
+        log_probs = torch.nn.functional.log_softmax(prediction_logits, dim=-1)
+
+        # Gather log probs for actual target tokens
+        batch_size = target_ids.shape[0]
+        batch_indices = torch.arange(batch_size, device=target_ids.device).unsqueeze(1)
+        position_indices = torch.arange(target_len, device=target_ids.device).unsqueeze(0)
+
+        token_logprobs = log_probs[batch_indices, position_indices, target_ids]
+
+        return token_logprobs
+
+    @torch.inference_mode()
+    def is_greedy_generation(
+        self, input_ids: torch.Tensor, continuation_ids: torch.Tensor
+    ) -> torch.Tensor:
+        """Check if continuation tokens are greedy (argmax) predictions.
+
+        Args:
+            input_ids: Context token IDs of shape [batch_size, context_len]
+            continuation_ids: Continuation token IDs of shape [batch_size, cont_len]
+
+        Returns:
+            Boolean tensor of shape [batch_size] indicating if each continuation is greedy
+        """
+        # Concatenate context and continuation
+        full_input = torch.cat([input_ids, continuation_ids], dim=1)
+
+        # Get logits
+        logits = self.forward(full_input)
+
+        # Extract logits for positions where we predict continuation tokens
+        context_len = input_ids.shape[1]
+        cont_len = continuation_ids.shape[1]
+        prediction_logits = logits[:, context_len - 1 : context_len + cont_len - 1, :]
+
+        # Get greedy predictions
+        greedy_tokens = prediction_logits.argmax(dim=-1)
+
+        # Check if all continuation tokens match greedy predictions
+        is_greedy = (greedy_tokens == continuation_ids).all(dim=1)
+
+        return is_greedy
