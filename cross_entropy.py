@@ -43,18 +43,19 @@ def cross_entropy_with_logits_by_segment(embeddings, weights, targets):
     batch_size = embeddings.shape[0]
     segment_size = 4096 * 2
     num_segments = (batch_size + segment_size - 1) // segment_size
-    total_loss = 0.0
+    losses = torch.zeros(num_segments, device=embeddings.device)
     for i in range(num_segments):
         start = i * segment_size
         end = min((i + 1) * segment_size, batch_size)
         segment_embeddings = embeddings[start:end]
-        this_segment_size = segment_embeddings.shape[0]
         segment_targets = targets[start:end]
         loss = _cross_entropy_with_logits_checkpointed(
             segment_embeddings, weights, segment_targets
         )
-        if this_segment_size < segment_size:
-            loss *= this_segment_size / segment_size
-        total_loss += loss
+        # measure the number of tokens that aren't ignored
+        with torch.no_grad():
+            num_tokens = (segment_targets != cross_entropy_ignore_index).sum()
+        loss *= num_tokens / segment_size
+        losses[i] = loss
 
-    return total_loss / num_segments
+    return losses.mean()

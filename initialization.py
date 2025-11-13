@@ -90,7 +90,7 @@ def init_linear(
 
 def init_embedding(
     embedding: nn.Embedding,
-    std: float | None = None,
+    scaling_factor: float = 1.0,
 ) -> None:
     """
     Initialize embedding layer.
@@ -99,8 +99,7 @@ def init_embedding(
         embedding: Embedding layer to initialize
         std: Standard deviation. If None, uses 1/sqrt(embedding_dim)
     """
-    if std is None:
-        std = 1.0 / math.sqrt(embedding.embedding_dim)
+    std = scaling_factor / math.sqrt(embedding.embedding_dim)
 
     with torch.no_grad():
         embedding.weight.normal_(0, std)

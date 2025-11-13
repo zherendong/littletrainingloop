@@ -47,11 +47,16 @@ class SpellingBeeEmbedding(nn.Module):
         )
 
     def init_weights(self):
-        print("Initializing spelling bee")
+        """Initialize weights with proper variance-preserving initialization."""
+
+        # The variance of random variables is additive, so we scale down
+        # the character embedding by the number of characters per token according
+        # to how we add them up later.
         if self.separate_token_embedding:
-            initialization.init_embedding(self.token_embedding)
-        initialization.init_embedding(self.character_embedding)
-        self.character_embedding.weight.data[0] = 0
+            initialization.init_embedding(self.token_embedding, scaling_factor=0.5)
+        initialization.init_embedding(
+            self.character_embedding, scaling_factor=0.5 / self.max_characters_per_token
+        )
 
     def _vocab_character_table(self, vocab_bytes: list[bytes]) -> torch.Tensor:
         """Compute the character table for the vocabulary."""
@@ -117,9 +122,4 @@ class SpellingBeeEmbedding(nn.Module):
         if self.separate_token_embedding:
             token_embeddings = self.token_embedding(input)
             embeddings += token_embeddings
-        # if torch.isnan(embeddings).any():
-        #     raise ValueError("NaN in character embeddings")
-        # print(
-        #     f"Character embeddings: mean {embeddings.mean()}, std {embeddings.std()}, max {embeddings.max()}, min {embeddings.min()}"
-        # )
         return embeddings
