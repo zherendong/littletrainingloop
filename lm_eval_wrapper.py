@@ -75,7 +75,21 @@ class LittleTrainingLoopLM(LM):
 
         # Extract config and vocab_size from metadata if available
         if "metadata" in checkpoint_data and "config" in checkpoint_data["metadata"]:
-            model_config = checkpoint_data["metadata"]["config"]
+            config_data = checkpoint_data["metadata"]["config"]
+            # Handle both dict and TransformerConfig object
+            if isinstance(config_data, dict):
+                # If it's a dict from save_training_checkpoint, extract model_config
+                if "model_config" in config_data:
+                    model_config = config_data["model_config"]
+                    # If model_config is also a dict, convert to TransformerConfig
+                    if isinstance(model_config, dict):
+                        model_config = transformer.TransformerConfig(**model_config)
+                else:
+                    # Assume the dict itself is the model config
+                    model_config = transformer.TransformerConfig(**config_data)
+            else:
+                # It's already a TransformerConfig object
+                model_config = config_data
         else:
             # Try to infer from model state dict
             raise ValueError(
