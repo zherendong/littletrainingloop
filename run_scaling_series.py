@@ -44,8 +44,8 @@ def config_variants(
             lrs = [0.003]
         elif chinchilla_size <= 120:
             # lrs = [0.002]
-            # lrs = [0.0015, 0.0025, 0.003]
-            lrs = [0.003]
+            # lrs = [0.003]
+            lrs = [0.003, 0.0035, 0.004, 0.0025, 0.002]
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
@@ -53,10 +53,10 @@ def config_variants(
         elif chinchilla_size <= 400:
             lrs = [0.0012]
         elif chinchilla_size <= 500:
-            lrs = [0.0003, 0.0005, 0.0007, 0.001, 0.0012]
-            # lrs = [0.0012]
-        elif chinchilla_size <= 1000:
+            # lrs = [0.0006, 0.0007, 0.0008, 0.001, 0.0012, 0.0004, 0.0005]
             lrs = [0.001]
+        elif chinchilla_size <= 1000:
+            lrs = [0.0007]
         elif chinchilla_size <= 1500:
             lrs = [0.0007]
         else:
@@ -71,52 +71,52 @@ def config_variants(
             )
     variants = lr_variants
 
-    nonlinearity_variants = []
-    for config in variants:
-        swiglu = replace(
-            config,
-            model_config=replace(
-                config.model_config,
-                nonlinearity="swish",
-                glu=True,
-            ),
-            name=config.name + "_swiglu",
-        )
-        nonlinearity_variants.append(swiglu)
+    # nonlinearity_variants = []
+    # for config in variants:
+    #     swiglu = replace(
+    #         config,
+    #         model_config=replace(
+    #             config.model_config,
+    #             nonlinearity="swish",
+    #             glu=True,
+    #         ),
+    #         name=config.name + "_swiglu",
+    #     )
+    #     nonlinearity_variants.append(swiglu)
 
-        # relu = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="relu",
-        #         glu=False,
-        #     ),
-        #     name=config.name + "_relu",
-        # )
-        # nonlinearity_variants.append(relu)
+    #     # relu = replace(
+    #     #     config,
+    #     #     model_config=replace(
+    #     #         config.model_config,
+    #     #         nonlinearity="relu",
+    #     #         glu=False,
+    #     #     ),
+    #     #     name=config.name + "_relu",
+    #     # )
+    #     # nonlinearity_variants.append(relu)
 
-        # polynorm = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="polynorm",
-        #         glu=False,
-        #     ),
-        #     name=config.name + "_polynorm",
-        # )
-        # nonlinearity_variants.append(polynorm)
+    #     # polynorm = replace(
+    #     #     config,
+    #     #     model_config=replace(
+    #     #         config.model_config,
+    #     #         nonlinearity="polynorm",
+    #     #         glu=False,
+    #     #     ),
+    #     #     name=config.name + "_polynorm",
+    #     # )
+    #     # nonlinearity_variants.append(polynorm)
 
-        # segmented = replace(
-        #     config,
-        #     model_config=replace(
-        #         config.model_config,
-        #         nonlinearity="segmented",
-        #         glu=False,
-        #     ),
-        #     name=config.name + "_segmented",
-        # )
-        # nonlinearity_variants.append(segmented)
-    variants = nonlinearity_variants
+    #     # segmented = replace(
+    #     #     config,
+    #     #     model_config=replace(
+    #     #         config.model_config,
+    #     #         nonlinearity="segmented",
+    #     #         glu=False,
+    #     #     ),
+    #     #     name=config.name + "_segmented",
+    #     # )
+    #     # nonlinearity_variants.append(segmented)
+    # variants = nonlinearity_variants
 
     # chinchilla_variants = []
     # for config in variants:
@@ -163,7 +163,7 @@ def config_variants(
 
     # skinny_variants = []
     # for config in variants:
-    #     # new_variants.append(config)
+    #     skinny_variants.append(config)
     #     skinny_variants.append(
     #         replace(
     #             config,
@@ -176,22 +176,36 @@ def config_variants(
     #     )
     # variants = skinny_variants
 
-    # spelling_bee_variants = []
+    spelling_bee_variants = []
+    for config in variants:
+        # spelling_bee_variants.append(config)
+        spelling_bee_variants.append(
+            replace(
+                config,
+                model_config=replace(
+                    config.model_config,
+                    spelling_bee=True,
+                    separate_token_embedding=True,
+                ),
+                name=config.name + "_spellingbee",
+            )
+        )
+    variants = spelling_bee_variants
+
+    # embedding_norm = []
     # for config in variants:
-    #     # spelling_bee_variants.append(config)
-    #     spelling_bee_variants.append(
+    #     embedding_norm.append(config)
+    #     embedding_norm.append(
     #         replace(
     #             config,
     #             model_config=replace(
     #                 config.model_config,
-    #                 spelling_bee=True,
-    #                 separate_token_embedding=True,
     #                 embedding_norm=True,
     #             ),
-    #             name=config.name + "_spellingbee_compiled",
+    #             name=config.name + "_enorm",
     #         )
     #     )
-    # variants = spelling_bee_variants
+    # variants = embedding_norm
 
     print(f"Generated {len(variants)} variants")
     return variants
@@ -203,27 +217,20 @@ def main(
     neptune_tags: list[str],
     no_neptune: bool = False,
 ):
-    # configs = [  # core group of models
-    #     "chinchilla-74m",
-    #     "chinchilla-117m"
-    #     "chinchilla-163m",
-    #     "chinchilla-251m",
-    #     "chinchilla-489m",
-    # ]
     configs = [  # extended group of models
         # "chinchilla-44m",
-        "chinchilla-74m",
+        # "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
         # "chinchilla-117m",
-        # "chinchilla-140m",
+        "chinchilla-140m",
         # "chinchilla-163m",
-        # "chinchilla-196m",
+        "chinchilla-196m",
         # "chinchilla-251m",
-        # "chinchilla-306m",
-        # "chinchilla-425m",
-        # "chinchilla-489m",
-        # "chinchilla-632m",
+        "chinchilla-306m",
+        "chinchilla-425m",
+        "chinchilla-489m",
+        "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
