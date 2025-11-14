@@ -59,103 +59,75 @@ def create_test_checkpoint():
 
 def test_model_registration():
     """Test that our model is properly registered with lm-eval."""
-    print("Testing model registration...")
-
     if get_model is None:
-        print("  Skipping (get_model not available in this lm-eval version)")
-        return True
+        # Skip if this lm-eval version does not expose get_model
+        import pytest
 
-    checkpoint_path = create_test_checkpoint()
+        pytest.skip("get_model not available in this lm-eval version")
+
+    _ = create_test_checkpoint()
 
     # Try to get our model through lm-eval's registry
-    try:
-        # Our model should be registered as "littletrainingloop"
-        model = get_model("littletrainingloop")
-        print(f"✓ Model class retrieved: {model}")
-    except Exception as e:
-        print(f"✗ Failed to get model from registry: {e}")
-        return False
-
-    return True
+    # Our model should be registered as "littletrainingloop"
+    model_cls = get_model("littletrainingloop")
+    assert model_cls is not None
 
 
 def test_simple_evaluation():
     """Test running a simple evaluation task."""
     print("\nTesting simple evaluation with lm-eval...")
-    
+
     checkpoint_path = create_test_checkpoint()
-    
+
     # Initialize our wrapper directly
     wrapper = LittleTrainingLoopLM(
         checkpoint_path=str(checkpoint_path),
         device="cuda" if torch.cuda.is_available() else "cpu",
         batch_size=1,
     )
-    
-    print(f"  Model loaded: vocab_size={wrapper.vocab_size}, device={wrapper.device}")
-    
+
     # Run a very simple evaluation using lm-eval's simple_evaluate
     # We'll use a tiny subset of a task to keep it fast
-    try:
-        results = simple_evaluate(
-            model=wrapper,
-            tasks=["hellaswag"],  # Simple multiple-choice task
-            num_fewshot=0,  # Zero-shot
-            limit=5,  # Only evaluate on 5 examples for speed
-            device=wrapper.device,
-        )
-        
-        print(f"\n✓ Evaluation completed!")
-        print(f"  Results: {results}")
-        
-        # Check that we got some results
-        if "results" in results and "hellaswag" in results["results"]:
-            hellaswag_results = results["results"]["hellaswag"]
-            print(f"\n  HellaSwag metrics:")
-            for metric, value in hellaswag_results.items():
-                if not metric.startswith("alias"):
-                    print(f"    {metric}: {value}")
-            return True
-        else:
-            print(f"✗ Unexpected results format: {results}")
-            return False
-            
-    except Exception as e:
-        print(f"✗ Evaluation failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    results = simple_evaluate(
+        model=wrapper,
+        tasks=["hellaswag"],  # Simple multiple-choice task
+        num_fewshot=0,  # Zero-shot
+        limit=5,  # Only evaluate on 5 examples for speed
+        device=wrapper.device,
+    )
+
+    # Check that we got some results in the expected structure
+    assert "results" in results
+    assert "hellaswag" in results["results"]
+    hellaswag_results = results["results"]["hellaswag"]
+    assert isinstance(hellaswag_results, dict)
 
 
 def test_multiple_tasks():
     """Test running multiple tasks."""
     print("\nTesting multiple tasks...")
-    
+
     checkpoint_path = create_test_checkpoint()
-    
+
     wrapper = LittleTrainingLoopLM(
         checkpoint_path=str(checkpoint_path),
         device="cuda" if torch.cuda.is_available() else "cpu",
         batch_size=1,
     )
-    
-    try:
-        # Test with multiple simple tasks
-        results = simple_evaluate(
-            model=wrapper,
-            tasks=["hellaswag", "arc_easy"],
-            num_fewshot=0,
-            limit=3,  # Very small for speed
-            device=wrapper.device,
-        )
-        
-        print(f"✓ Multi-task evaluation completed!")
-        print(f"  Tasks evaluated: {list(results['results'].keys())}")
-        return True
-        
-    except Exception as e:
-        print(f"✗ Multi-task evaluation failed: {e}")
-        return False
+
+    # Test with multiple simple tasks
+    results = simple_evaluate(
+        model=wrapper,
+        tasks=["hellaswag", "arc_easy"],
+        num_fewshot=0,
+        limit=3,  # Very small for speed
+        device=wrapper.device,
+    )
+
+    assert "results" in results
+    tasks_run = list(results["results"].keys())
+    assert "hellaswag" in tasks_run
+    assert "arc_easy" in tasks_run
 
 
 if __name__ == "__main__":

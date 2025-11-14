@@ -53,58 +53,47 @@ def create_test_checkpoint():
 
 def test_wrapper_initialization():
     """Test that we can initialize the wrapper."""
-    print("Testing wrapper initialization...")
-    
     checkpoint_path, vocab_size, config = create_test_checkpoint()
-    
+
     try:
         from lm_eval_wrapper import LittleTrainingLoopLM
-        
-        # Initialize wrapper
-        wrapper = LittleTrainingLoopLM(
-            checkpoint_path=str(checkpoint_path),
-            device="cuda" if torch.cuda.is_available() else "cpu",
-        )
-        
-        print(f"✓ Wrapper initialized successfully")
-        print(f"  Device: {wrapper.device}")
-        print(f"  Vocab size: {wrapper.vocab_size}")
-        print(f"  EOT token: {wrapper.eot_token_id}")
-        print(f"  Max length: {wrapper.max_length}")
-        
-        return wrapper
-        
     except ImportError as e:
-        print(f"⚠ lm-evaluation-harness not installed: {e}")
-        print("  Install with: pip install lm-eval")
-        return None
+        # Skip the test if lm-eval is not installed
+        import pytest
+
+        pytest.skip(f"lm-evaluation-harness not installed: {e}")
+
+    # Initialize wrapper
+    wrapper = LittleTrainingLoopLM(
+        checkpoint_path=str(checkpoint_path),
+        device="cuda" if torch.cuda.is_available() else "cpu",
+    )
+
+    # Basic sanity checks
+    assert wrapper.vocab_size == vocab_size
+    assert wrapper.max_length > 0
+    assert wrapper.eot_token_id >= 0
+
+    return wrapper
 
 
 def test_tokenization(wrapper):
-    """Test tokenization methods."""
-    if wrapper is None:
-        return
-
-    print("\nTesting tokenization...")
-
+    """Test tokenization round-trip and vocab alignment."""
     text = "Hello, world!"
     tokens = wrapper.tok_encode(text)
     decoded = wrapper.tok_decode(tokens)
 
-    print(f"  Original: {text}")
-    print(f"  Tokens: {tokens}")
-    print(f"  Decoded: {decoded}")
-    print(f"  Vocab size: {wrapper.vocab_size}")
-    print(f"  EOT token: {wrapper.eot_token_id}")
-    print(f"✓ Tokenization works")
+    # Round-trip should not be empty and should contain the original text as a substring
+    assert isinstance(tokens, list) and len(tokens) > 0
+    assert isinstance(decoded, str) and decoded != ""
+    assert "Hello" in decoded
+
+    # Token IDs should be within vocab range
+    assert all(0 <= t < wrapper.vocab_size for t in tokens)
 
 
 def test_loglikelihood(wrapper):
-    """Test loglikelihood method."""
-    if wrapper is None:
-        return
-
-    print("\nTesting loglikelihood...")
+    """Test loglikelihood method returns well-formed outputs."""
 
     # Create a mock request object
     class MockRequest:
@@ -119,20 +108,14 @@ def test_loglikelihood(wrapper):
 
     results = wrapper.loglikelihood(requests)
 
-    print(f"  Processed {len(results)} requests")
-    for i, (logprob, is_greedy) in enumerate(results):
-        ctx, cont = requests[i].args
-        print(f"  Request {i} ('{ctx}' + '{cont}'): logprob={logprob:.4f}, is_greedy={is_greedy}")
-
-    print(f"✓ Loglikelihood works")
+    assert len(results) == len(requests)
+    for (logprob, is_greedy) in results:
+        assert isinstance(logprob, float)
+        assert isinstance(is_greedy, bool)
 
 
 def test_loglikelihood_rolling(wrapper):
-    """Test loglikelihood_rolling method."""
-    if wrapper is None:
-        return
-
-    print("\nTesting loglikelihood_rolling...")
+    """Test loglikelihood_rolling method returns well-formed outputs."""
 
     class MockRequest:
         def __init__(self, text):
@@ -145,20 +128,13 @@ def test_loglikelihood_rolling(wrapper):
 
     results = wrapper.loglikelihood_rolling(requests)
 
-    print(f"  Processed {len(results)} requests")
-    for i, (logprob,) in enumerate(results):
-        text = requests[i].args[0]
-        print(f"  Request {i} ('{text}'): logprob={logprob:.4f}")
-
-    print(f"✓ Loglikelihood rolling works")
+    assert len(results) == len(requests)
+    for (logprob,) in results:
+        assert isinstance(logprob, float)
 
 
 def test_generate_until(wrapper):
-    """Test generate_until method."""
-    if wrapper is None:
-        return
-
-    print("\nTesting generate_until...")
+    """Test generate_until method returns strings for each request."""
 
     class MockRequest:
         def __init__(self, context, gen_kwargs):
@@ -171,12 +147,9 @@ def test_generate_until(wrapper):
 
     results = wrapper.generate_until(requests)
 
-    print(f"  Processed {len(results)} requests")
-    for i, generated in enumerate(results):
-        context = requests[i].args[0]
-        print(f"  Request {i} ('{context}'): generated='{generated}'")
-
-    print(f"✓ Generate until works")
+    assert len(results) == len(requests)
+    for generated in results:
+        assert isinstance(generated, str)
 
 
 if __name__ == "__main__":

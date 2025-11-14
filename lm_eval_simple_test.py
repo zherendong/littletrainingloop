@@ -51,42 +51,41 @@ def create_test_checkpoint():
 
 def test_lm_eval_api_compatibility():
     """Test that our wrapper implements the lm-eval API correctly."""
-    print("Testing lm-eval API compatibility...")
-    
     checkpoint_path = create_test_checkpoint()
-    
+
     # Initialize wrapper
     wrapper = LittleTrainingLoopLM(
         checkpoint_path=str(checkpoint_path),
         device="cuda" if torch.cuda.is_available() else "cpu",
         batch_size=1,
     )
-    
-    print(f"  ✓ Wrapper initialized")
-    print(f"    - vocab_size: {wrapper.vocab_size}")
-    print(f"    - device: {wrapper.device}")
-    print(f"    - eot_token_id: {wrapper.eot_token_id}")
-    print(f"    - max_length: {wrapper.max_length}")
-    
+
     # Check that wrapper has all required methods
-    required_methods = ['loglikelihood', 'loglikelihood_rolling', 'generate_until', 
-                       'tok_encode', 'tok_decode']
+    required_methods = [
+        "loglikelihood",
+        "loglikelihood_rolling",
+        "generate_until",
+        "tok_encode",
+        "tok_decode",
+    ]
     for method in required_methods:
-        if not hasattr(wrapper, method):
-            print(f"  ✗ Missing required method: {method}")
-            return False
-        print(f"  ✓ Has method: {method}")
-    
+        assert hasattr(wrapper, method), f"Missing required method: {method}"
+
     # Check required properties
-    required_props = ['eot_token_id', 'max_length', 'max_gen_toks', 'batch_size', 'device']
+    required_props = [
+        "eot_token_id",
+        "max_length",
+        "max_gen_toks",
+        "batch_size",
+        "device",
+    ]
     for prop in required_props:
-        if not hasattr(wrapper, prop):
-            print(f"  ✗ Missing required property: {prop}")
-            return False
-        print(f"  ✓ Has property: {prop} = {getattr(wrapper, prop)}")
-    
-    print("\n  ✓ All required methods and properties present!")
-    return True
+        assert hasattr(wrapper, prop), f"Missing required property: {prop}"
+
+    # Basic sanity checks
+    assert wrapper.vocab_size > 0
+    assert wrapper.max_length > 0
+    assert isinstance(wrapper.eot_token_id, int)
 
 
 def test_lm_eval_request_format():
