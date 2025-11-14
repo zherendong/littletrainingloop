@@ -31,7 +31,7 @@ import language_model_dataloader
 class LittleTrainingLoopLM(LM):
     """
     Wrapper class for littletrainingloop models to work with lm-evaluation-harness.
-    
+
     Usage:
         # From command line:
         lm_eval --model littletrainingloop \
@@ -39,13 +39,17 @@ class LittleTrainingLoopLM(LM):
                 --tasks hellaswag,arc_easy \
                 --device cuda \
                 --batch_size 8
-        
+
         # From Python:
         from lm_eval_wrapper import LittleTrainingLoopLM
         model = LittleTrainingLoopLM(checkpoint_path="/path/to/checkpoint.pt")
         # Use with lm_eval.simple_evaluate()
+        Note: In typical usage within littletrainingloop, you will construct
+        this wrapper directly in Python (see `evaluate_checkpoint` helper
+        below) rather than via the lm-eval CLI.
+
     """
-    
+
     def __init__(
         self,
         checkpoint_path: str,
@@ -54,14 +58,14 @@ class LittleTrainingLoopLM(LM):
     ):
         """
         Initialize the wrapper with a checkpoint.
-        
+
         Args:
             checkpoint_path: Path to the model checkpoint (.pt file)
             device: Device to run the model on ("cuda" or "cpu")
             batch_size: Batch size for inference (currently only 1 is supported)
         """
         super().__init__()
-        
+
         self.checkpoint_path = checkpoint_path
         self.device = device
         self._batch_size = batch_size
@@ -97,7 +101,7 @@ class LittleTrainingLoopLM(LM):
         # Set properties required by lm_eval
         self._rank = 0
         self._world_size = 1
-    
+
     @property
     def eot_token_id(self) -> int:
         """End of text token ID."""
@@ -108,7 +112,7 @@ class LittleTrainingLoopLM(LM):
             # Use 0 as EOT for small vocab models
             return 0
         return eot
-    
+
     @property
     def max_length(self) -> int:
         """Maximum sequence length the model can handle."""
@@ -120,34 +124,34 @@ class LittleTrainingLoopLM(LM):
     def max_gen_toks(self) -> int:
         """Maximum number of tokens to generate."""
         return 256
-    
+
     @property
     def batch_size(self) -> int:
         """Batch size for inference."""
         return self._batch_size
-    
+
     @property
     def device(self) -> str:
         """Device the model is running on."""
         return self._device
-    
+
     @device.setter
     def device(self, value: str):
         """Set the device."""
         self._device = value
-    
+
     def tok_encode(self, string: str) -> List[int]:
         """
         Tokenize a string into token IDs.
-        
+
         Args:
             string: Text to tokenize
-            
+
         Returns:
             List of token IDs
         """
         return self.tokenizer.encode(string, allowed_special="all")
-    
+
     def tok_decode(self, tokens: List[int]) -> str:
         """
         Decode token IDs back to text.
@@ -212,8 +216,7 @@ class LittleTrainingLoopLM(LM):
         return results
 
     def loglikelihood_rolling(self, requests) -> List[Tuple[float]]:
-        """
-        Compute perplexity on full sequences.
+        """Compute perplexity on full sequences.
 
         Used for language modeling benchmarks where we want to compute
         the perplexity of an entire text.
@@ -269,8 +272,7 @@ class LittleTrainingLoopLM(LM):
         return results
 
     def generate_until(self, requests) -> List[str]:
-        """
-        Generate text continuations until stopping criteria are met.
+        """Generate text continuations until stopping criteria are met.
 
         Used for generative tasks like open-ended QA.
 
@@ -281,7 +283,8 @@ class LittleTrainingLoopLM(LM):
                      'max_gen_toks', etc.
 
         Returns:
-            List of generated text strings (continuations only, not including context).
+            List of generated text strings (continuations only, not including
+            context).
         """
         results = []
 
@@ -334,7 +337,7 @@ class LittleTrainingLoopLM(LM):
                 # Append next token to input for next iteration
                 input_ids = torch.cat([
                     input_ids,
-                    torch.tensor([[next_token_id]], device=self.device)
+                    torch.tensor([[next_token_id]], device=self.device),
                 ], dim=1)
             else:
                 # Max tokens reached without hitting stop sequence
@@ -342,4 +345,49 @@ class LittleTrainingLoopLM(LM):
                 results.append(generated_text)
 
         return results
+
+
+
+def evaluate_checkpoint(
+    checkpoint_path: str,
+    tasks: list[str] | None = None,
+    limit: int | None = None,
+    device: str = "cuda",
+):
+    """Convenience helper to run lm-eval at the end of training.
+
+    This is intended for programmatic use inside a training script, e.g.:
+
+        results = evaluate_checkpoint(
+            checkpoint_path=ckpt_path,
+            tasks=["hellaswag", "arc_easy"],
+            limit=100,
+        )
+
+    Args:
+        checkpoint_path: Path to a training checkpoint saved with
+            ``checkpointing.save_training_checkpoint``.
+        tasks: List of lm-eval task names. If None, callers should pass
+            tasks explicitly when calling lm_eval.simple_evaluate.
+        limit: Optional sample limit per task for quicker smoke tests.
+        device: Device to run evaluation on.
+
+    Returns:
+        The dictionary returned by ``lm_eval.simple_evaluate``.
+    """
+    from lm_eval import simple_evaluate
+
+    wrapper = LittleTrainingLoopLM(checkpoint_path=checkpoint_path, device=device)
+
+    if tasks is None:
+        raise ValueError("'tasks' must be provided when using evaluate_checkpoint().")
+
+    return simple_evaluate(
+        model=wrapper,
+        tasks=tasks,
+        num_fewshot=0,
+        limit=limit,
+        device=wrapper.device,
+    )
+
 

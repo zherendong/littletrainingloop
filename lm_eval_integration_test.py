@@ -9,11 +9,13 @@ import torch
 import tempfile
 from pathlib import Path
 
+import pytest
 import transformer
 import checkpointing
-from lm_eval_wrapper import LittleTrainingLoopLM
+from lm_eval_wrapper import LittleTrainingLoopLM, evaluate_checkpoint
 
-# Import lm-eval library components
+# Import lm-eval library components (skip tests if lm-eval is not installed)
+lm_eval = pytest.importorskip("lm_eval")
 from lm_eval import simple_evaluate
 try:
     from lm_eval.models import get_model
@@ -27,7 +29,7 @@ def create_test_checkpoint():
     import tiktoken
     tokenizer = tiktoken.get_encoding("cl100k_base")
     vocab_size = tokenizer.n_vocab
-    
+
     config = transformer.TransformerConfig(
         num_layers=2,
         num_heads=2,
@@ -35,25 +37,25 @@ def create_test_checkpoint():
         mlp_inner_size=256,
         zheren_init=False,
     )
-    
+
     model = transformer.TransformerModel(vocab_size, config)
-    
+
     tmpdir = tempfile.mkdtemp()
     checkpoint_path = Path(tmpdir) / "test_model.pt"
-    
+
     metadata = {
         "config": config,
         "vocab_size": vocab_size,
         "step": 0,
         "epoch": 0,
     }
-    
+
     checkpointing.save_checkpoint(
         model=model,
         path=checkpoint_path,
         metadata=metadata,
     )
-    
+
     return checkpoint_path
 
 
@@ -130,16 +132,32 @@ def test_multiple_tasks():
     assert "arc_easy" in tasks_run
 
 
+def test_evaluate_checkpoint_helper():
+    """Test the evaluate_checkpoint helper for end-of-training usage."""
+    checkpoint_path = create_test_checkpoint()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    results = evaluate_checkpoint(
+        checkpoint_path=str(checkpoint_path),
+        tasks=["hellaswag"],
+        limit=3,
+        device=device,
+    )
+
+    assert "results" in results
+    assert "hellaswag" in results["results"]
+
+
 if __name__ == "__main__":
     print("=" * 60)
     print("LM-Evaluation-Harness Integration Test")
     print("=" * 60)
-    
+
     # Run tests
     test1 = test_model_registration()
     test2 = test_simple_evaluation()
     test3 = test_multiple_tasks()
-    
+
     print("\n" + "=" * 60)
     if test1 and test2 and test3:
         print("All integration tests passed! ✓")
