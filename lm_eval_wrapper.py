@@ -66,51 +66,34 @@ class LittleTrainingLoopLM(LM):
         self.device = device
         self._batch_size = batch_size
 
-        # Load tokenizer
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        # Load tokenizer using the same default used for training
+        # This keeps tokenization centralized in language_model_dataloader.default_tokenizer()
+        self.tokenizer = language_model_dataloader.default_tokenizer()
 
-        # Load model from checkpoint
-        # We need to infer the config from the checkpoint
-        checkpoint_data = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        # Load model and metadata from a training checkpoint. This centralizes
+        # how we interpret checkpoint metadata.
+        checkpoint_result = checkpointing.load_model_from_training_checkpoint(
+            checkpoint_path, device=device
+        )
+        self.model = checkpoint_result["model"]
+        checkpoint_metadata = checkpoint_result.get("metadata", {})
 
-        # Extract config and vocab_size from metadata if available
-        if "metadata" in checkpoint_data and "config" in checkpoint_data["metadata"]:
-            config_data = checkpoint_data["metadata"]["config"]
-            # Handle both dict and TransformerConfig object
-            if isinstance(config_data, dict):
-                # If it's a dict from save_training_checkpoint, extract model_config
-                if "model_config" in config_data:
-                    model_config = config_data["model_config"]
-                    # If model_config is also a dict, convert to TransformerConfig
-                    if isinstance(model_config, dict):
-                        model_config = transformer.TransformerConfig(**model_config)
-                else:
-                    # Assume the dict itself is the model config
-                    model_config = transformer.TransformerConfig(**config_data)
-            else:
-                # It's already a TransformerConfig object
-                model_config = config_data
-        else:
-            # Try to infer from model state dict
-            raise ValueError(
-                "Checkpoint must contain model config in metadata. "
-                "Please save checkpoints with config information."
-            )
-
-        # Get vocab_size from metadata if available, otherwise use tokenizer
-        if "metadata" in checkpoint_data and "vocab_size" in checkpoint_data["metadata"]:
-            self.vocab_size = checkpoint_data["metadata"]["vocab_size"]
+        # Get vocab_size from metadata if available, otherwise infer from model weights
+        if "vocab_size" in checkpoint_metadata:
+            self.vocab_size = checkpoint_metadata["vocab_size"]
         else:
             # Infer from embedding weight shape
-            embedding_weight = checkpoint_data["model_state_dict"]["embedding.weight"]
+            embedding_weight = self.model.state_dict()["embedding.weight"]
             self.vocab_size = embedding_weight.shape[0]
 
-        # Create model
-        self.model = transformer.TransformerModel(self.vocab_size, model_config)
-        self.model.load_state_dict(checkpoint_data["model_state_dict"])
-        self.model.to(device)
-        self.model.eval()
-        
+        # Ensure tokenizer and model vocabularies are aligned
+        if self.tokenizer.n_vocab > self.vocab_size:
+            raise ValueError(
+                f"Tokenizer vocab size ({self.tokenizer.n_vocab}) is larger than the "
+                f"model vocab size ({self.vocab_size}). "
+                "Ensure the model was trained with a compatible tokenizer."
+            )
+
         # Set properties required by lm_eval
         self._rank = 0
         self._world_size = 1
@@ -129,10 +112,10 @@ class LittleTrainingLoopLM(LM):
     @property
     def max_length(self) -> int:
         """Maximum sequence length the model can handle."""
-        # This should match the model's context window
-        # For now, return a reasonable default
-        return 2048
-    
+        # This should match the model's context window. The transformer currently
+        # uses rotary embeddings with max_seq_len=8192.
+        return 8192
+
     @property
     def max_gen_toks(self) -> int:
         """Maximum number of tokens to generate."""
