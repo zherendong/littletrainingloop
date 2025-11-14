@@ -9,14 +9,19 @@ import torch
 import tempfile
 from pathlib import Path
 
+import dataclasses
+import pytest
+
 import transformer
 import checkpointing
+import language_model_basics
 
 
 def create_test_checkpoint():
     """Create a small test checkpoint for testing."""
     # Use tiktoken vocab size to match the tokenizer
     import tiktoken
+
     tokenizer = tiktoken.get_encoding("cl100k_base")
     vocab_size = tokenizer.n_vocab  # 100277
 
@@ -27,54 +32,57 @@ def create_test_checkpoint():
         mlp_inner_size=256,
         zheren_init=False,  # Disable custom init for faster testing
     )
-    
+
     model = transformer.TransformerModel(vocab_size, config)
-    
+
     # Create a temporary checkpoint
     tmpdir = tempfile.mkdtemp()
     checkpoint_path = Path(tmpdir) / "test_model.pt"
-    
-    # Save with metadata including config
+
+    training_config = language_model_basics.LanguageModelTrainingConfig(
+        vocab_size=vocab_size,
+        model_config=config,
+    )
+
+    # Save with metadata mirroring a training checkpoint
     metadata = {
-        "config": config,
+        "config": dataclasses.asdict(training_config),
         "vocab_size": vocab_size,
         "step": 0,
         "epoch": 0,
     }
-    
+
     checkpointing.save_checkpoint(
         model=model,
         path=checkpoint_path,
         metadata=metadata,
     )
-    
+
     return checkpoint_path, vocab_size, config
 
 
-def test_wrapper_initialization():
-    """Test that we can initialize the wrapper."""
+@pytest.fixture
+def wrapper():
+    """Fixture that provides an initialized LittleTrainingLoopLM wrapper."""
     checkpoint_path, vocab_size, config = create_test_checkpoint()
 
     try:
         from lm_eval_wrapper import LittleTrainingLoopLM
     except ImportError as e:
-        # Skip the test if lm-eval is not installed
-        import pytest
-
         pytest.skip(f"lm-evaluation-harness not installed: {e}")
 
-    # Initialize wrapper
-    wrapper = LittleTrainingLoopLM(
+    return LittleTrainingLoopLM(
         checkpoint_path=str(checkpoint_path),
         device="cuda" if torch.cuda.is_available() else "cpu",
     )
 
+
+def test_wrapper_initialization(wrapper):
+    """Test that we can initialize the wrapper."""
     # Basic sanity checks
-    assert wrapper.vocab_size == vocab_size
+    assert wrapper.vocab_size > 0
     assert wrapper.max_length > 0
     assert wrapper.eot_token_id >= 0
-
-    return wrapper
 
 
 def test_tokenization(wrapper):

@@ -9,18 +9,8 @@ import torch
 from typing import List, Tuple, Optional
 import tiktoken
 
-try:
-    from lm_eval.api.model import LM
-    from lm_eval.api.registry import register_model
-except ImportError:
-    # If lm_eval is not installed, create dummy base class
-    print("Warning: lm-evaluation-harness not installed. Install with: pip install lm-eval")
-    class LM:
-        pass
-    def register_model(name):
-        def decorator(cls):
-            return cls
-        return decorator
+from lm_eval.api.model import LM
+from lm_eval.api.registry import register_model
 
 import checkpointing
 import transformer

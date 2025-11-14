@@ -9,24 +9,24 @@ import torch
 import tempfile
 from pathlib import Path
 
+import dataclasses
+
 import pytest
 import transformer
 import checkpointing
+import language_model_basics
 from lm_eval_wrapper import LittleTrainingLoopLM, evaluate_checkpoint
 
 # Import lm-eval library components (skip tests if lm-eval is not installed)
 lm_eval = pytest.importorskip("lm_eval")
 from lm_eval import simple_evaluate
-try:
-    from lm_eval.models import get_model
-except ImportError:
-    # get_model might not be available in all versions
-    get_model = None
+from lm_eval.api.registry import get_model
 
 
 def create_test_checkpoint():
     """Create a test checkpoint with full tiktoken vocab."""
     import tiktoken
+
     tokenizer = tiktoken.get_encoding("cl100k_base")
     vocab_size = tokenizer.n_vocab
 
@@ -43,8 +43,13 @@ def create_test_checkpoint():
     tmpdir = tempfile.mkdtemp()
     checkpoint_path = Path(tmpdir) / "test_model.pt"
 
+    training_config = language_model_basics.LanguageModelTrainingConfig(
+        vocab_size=vocab_size,
+        model_config=config,
+    )
+
     metadata = {
-        "config": config,
+        "config": dataclasses.asdict(training_config),
         "vocab_size": vocab_size,
         "step": 0,
         "epoch": 0,
@@ -61,12 +66,6 @@ def create_test_checkpoint():
 
 def test_model_registration():
     """Test that our model is properly registered with lm-eval."""
-    if get_model is None:
-        # Skip if this lm-eval version does not expose get_model
-        import pytest
-
-        pytest.skip("get_model not available in this lm-eval version")
-
     _ = create_test_checkpoint()
 
     # Try to get our model through lm-eval's registry

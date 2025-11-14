@@ -9,17 +9,21 @@ import torch
 import tempfile
 from pathlib import Path
 
+import dataclasses
+
 import transformer
 import checkpointing
+import language_model_basics
 from lm_eval_wrapper import LittleTrainingLoopLM
 
 
 def create_test_checkpoint():
     """Create a test checkpoint with full tiktoken vocab."""
     import tiktoken
+
     tokenizer = tiktoken.get_encoding("cl100k_base")
     vocab_size = tokenizer.n_vocab
-    
+
     config = transformer.TransformerConfig(
         num_layers=2,
         num_heads=2,
@@ -27,25 +31,30 @@ def create_test_checkpoint():
         mlp_inner_size=256,
         zheren_init=False,
     )
-    
+
     model = transformer.TransformerModel(vocab_size, config)
-    
+
     tmpdir = tempfile.mkdtemp()
     checkpoint_path = Path(tmpdir) / "test_model.pt"
-    
+
+    training_config = language_model_basics.LanguageModelTrainingConfig(
+        vocab_size=vocab_size,
+        model_config=config,
+    )
+
     metadata = {
-        "config": config,
+        "config": dataclasses.asdict(training_config),
         "vocab_size": vocab_size,
         "step": 0,
         "epoch": 0,
     }
-    
+
     checkpointing.save_checkpoint(
         model=model,
         path=checkpoint_path,
         metadata=metadata,
     )
-    
+
     return checkpoint_path
 
 
@@ -91,19 +100,19 @@ def test_lm_eval_api_compatibility():
 def test_lm_eval_request_format():
     """Test that our wrapper handles lm-eval request format correctly."""
     print("\nTesting lm-eval request format handling...")
-    
+
     checkpoint_path = create_test_checkpoint()
     wrapper = LittleTrainingLoopLM(
         checkpoint_path=str(checkpoint_path),
         device="cuda" if torch.cuda.is_available() else "cpu",
         batch_size=1,
     )
-    
+
     # Create mock requests in lm-eval format
     class MockRequest:
         def __init__(self, *args):
             self.args = args
-    
+
     # Test loglikelihood
     print("  Testing loglikelihood...")
     ll_requests = [
@@ -114,7 +123,7 @@ def test_lm_eval_request_format():
     assert len(ll_results) == 2
     assert all(isinstance(r, tuple) and len(r) == 2 for r in ll_results)
     print(f"    ✓ Returns correct format: {ll_results}")
-    
+
     # Test loglikelihood_rolling
     print("  Testing loglikelihood_rolling...")
     llr_requests = [
@@ -124,7 +133,7 @@ def test_lm_eval_request_format():
     assert len(llr_results) == 1
     assert all(isinstance(r, tuple) and len(r) == 1 for r in llr_results)
     print(f"    ✓ Returns correct format: {llr_results}")
-    
+
     # Test generate_until
     print("  Testing generate_until...")
     gen_requests = [
@@ -134,21 +143,24 @@ def test_lm_eval_request_format():
     assert len(gen_results) == 1
     assert all(isinstance(r, str) for r in gen_results)
     print(f"    ✓ Returns correct format: ['{gen_results[0]}']")
-    
+
     print("\n  ✓ All request formats handled correctly!")
-    return True
 
 
 if __name__ == "__main__":
     print("=" * 60)
     print("LM-Eval Simple Integration Test")
     print("=" * 60)
-    
-    test1 = test_lm_eval_api_compatibility()
-    test2 = test_lm_eval_request_format()
-    
+
+    all_ok = True
+    try:
+        test_lm_eval_api_compatibility()
+        test_lm_eval_request_format()
+    except AssertionError:
+        all_ok = False
+
     print("\n" + "=" * 60)
-    if test1 and test2:
+    if all_ok:
         print("✓ All tests passed!")
         print("\nThe wrapper is compatible with lm-evaluation-harness API.")
         print("You can now use it with lm-eval's simple_evaluate() function")
