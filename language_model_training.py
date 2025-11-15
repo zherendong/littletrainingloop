@@ -6,6 +6,7 @@ import argparse
 import dataclasses
 import os
 import time
+from pathlib import Path
 import torch.cuda.nvtx as nvtx
 import neptune_lib
 
@@ -32,6 +33,8 @@ import language_model_basics
 import transformer
 import model_configs.chinchilla  # noqa: F401
 import cross_entropy
+import checkpointing
+from lm_eval_wrapper import evaluate_checkpoint
 
 # import bf16_fused_adam
 import optimi  # for 16-bit optimizers
@@ -257,8 +260,13 @@ def train_language_model(
     *,
     neptune_run,
     dataset: str = "slimpajama",
+    final_checkpoint_path: str | Path | None = None,
 ):
-    """Train a language model using configuration object"""
+    """Train a language model using configuration object.
+
+    If ``final_checkpoint_path`` is provided, a full training checkpoint will be
+    saved there at the end of training using ``save_training_checkpoint``.
+    """
     # Create model
     with prng.PRNG(config.seed + 123123):
         model = transformer.TransformerModel(config.vocab_size, config.model_config)
@@ -331,6 +339,22 @@ def train_language_model(
         eval_data_providers=eval_datasets,
         neptune_run=neptune_run,
     )
+
+    # Optionally save a final training checkpoint for downstream evaluation.
+    if final_checkpoint_path is not None:
+        checkpoint_path = Path(final_checkpoint_path)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpointing.save_training_checkpoint(
+            model=state.model,
+            optimizer=state.optimizer,
+            scheduler=state.scheduler,
+            config=config,
+            step=config.training_config.training_steps_per_epoch,
+            epoch=config.training_config.num_epochs,
+            path=checkpoint_path,
+        )
+        print(f"Saved final training checkpoint to {checkpoint_path}")
+
     return losses
 
 
@@ -341,6 +365,7 @@ def run(
     use_neptune: bool = False,
     gpu_id: int | None = None,
     neptune_tags: list[str] = [],
+    eval_tasks: list[str] | None = ["wikitext", "lambada_openai", "hellaswag"],
 ):
     # Add device detection at the top of your training function
     if torch.cuda.is_available():
@@ -351,6 +376,10 @@ def run(
     print(f"Using device: {device}")
     torch.set_default_device(device)
 
+    # Construct a default checkpoint path for this run.
+    run_dir_name = run_name or config.name or "default_run"
+    checkpoint_path = Path("checkpoints") / run_dir_name / "final.pt"
+
     neptune_run = neptune_lib.NeptuneRunWrapper(
         use_neptune,
         description,
@@ -358,8 +387,32 @@ def run(
         tags=neptune_tags,
     )
     try:
-        losses = train_language_model(config, neptune_run=neptune_run)
+        losses = train_language_model(
+            config,
+            neptune_run=neptune_run,
+            final_checkpoint_path=checkpoint_path if eval_tasks else None,
+        )
         print(f"Losses: {losses}")
+        print(f"Training complete. Final checkpoint: {checkpoint_path}")
+
+        # Optionally run lm-evaluation-harness at the end of training.
+        if eval_tasks:
+            print(
+                "Running lm-eval on final checkpoint for tasks: "
+                + ", ".join(eval_tasks)
+            )
+            try:
+                results = evaluate_checkpoint(
+                    checkpoint_path=str(checkpoint_path),
+                    tasks=eval_tasks,
+                    limit=200,
+                    device=str(device),
+                )
+                metrics = results.get("results", results)
+                print("lm-eval metrics:")
+                print(metrics)
+            except Exception as e:
+                print(f"lm-eval at end of training failed: {e}")
     finally:
         neptune_run.stop()
 
@@ -401,6 +454,12 @@ if __name__ == "__main__":
     parser.add_argument("--name", "-n", type=str, default=None)
     parser.add_argument("--gpu_id", "-g", type=int, default=None)
     parser.add_argument("--neptune_tags", type=str, nargs="+", default=[])
+    parser.add_argument(
+        "--eval_tasks",
+        type=str,
+        nargs="+",
+        default=["wikitext", "lambada_openai", "hellaswag"],
+    )
     args = parser.parse_args()
 
     config = get_model_config(args.model_config, args.profile_only)
@@ -420,4 +479,5 @@ if __name__ == "__main__":
         run_name=args.name,
         gpu_id=args.gpu_id,
         neptune_tags=args.neptune_tags,
+        eval_tasks=args.eval_tasks,
     )
