@@ -211,6 +211,11 @@ class LittleTrainingLoopLM(LM):
         Used for language modeling benchmarks where we want to compute
         the perplexity of an entire text.
 
+        This implementation is intentionally simple and does **one forward
+        pass per document** (rather than one per token) to avoid O(L^2) work
+        and a large number of distinct sequence lengths, which interacts badly
+        with ``torch.compile``.
+
         Args:
             requests: List of Instance objects with property `args` returning
                      (text,) tuples (single string).
@@ -231,31 +236,22 @@ class LittleTrainingLoopLM(LM):
                 results.append(0.0)
                 continue
 
-            # For rolling evaluation, we compute log-likelihood of each token
-            # given all previous tokens
-            total_logprob = 0.0
+            # If sequence is longer than the model context window, keep the
+            # most recent tokens so that [EOT] + tokens fits into max_length.
+            if len(token_ids) + 1 > self.max_length:
+                token_ids = token_ids[-(self.max_length - 1) :]
 
-            # Start with EOT token as context
-            for i in range(len(token_ids)):
-                if i == 0:
-                    # First token: condition on EOT
-                    context_ids = [self.eot_token_id]
-                else:
-                    # Subsequent tokens: condition on all previous tokens
-                    context_ids = token_ids[:i]
+            # Use a single EOT token as prefix context and compute logprobs
+            # for the entire sequence in one shot.
+            context_ids = [self.eot_token_id]
 
-                target_id = token_ids[i]
+            context_tensor = torch.tensor([context_ids], device=self.device)
+            target_tensor = torch.tensor([token_ids], device=self.device)
 
-                # Convert to tensors
-                context_tensor = torch.tensor([context_ids], device=self.device)
-                target_tensor = torch.tensor([[target_id]], device=self.device)
-
-                # Compute log probability
-                logprob = self.model.compute_token_logprobs(
-                    context_tensor, target_tensor
-                )
-
-                total_logprob += logprob.item()
+            token_logprobs = self.model.compute_token_logprobs(
+                context_tensor, target_tensor
+            )
+            total_logprob = float(token_logprobs.sum().item())
 
             results.append(total_logprob)
 
