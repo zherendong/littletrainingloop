@@ -43,9 +43,8 @@ def config_variants(
         if chinchilla_size <= 50:
             lrs = [0.003]
         elif chinchilla_size <= 120:
-            # lrs = [0.002]
-            # lrs = [0.003]
-            lrs = [0.003, 0.0035, 0.004, 0.0025, 0.002]
+            lrs = [0.003]
+            # lrs = [0.003, 0.0035, 0.004, 0.0025, 0.002]
         elif chinchilla_size <= 200:
             lrs = [0.0015]
         elif chinchilla_size <= 300:
@@ -54,7 +53,7 @@ def config_variants(
             lrs = [0.0012]
         elif chinchilla_size <= 500:
             # lrs = [0.0006, 0.0007, 0.0008, 0.001, 0.0012, 0.0004, 0.0005]
-            lrs = [0.001]
+            lrs = [0.0008]
         elif chinchilla_size <= 1000:
             lrs = [0.0007]
         elif chinchilla_size <= 1500:
@@ -179,17 +178,56 @@ def config_variants(
     spelling_bee_variants = []
     for config in variants:
         # spelling_bee_variants.append(config)
-        spelling_bee_variants.append(
-            replace(
-                config,
-                model_config=replace(
-                    config.model_config,
-                    spelling_bee=True,
-                    separate_token_embedding=True,
-                ),
-                name=config.name + "_spellingbee",
+        # spelling_bee_variants.append(
+        #     replace(
+        #         config,
+        #         model_config=replace(
+        #             config.model_config,
+        #             spelling_bee=True,
+        #             separate_token_embedding=True,
+        #         ),
+        #         name=config.name + "_spellingbee",
+        #     )
+        # )
+        # scales = [0.5, 0.25, 0.1]
+        scales = [0.1]
+        for scale in scales:
+            # spelling_bee_variants.append(
+            #     replace(
+            #         config,
+            #         model_config=replace(
+            #             config.model_config,
+            #             spelling_bee=True,
+            #             char_init_scale=scale,
+            #         ),
+            #         name=config.name + f"_ci{scale}",
+            #     )
+            # )
+            # spelling_bee_variants.append(
+            #     replace(
+            #         config,
+            #         model_config=replace(
+            #             config.model_config,
+            #             spelling_bee=True,
+            #             char_init_scale=scale,
+            #             char_embedding_norm=True,
+            #         ),
+            #         name=config.name + f"_spellingbee_cn_ci{scale}",
+            #     )
+            # )
+            spelling_bee_variants.append(
+                replace(
+                    config,
+                    model_config=replace(
+                        config.model_config,
+                        spelling_bee=True,
+                        char_init_scale=scale,
+                        char_embedding_norm=True,
+                        spelling_bee_out=True,
+                    ),
+                    name=config.name + f"_spellingbee_out_cn_ci{scale}",
+                )
             )
-        )
     variants = spelling_bee_variants
 
     # embedding_norm = []
@@ -222,15 +260,15 @@ def main(
         # "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
-        # "chinchilla-117m",
+        "chinchilla-117m",
         "chinchilla-140m",
-        # "chinchilla-163m",
+        "chinchilla-163m",
         "chinchilla-196m",
-        # "chinchilla-251m",
+        "chinchilla-251m",
         "chinchilla-306m",
-        "chinchilla-425m",
-        "chinchilla-489m",
-        "chinchilla-632m",
+        # "chinchilla-425m",
+        # "chinchilla-489m",
+        # "chinchilla-632m",
         # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",

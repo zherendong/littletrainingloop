@@ -51,8 +51,13 @@ class TransformerConfig:
     )
     skinny_queries: bool = False
     skinny_scaled_init: bool = False
+
+    # spelling bee options
     spelling_bee: bool = False
     separate_token_embedding: bool = True
+    char_embedding_norm: bool = False
+    char_init_scale: float = 0.5
+    spelling_bee_out: bool = False
 
     # initialization options
     zheren_init: bool = True
@@ -555,6 +560,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         self.params_dtype = params_dtype
         self.activation_dtype = activation_dtype
 
+        emb_dtype = torch.float32
         if config.spelling_bee:
             vocab = language_model_dataloader.get_default_tokenizer_vocab()
             self.embedding = spelling_bee_embeddings.SpellingBeeEmbedding(
@@ -562,8 +568,10 @@ class TransformerModel(language_model_basics.LanguageModel):
                 embedding_dim=self.dim,
                 vocab=vocab,
                 max_characters=16,
-                weight_dtype=torch.float32,
+                weight_dtype=emb_dtype,
                 separate_token_embedding=config.separate_token_embedding,
+                character_norm=config.char_embedding_norm,
+                char_init_scale=config.char_init_scale,
             )
         else:
             self.embedding = nn.Embedding(
@@ -571,7 +579,7 @@ class TransformerModel(language_model_basics.LanguageModel):
                 self.dim,
                 # Always float32 for embedding, as recommended
                 # for optimal quality.
-                dtype=torch.float32,
+                dtype=emb_dtype,
             )
         if config.embedding_norm:
             self.embedding_norm = FP32LayerNorm(self.dim)
@@ -605,6 +613,18 @@ class TransformerModel(language_model_basics.LanguageModel):
             layernorm_dim = self.dim
 
         self.final_norm = FP32LayerNorm(layernorm_dim)
+        if config.spelling_bee_out:
+            vocab = language_model_dataloader.get_default_tokenizer_vocab()
+            self.embedding_out = spelling_bee_embeddings.SpellingBeeEmbedding(
+                num_tokens=vocab_size,
+                embedding_dim=proj_input_dim,
+                vocab=vocab,
+                max_characters=16,
+                weight_dtype=self.params_dtype,
+                separate_token_embedding=False,
+                character_norm=False,
+                char_init_scale=1 / math.sqrt(self.dim),
+            )
         self.output_projection = nn.Linear(
             proj_input_dim,
             vocab_size,
@@ -686,7 +706,21 @@ class TransformerModel(language_model_basics.LanguageModel):
         return x
 
     def get_output_projection_weights(self):
-        return self.output_projection.weight
+        weights = self.output_projection.weight
+        if self.config.spelling_bee_out:
+            assert isinstance(
+                self.embedding_out, spelling_bee_embeddings.SpellingBeeEmbedding
+            )
+            all_tokens = torch.arange(
+                self.vocab_size, dtype=torch.int32, device=weights.device
+            ).unsqueeze(0)
+            char_embeddings = self.embedding_out.get_character_embeddings(all_tokens)
+            char_embeddings = char_embeddings.sum(-2).squeeze(0)
+            assert (
+                weights.shape == char_embeddings.shape
+            ), f"{char_embeddings.shape=}, {weights.shape=}"
+            weights = weights + char_embeddings * 0.01
+        return weights
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
         assert targets.dtype == torch.long
@@ -718,7 +752,7 @@ class TransformerModel(language_model_basics.LanguageModel):
 
     def forward(self, x: torch.Tensor):
         final_emb = self._forward_opt(x)
-        logits = self.output_projection(final_emb)
+        logits = F.linear(final_emb, self.get_output_projection_weights())
         return logits
 
     def num_parameters(self):

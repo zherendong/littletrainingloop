@@ -1,0 +1,36 @@
+Scaling Law Fit Parameters (Shifted Power Law)
+======================================================================
+
+NOTE: All datasets use shared c = 0.414017 from first dataset
+      (c represents the irreducible loss floor)
+
+Dataset 1: scaling_analysis/scaling_data_baseline.csv
+  Label: scaling_data_baseline
+  Number of data points: 13
+  PFLOPs range: 699.83 - 56751.63
+  Loss range: 2.9518 - 3.6880
+  Shifted Power Law (y = a * x^b + c):
+    a = 4.763401
+    b = -0.057607
+    c = 0.414017
+
+Dataset 2: scaling_analysis/scaling_data_gelu.csv
+  Label: scaling_data_gelu
+  Number of data points: 8
+  PFLOPs range: 671.59 - 6008.03
+  Loss range: 3.3208 - 3.7173
+  Shifted Power Law (y = a * x^b + c):
+    a = 4.814395
+    b = -0.058443
+    c = 0.414017 (shared)
+
+Dataset 3: scaling_analysis/scaling_data_relu.csv
+  Label: scaling_data_relu
+  Number of data points: 8
+  PFLOPs range: 671.59 - 6008.03
+  Loss range: 3.3470 - 3.7438
+  Shifted Power Law (y = a * x^b + c):
+    a = 4.828490
+    b = -0.057620
+    c = 0.414017 (shared)
+

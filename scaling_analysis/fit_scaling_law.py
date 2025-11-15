@@ -18,12 +18,15 @@ def shifted_power_law(x, a, b, c):
     return a * x**b + c
 
 
-def fit_single_dataset(data_file: str, fixed_c: float | None = None):
+def fit_single_dataset(
+    data_file: str, fixed_c: float | None = None, min_pflops: float = 0
+):
     """Fit shifted power law to a single dataset.
 
     Args:
         data_file: Path to CSV file with pflops and final_loss columns
         fixed_c: If provided, fix the c parameter to this value and only fit a and b
+        min_pflops: Minimum PFLOPs threshold - datapoints below this are excluded
 
     Returns:
         Dictionary with data, fit parameters, and metadata
@@ -43,6 +46,19 @@ def fit_single_dataset(data_file: str, fixed_c: float | None = None):
 
     print(f"  Loaded {len(x)} data points")
     print(f"  PFLOPs range: {x.min():.2f} - {x.max():.2f}")
+
+    # Filter by minimum PFLOPs
+    if min_pflops > 0:
+        mask = x >= min_pflops
+        x = x[mask]
+        y = y[mask]
+        print(f"  After filtering (min_pflops={min_pflops}): {len(x)} data points")
+        if len(x) == 0:
+            raise ValueError(
+                f"No data points remain after filtering with min_pflops={min_pflops}"
+            )
+        print(f"  Filtered PFLOPs range: {x.min():.2f} - {x.max():.2f}")
+
     print(f"  Loss range: {y.min():.4f} - {y.max():.4f}")
 
     # Fit shifted power law
@@ -51,8 +67,16 @@ def fit_single_dataset(data_file: str, fixed_c: float | None = None):
         try:
             # Use median loss as initial guess for c
             c_init = np.median(y)
+            # Set bounds: c must be non-negative
+            # bounds format: ([lower bounds], [upper bounds])
+            # a: no lower bound, b: no bounds, c: >= 0
             popt_shifted, pcov_shifted = curve_fit(
-                shifted_power_law, x, y, p0=[1, -0.1, c_init], maxfev=10000
+                shifted_power_law,
+                x,
+                y,
+                p0=[1, -0.1, c_init],
+                bounds=([-np.inf, -np.inf, 0], [np.inf, np.inf, np.inf]),
+                maxfev=10000,
             )
             print(
                 f"    Parameters: a={popt_shifted[0]:.6f}, "
@@ -118,7 +142,7 @@ def fit_single_dataset(data_file: str, fixed_c: float | None = None):
             }
 
 
-def fit_scaling_laws(data_files: list[str], output_base: str):
+def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float = 0):
     """Fit shifted power laws to multiple datasets and generate comparison plots.
 
     For multiple datasets, the c parameter from the first dataset is used for all
@@ -128,8 +152,11 @@ def fit_scaling_laws(data_files: list[str], output_base: str):
     Args:
         data_files: List of paths to CSV files with pflops and final_loss columns
         output_base: Base name for output files (plots and fit parameters)
+        min_pflops: Minimum PFLOPs threshold - datapoints below this are excluded
     """
     print(f"Fitting scaling laws for {len(data_files)} dataset(s)...")
+    if min_pflops > 0:
+        print(f"Filtering datapoints with PFLOPs < {min_pflops}")
 
     # Fit each dataset
     results = []
@@ -138,7 +165,7 @@ def fit_scaling_laws(data_files: list[str], output_base: str):
     for i, data_file in enumerate(data_files):
         if i == 0:
             # First dataset: fit all parameters
-            result = fit_single_dataset(data_file, fixed_c=None)
+            result = fit_single_dataset(data_file, fixed_c=None, min_pflops=min_pflops)
             if result["success"]:
                 shared_c = result["params"][2]
                 print(
@@ -146,7 +173,9 @@ def fit_scaling_laws(data_files: list[str], output_base: str):
                 )
         else:
             # Subsequent datasets: use c from first dataset
-            result = fit_single_dataset(data_file, fixed_c=shared_c)
+            result = fit_single_dataset(
+                data_file, fixed_c=shared_c, min_pflops=min_pflops
+            )
 
         results.append(result)
 
@@ -281,12 +310,13 @@ def fit_scaling_laws(data_files: list[str], output_base: str):
         print(f"Fit parameters CSV saved to: {params_csv_path}")
 
 
-def main(data_files: list[str], output_base: str | None = None):
+def main(data_files: list[str], output_base: str | None = None, min_pflops: float = 0):
     """Main function to fit scaling laws and generate plots.
 
     Args:
         data_files: List of paths to CSV files with prepared scaling data
         output_base: Base name for output files (default: derived from input files)
+        min_pflops: Minimum PFLOPs threshold - datapoints below this are excluded (default: 0)
     """
     # Set default output base if not specified
     if output_base is None:
@@ -301,7 +331,7 @@ def main(data_files: list[str], output_base: str | None = None):
             # Multiple files: use generic name
             output_base = "scaling_analysis/scaling_law_comparison"
 
-    fit_scaling_laws(data_files, output_base)
+    fit_scaling_laws(data_files, output_base, min_pflops=min_pflops)
 
 
 if __name__ == "__main__":
@@ -323,7 +353,13 @@ if __name__ == "__main__":
         help="Base name for output files (default: <data_file>_fit for single file, "
         "scaling_analysis/scaling_law_comparison for multiple files)",
     )
+    parser.add_argument(
+        "--min-pflops",
+        type=float,
+        default=500,
+        help="Minimum PFLOPs threshold - datapoints below this are excluded (default: 500)",
+    )
 
     args = parser.parse_args()
 
-    main(data_files=args.data, output_base=args.output)
+    main(data_files=args.data, output_base=args.output, min_pflops=args.min_pflops)
