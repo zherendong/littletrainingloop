@@ -1,5 +1,34 @@
 """
 Checkpoint saving and loading for language models.
+
+There are two layers of APIs in this module:
+
+1. Low-level, generic checkpoint I/O
+   - `save_checkpoint(model, path, metadata=None, optimizer=None, scheduler=None)`
+   - `load_checkpoint(path, vocab_size, model_config, device="cuda", load_optimizer=False, load_scheduler=False)`
+
+   These functions are useful when the caller already knows how to
+   construct the model (i.e. has `vocab_size` and a `TransformerConfig`).
+   They simply save and restore the raw `state_dict` plus optional
+   optimizer/scheduler state and an arbitrary `metadata` dict. Training
+   code that manages its own configs can use these directly.
+
+2. Training-oriented convenience helpers
+   - `save_training_checkpoint(model, optimizer, scheduler, config, step, epoch, path)`
+   - `load_model_from_training_checkpoint(path, device="cuda")`
+
+   These functions are designed for end-to-end training/evaluation
+   workflows. `save_training_checkpoint` stores a structured
+   `LanguageModelTrainingConfig` (via `dataclasses.asdict(config)`),
+   along with the current `step`, `epoch`, and `vocab_size`, inside the
+   checkpoint metadata. `load_model_from_training_checkpoint` reads this
+   metadata back, reconstructs the `TransformerConfig`, infers
+   `vocab_size`, and returns a fully-initialized `TransformerModel`
+   (plus metadata, and optimizer/scheduler state if present).
+
+   This higher-level API is what downstream tools (e.g. the
+   lm-evaluation-harness wrapper) should use when they only know the
+   checkpoint path and not the full training config.
 """
 
 import torch
