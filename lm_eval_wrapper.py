@@ -205,7 +205,7 @@ class LittleTrainingLoopLM(LM):
 
         return results
 
-    def loglikelihood_rolling(self, requests) -> List[Tuple[float]]:
+    def loglikelihood_rolling(self, requests) -> List[float]:
         """Compute perplexity on full sequences.
 
         Used for language modeling benchmarks where we want to compute
@@ -216,9 +216,9 @@ class LittleTrainingLoopLM(LM):
                      (text,) tuples (single string).
 
         Returns:
-            List of (log_prob,) tuples for each request.
+            List of log probabilities (one float per request).
         """
-        results = []
+        results: List[float] = []
 
         for request in requests:
             # For rolling, we get a single string
@@ -228,7 +228,7 @@ class LittleTrainingLoopLM(LM):
             token_ids = self.tok_encode(text)
 
             if len(token_ids) == 0:
-                results.append((0.0,))
+                results.append(0.0)
                 continue
 
             # For rolling evaluation, we compute log-likelihood of each token
@@ -257,7 +257,7 @@ class LittleTrainingLoopLM(LM):
 
                 total_logprob += logprob.item()
 
-            results.append((total_logprob,))
+            results.append(total_logprob)
 
         return results
 
@@ -372,12 +372,15 @@ def evaluate_checkpoint(
     if tasks is None:
         raise ValueError("'tasks' must be provided when using evaluate_checkpoint().")
 
-    return simple_evaluate(
+    print("[lm_eval_wrapper] Starting simple_evaluate()", flush=True)
+    results = simple_evaluate(
         model=wrapper,
         tasks=tasks,
         num_fewshot=0,
         limit=limit,
         device=wrapper.device,
     )
+    print("[lm_eval_wrapper] simple_evaluate() returned", flush=True)
+    return results
 
 
