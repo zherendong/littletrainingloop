@@ -67,3 +67,41 @@ You can modify the hyperparameters in the `run()` function in `language_model_tr
 - `learning_rate`: Learning rate for AdamW optimizer
 - `warmup_steps`: Number of warmup steps for learning rate schedule
 - `model_config`: Transformer architecture configuration
+
+
+## Evaluation with lm-evaluation-harness
+
+This repository integrates with [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
+via the `LittleTrainingLoopLM` wrapper and the `evaluate_checkpoint` helper
+in `lm_eval_wrapper.py`.
+
+### Saving checkpoints for evaluation
+
+During training, save a training checkpoint with full metadata using
+`checkpointing.save_training_checkpoint(...)`. A simple convention is:
+
+- `checkpoints/<run_name>/epoch_{epoch}_step_{step}.pt`
+
+These checkpoints store the model weights together with the full
+`LanguageModelTrainingConfig` and `vocab_size`, which lets
+`load_model_from_training_checkpoint` and `LittleTrainingLoopLM`
+reconstruct the model correctly.
+
+### Running evaluation from Python
+
+The primary way to run evaluation is via the Python API:
+
+```python
+from lm_eval_wrapper import evaluate_checkpoint
+
+results = evaluate_checkpoint(
+    checkpoint_path="checkpoints/my_run/epoch_1_step_1000.pt",
+    tasks=["wikitext", "lambada_openai", "hellaswag"],
+    limit=100,  # optional: cap examples per task
+    device="cuda",
+)
+
+print(results["results"])
+```
+
+See `run_lm_eval.py` for a small CLI wrapper around this helper.
