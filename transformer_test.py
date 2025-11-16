@@ -109,12 +109,12 @@ def test_transformer_model():
         67161120,
         67461120,
         100584480,
-    ]  # depending on use of flash attention
+    ]  # depending on use of flash attention / architecture
     assert sum(p.numel() for p in model.parameters()) in [
         1377280,
         1377536,
         1934592,
-    ]  # depending on use of flash attention
+    ]  # depending on use of flash attention / architecture
 
     # now count with backward
     flops = flop_counter.FlopCounterMode(depth=4)
