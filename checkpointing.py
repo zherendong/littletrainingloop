@@ -49,7 +49,7 @@ def save_checkpoint(
     path: str | Path,
     metadata: dict[str, Any] | None = None,
     optimizer: torch.optim.Optimizer | None = None,
-    scheduler: Any | None = None,
+    scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
 ) -> None:
     """Save model checkpoint to disk.
     
