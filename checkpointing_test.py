@@ -186,7 +186,6 @@ def test_save_and_load_training_checkpoint_roundtrip(tmp_path: Path) -> None:
     # metadata should contain the training config and basic fields
     assert metadata["step"] == 42
     assert metadata["epoch"] == 3
-    assert metadata["vocab_size"] == vocab_size
     assert metadata["config"]["name"] == training_config.name
     assert metadata["config"]["vocab_size"] == training_config.vocab_size
 

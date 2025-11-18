@@ -20,11 +20,11 @@ There are two layers of APIs in this module:
    These functions are designed for end-to-end training/evaluation
    workflows. `save_training_checkpoint` stores a structured
    `LanguageModelTrainingConfig` (via `dataclasses.asdict(config)`),
-   along with the current `step`, `epoch`, and `vocab_size`, inside the
-   checkpoint metadata. `load_model_from_training_checkpoint` reads this
-   metadata back, reconstructs the `TransformerConfig`, infers
-   `vocab_size`, and returns a fully-initialized `TransformerModel`
-   (plus metadata, and optimizer/scheduler state if present).
+   along with the current `step` and `epoch` inside the checkpoint
+   metadata. `load_model_from_training_checkpoint` reads this metadata
+   back, reconstructs the `TransformerConfig`, determines `vocab_size`,
+   and returns a fully-initialized `TransformerModel` (plus metadata,
+   and optimizer/scheduler state if present).
 
    This higher-level API is what downstream tools (e.g. the
    lm-evaluation-harness wrapper) should use when they only know the
@@ -195,9 +195,10 @@ def load_model_from_training_checkpoint(
     else:
         model_config = model_config_data
 
-    # Prefer explicit vocab_size in metadata; fall back to embedding.shape[0]
-    if "vocab_size" in metadata:
-        vocab_size = metadata["vocab_size"]
+    # Prefer vocab_size from the stored training config; fall back to inferring
+    # from the embedding shape if necessary.
+    if "vocab_size" in config_data:
+        vocab_size = config_data["vocab_size"]
     else:
         embedding_weight = checkpoint["model_state_dict"]["embedding.weight"]
         vocab_size = embedding_weight.shape[0]
@@ -243,7 +244,6 @@ def save_training_checkpoint(
         "config": dataclasses.asdict(config),
         "step": step,
         "epoch": epoch,
-        "vocab_size": config.vocab_size,
     }
 
     save_checkpoint(
