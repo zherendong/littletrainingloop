@@ -18,6 +18,7 @@
 import language_model_training
 from dataclasses import replace
 import argparse
+import math
 
 import subprocess
 
@@ -177,73 +178,43 @@ def config_variants(
 
     spelling_bee_variants = []
     for config in variants:
-        # spelling_bee_variants.append(config)
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             separate_token_embedding=True,
-        #         ),
-        #         name=config.name + "_spellingbee",
+        # out_scales = [1.0]
+        # for out_scale in out_scales:
+        #     spelling_bee_variants.append(
+        #         replace(
+        #             config,
+        #             model_config=replace(
+        #                 config.model_config,
+        #                 spelling_bee=True,
+        #                 char_init_scale=1.0,
+        #                 char_embedding_norm=True,
+        #                 spelling_bee_in_out_scale=1 / math.sqrt(640),
+        #                 spelling_bee_out=True,
+        #                 # apply_rotary=False,
+        #                 # embedding_norm=False,
+        #                 char_embedding_norm_out=True,
+        #                 apply_rotary_out=True,
+        #                 spelling_bee_out_scale=out_scale * 1 / math.sqrt(640),
+        #                 char_init_scale_out=1.0,
+        #             ),
+        #             name=config.name + f"_spellingbee_out_outscale_scale{out_scale}",
+        #         )
         #     )
-        # )
-        # scales = [0.5, 0.25, 0.1]
-        scales = [0.1]
-        for scale in scales:
-            # spelling_bee_variants.append(
-            #     replace(
-            #         config,
-            #         model_config=replace(
-            #             config.model_config,
-            #             spelling_bee=True,
-            #             char_init_scale=scale,
-            #         ),
-            #         name=config.name + f"_ci{scale}",
-            #     )
-            # )
-            # spelling_bee_variants.append(
-            #     replace(
-            #         config,
-            #         model_config=replace(
-            #             config.model_config,
-            #             spelling_bee=True,
-            #             char_init_scale=scale,
-            #             char_embedding_norm=True,
-            #         ),
-            #         name=config.name + f"_spellingbee_cn_ci{scale}",
-            #     )
-            # )
-            spelling_bee_variants.append(
-                replace(
-                    config,
-                    model_config=replace(
-                        config.model_config,
-                        spelling_bee=True,
-                        char_init_scale=scale,
-                        char_embedding_norm=True,
-                        spelling_bee_out=True,
-                    ),
-                    name=config.name + f"_spellingbee_out_cn_ci{scale}",
-                )
+        spelling_bee_variants.append(
+            replace(
+                config,
+                model_config=replace(
+                    config.model_config,
+                    spelling_bee=True,
+                    char_init_scale=1.0,
+                    char_embedding_norm=True,
+                    spelling_bee_in_out_scale=1
+                    / math.sqrt(config.model_config.embedding_size),
+                ),
+                name=config.name + f"_spellingbee_scaled",
             )
+        )
     variants = spelling_bee_variants
-
-    # embedding_norm = []
-    # for config in variants:
-    #     embedding_norm.append(config)
-    #     embedding_norm.append(
-    #         replace(
-    #             config,
-    #             model_config=replace(
-    #                 config.model_config,
-    #                 embedding_norm=True,
-    #             ),
-    #             name=config.name + "_enorm",
-    #         )
-    #     )
-    # variants = embedding_norm
 
     print(f"Generated {len(variants)} variants")
     return variants
@@ -260,10 +231,10 @@ def main(
         # "chinchilla-74m",
         # "chinchilla-90m",
         # "chinchilla-106m",
-        "chinchilla-117m",
-        "chinchilla-140m",
-        "chinchilla-163m",
-        "chinchilla-196m",
+        # "chinchilla-117m",
+        # "chinchilla-140m",
+        # "chinchilla-163m",
+        # "chinchilla-196m",
         "chinchilla-251m",
         "chinchilla-306m",
         # "chinchilla-425m",

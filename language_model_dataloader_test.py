@@ -153,3 +153,83 @@ def test_special_tokens_ok():
     assert isinstance(data, dict), f"Expected dict, got {type(data)}"
     assert data["raw_text"] == text_to_tokenize
     assert "".join(data["text_per_token"]) == text_to_tokenize
+
+
+def test_print_random_tokens():
+    """Test that prints 20 random tokens from the default tokenizer."""
+    import random
+
+    tokenizer = default_tokenizer()
+    vocab_size = tokenizer.n_vocab
+
+    print(f"\n{'='*60}")
+    print(f"Tokenizer vocabulary size: {vocab_size}")
+    print(f"{'='*60}")
+
+    # Select 20 random token IDs
+    random.seed(42)  # For reproducibility
+    random_token_ids = random.sample(range(vocab_size), 20)
+    random_token_ids.sort()  # Sort for easier reading
+
+    print("\n20 Random Tokens:")
+    print(f"{'Token ID':<10} | {'Decoded Text'}")
+    print(f"{'-'*10}-+-{'-'*40}")
+
+    for token_id in random_token_ids:
+        try:
+            decoded = tokenizer.decode([token_id])
+            # Escape special characters for display
+            decoded_repr = repr(decoded)
+            print(f"{token_id:<10} | {decoded_repr}")
+        except Exception as e:
+            print(f"{token_id:<10} | ERROR: {e}")
+
+    print(f"{'='*60}\n")
+
+    # Force test to fail so output is visible
+    assert False, "Test intentionally fails to display token output"
+
+
+def test_strawberry_tokenization():
+    """Test tokenization of different variations of 'strawberry'."""
+    tokenizer = default_tokenizer()
+
+    test_strings = [
+        "strawberry",
+        " strawberry",
+        "Strawberry",
+        " Strawberry",
+        # "strawberry\n",
+        # "strawberry\n\n",
+        # "\nstrawberry",
+        ".strawberry",
+        ",strawberry",
+        "(strawberry)",
+        "(Strawberry)",
+        ",Strawberry",
+        ".Strawberry",
+        "strawberries",
+        "Strawberries",
+        " strawberries",
+        " Strawberries",
+        " (Strawberries",
+    ]
+
+    print(f"\n{'='*70}")
+    print("Tokenization of 'strawberry' variations")
+    print(f"{'='*70}")
+
+    for text in test_strings:
+        tokens = tokenizer.encode(text)
+        decoded_tokens = [tokenizer.decode([t]) for t in tokens]
+
+        print(f"\nText: {repr(text)}")
+        print(f"Token IDs: {tokens}")
+        print(f"Number of tokens: {len(tokens)}")
+        print(f"Decoded tokens: {[repr(t) for t in decoded_tokens]}")
+        print(f"Reconstructed: {repr(''.join(decoded_tokens))}")
+
+    print(f"\n{'='*70}\n")
+
+    # Force test to fail so output is visible
+    assert False, "Test intentionally fails to display tokenization output"

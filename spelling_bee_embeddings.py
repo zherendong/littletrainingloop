@@ -17,6 +17,7 @@ import torch.nn as nn
 import torchtune
 
 import initialization
+import fp32norm
 
 
 class SpellingBeeEmbedding(nn.Module):
@@ -26,10 +27,12 @@ class SpellingBeeEmbedding(nn.Module):
         embedding_dim: int,
         vocab: list[str],
         separate_token_embedding: bool,
+        weight_dtype: torch.dtype,
         max_characters: int = 16,
-        weight_dtype: torch.dtype = torch.bfloat16,
-        character_norm: bool = False,
-        char_init_scale: float = 0.5,
+        character_norm: bool = True,
+        char_init_scale: float = 1.0,
+        apply_rotary: bool = True,
+        scale: float = 1.0,
     ):
         super().__init__()
         self.num_tokens = num_tokens
@@ -40,6 +43,8 @@ class SpellingBeeEmbedding(nn.Module):
         self.vocab_character_table = self._vocab_character_table(vocab_bytes)
         self.character_norm = character_norm
         self.char_init_scale = char_init_scale
+        self.apply_rotary = apply_rotary
+        self.scale = scale
 
         if separate_token_embedding:
             self.token_embedding = nn.Embedding(
@@ -50,9 +55,7 @@ class SpellingBeeEmbedding(nn.Module):
             dim=embedding_dim, max_seq_len=max_characters
         )
         if character_norm:
-            self.char_emb_norm = nn.LayerNorm(
-                embedding_dim, dtype=torch.float32, bias=False
-            )
+            self.char_emb_norm = fp32norm.FP32LayerNorm(embedding_dim)
 
     def init_weights(self):
         """Initialize weights with proper variance-preserving initialization."""
@@ -64,10 +67,10 @@ class SpellingBeeEmbedding(nn.Module):
             initialization.init_embedding(self.token_embedding, scaling_factor=1.0)
         initialization.init_embedding(
             self.character_embedding,
-            scaling_factor=self.char_init_scale / self.max_characters_per_token,
+            scaling_factor=self.char_init_scale,  # / self.max_characters_per_token,
         )
         if self.character_norm:
-            self.char_emb_norm.weight.data.fill_(1.0)
+            self.char_emb_norm.init_weights(init_val=1.0)
 
     def _vocab_character_table(self, vocab_bytes: list[bytes]) -> torch.Tensor:
         """Compute the character table for the vocabulary."""
@@ -110,6 +113,14 @@ class SpellingBeeEmbedding(nn.Module):
             self.max_characters_per_token,
             self.embedding_dim,
         )
+        if self.apply_rotary:
+            embeddings = self._apply_rotary(embeddings)
+        embeddings = embeddings.sum(dim=-2)
+        if self.character_norm:
+            embeddings = self.char_emb_norm(embeddings)
+        if self.scale != 1.0:
+            embeddings = embeddings * self.scale
+        assert embeddings.shape == (batch_size, sequence_length, self.embedding_dim)
         return embeddings
 
     def _apply_rotary(self, embeddings: torch.Tensor) -> torch.Tensor:
@@ -128,11 +139,7 @@ class SpellingBeeEmbedding(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """input is a tensor of shape (batch_size, sequence_length) of token ids."""
         embeddings = self.get_character_embeddings(input)
-        embeddings = self._apply_rotary(embeddings)
-        embeddings = embeddings.sum(dim=-2)
-        if self.character_norm:
-            embeddings = self.char_emb_norm(embeddings)
         if self.separate_token_embedding:
             token_embeddings = self.token_embedding(input)
-            embeddings += token_embeddings
+            embeddings = 0.5 * embeddings + 0.5 * token_embeddings
         return embeddings

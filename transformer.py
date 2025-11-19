@@ -16,6 +16,7 @@ import language_model_basics
 import initialization
 import spelling_bee_embeddings
 import language_model_dataloader
+import fp32norm
 
 torch._dynamo.config.cache_size_limit = 64
 
@@ -55,9 +56,15 @@ class TransformerConfig:
     # spelling bee options
     spelling_bee: bool = False
     separate_token_embedding: bool = True
-    char_embedding_norm: bool = False
-    char_init_scale: float = 0.5
+    char_embedding_norm: bool = True
+    char_init_scale: float = 1.0
+    spelling_bee_in_out_scale: float = 1.0
     spelling_bee_out: bool = False
+    spelling_bee_out_scale: float = 1.0
+    apply_rotary: bool = True
+    char_embedding_norm_out: bool = False
+    char_init_scale_out: float = 1.0
+    apply_rotary_out: bool = False
 
     # initialization options
     zheren_init: bool = True
@@ -103,56 +110,6 @@ class ConfigRegistry:
 
 
 transformer_config_registry = ConfigRegistry()
-
-
-class FP32LayerNorm(nn.Module):
-    def __init__(self, input_size: int, segment_size: int | None = None):
-        super(FP32LayerNorm, self).__init__()
-        self.input_size = input_size
-        self.segment_size = segment_size
-        self.norm = nn.LayerNorm(
-            segment_size or input_size,
-            eps=1e-5,  # supposedly helps with stability
-            bias=False,
-            dtype=torch.float32,
-        )
-
-    def init_weights(self, init_val: float | None = None):
-        if init_val is None:
-            self.norm.reset_parameters()
-        else:
-            self.norm.weight.data.fill_(init_val)
-
-    def forward(self, x):
-        input_dtype = x.dtype
-        x = x.to(torch.float32)
-        if self.segment_size:
-            assert self.input_size % self.segment_size == 0
-            num_segments = self.input_size // self.segment_size
-            orig_shape = x.shape
-            x = x.view(-1, num_segments, self.segment_size)
-            x = self.norm(x)
-            x = x.view(*orig_shape)
-        else:
-            x = self.norm(x)
-        return x.to(input_dtype)
-
-
-class RMSNorm(nn.Module):
-    def __init__(self, dim: int, eps: float = 1e-5):
-        super().__init__()
-        self.eps = eps
-        self.weight = nn.Parameter(torch.ones(dim))
-
-    def init_weights(self):
-        nn.init.ones_(self.weight)
-
-    def _norm(self, x):
-        return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
-
-    def forward(self, x):
-        output = self._norm(x.float()).type_as(x)
-        return output * self.weight
 
 
 class FlexLinear(nn.Module):
@@ -331,7 +288,7 @@ class MLP(nn.Module):
         self.glu = glu
         self.pairwise_cancelling_init = pairwise_cancelling_init
 
-        self.norm = FP32LayerNorm(input_size, segment_size=segmented_norm)
+        self.norm = fp32norm.FP32LayerNorm(input_size, segment_size=segmented_norm)
         self.linear_in = nn.Linear(input_size, self.inner_size, bias=False, dtype=dtype)
 
         if glu:
@@ -420,7 +377,7 @@ class SelfAttention(nn.Module):
 
         self.use_flash_attention = use_flash_attention
 
-        self.norm = FP32LayerNorm(self.input_size)
+        self.norm = fp32norm.FP32LayerNorm(self.input_size)
         self.linear_q = FlexLinear(
             input_size,
             num_heads_q * head_dim,
@@ -572,6 +529,8 @@ class TransformerModel(language_model_basics.LanguageModel):
                 separate_token_embedding=config.separate_token_embedding,
                 character_norm=config.char_embedding_norm,
                 char_init_scale=config.char_init_scale,
+                apply_rotary=config.apply_rotary,
+                scale=config.spelling_bee_in_out_scale,
             )
         else:
             self.embedding = nn.Embedding(
@@ -582,7 +541,7 @@ class TransformerModel(language_model_basics.LanguageModel):
                 dtype=emb_dtype,
             )
         if config.embedding_norm:
-            self.embedding_norm = FP32LayerNorm(self.dim)
+            self.embedding_norm = fp32norm.FP32LayerNorm(self.dim)
         self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(config, i, params_dtype)
@@ -612,7 +571,7 @@ class TransformerModel(language_model_basics.LanguageModel):
             )
             layernorm_dim = self.dim
 
-        self.final_norm = FP32LayerNorm(layernorm_dim)
+        self.final_norm = fp32norm.FP32LayerNorm(layernorm_dim)
         if config.spelling_bee_out:
             vocab = language_model_dataloader.get_default_tokenizer_vocab()
             self.embedding_out = spelling_bee_embeddings.SpellingBeeEmbedding(
@@ -622,8 +581,10 @@ class TransformerModel(language_model_basics.LanguageModel):
                 max_characters=16,
                 weight_dtype=self.params_dtype,
                 separate_token_embedding=False,
-                character_norm=False,
-                char_init_scale=1 / math.sqrt(self.dim),
+                character_norm=config.char_embedding_norm_out,
+                char_init_scale=config.char_init_scale_out,
+                apply_rotary=config.apply_rotary_out,
+                scale=config.spelling_bee_out_scale,
             )
         self.output_projection = nn.Linear(
             proj_input_dim,
@@ -669,6 +630,11 @@ class TransformerModel(language_model_basics.LanguageModel):
 
         self.final_norm.init_weights()
         initialization.init_linear(self.output_projection)
+        if self.config.spelling_bee_out:
+            assert isinstance(
+                self.embedding_out, spelling_bee_embeddings.SpellingBeeEmbedding
+            )
+            self.embedding_out.init_weights()
 
     def emb_transformation(self, x: torch.Tensor) -> torch.Tensor:
         """Transform the embeddings before the output projection - default is norm."""
@@ -713,13 +679,12 @@ class TransformerModel(language_model_basics.LanguageModel):
             )
             all_tokens = torch.arange(
                 self.vocab_size, dtype=torch.int32, device=weights.device
-            ).unsqueeze(0)
+            ).unsqueeze(
+                0
+            )  # add dummy batch dim
             char_embeddings = self.embedding_out.get_character_embeddings(all_tokens)
-            char_embeddings = char_embeddings.sum(-2).squeeze(0)
-            assert (
-                weights.shape == char_embeddings.shape
-            ), f"{char_embeddings.shape=}, {weights.shape=}"
-            weights = weights + char_embeddings * 0.01
+            char_embeddings = char_embeddings.squeeze(0)  # remove dummy batch dim
+            weights = 0.5 * weights + 0.5 * char_embeddings
         return weights
 
     def compute_loss(self, inputs: torch.Tensor, targets: torch.Tensor):
