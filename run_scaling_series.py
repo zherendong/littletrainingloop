@@ -42,25 +42,21 @@ def config_variants(
             print(f"Could not parse chinchilla size from {config.name}")
             continue
         if chinchilla_size <= 50:
-            lrs = [0.003]
+            lrs = [0.004]
         elif chinchilla_size <= 120:
             lrs = [0.003]
-            # lrs = [0.003, 0.0035, 0.004, 0.0025, 0.002]
-        elif chinchilla_size <= 200:
-            lrs = [0.0015]
+        elif chinchilla_size <= 180:
+            lrs = [0.0025]
         elif chinchilla_size <= 300:
-            lrs = [0.0015]
+            lrs = [0.002]
         elif chinchilla_size <= 400:
             lrs = [0.0012]
         elif chinchilla_size <= 500:
-            # lrs = [0.0006, 0.0007, 0.0008, 0.001, 0.0012, 0.0004, 0.0005]
-            lrs = [0.0008]
+            lrs = [0.0012]
         elif chinchilla_size <= 1000:
             lrs = [0.0007]
-        elif chinchilla_size <= 1500:
-            lrs = [0.0007]
         else:
-            lrs = [0.0003]
+            lrs = [0.0007]
         for lr in lrs:
             lr_variants.append(
                 replace(
@@ -70,6 +66,21 @@ def config_variants(
                 )
             )
     variants = lr_variants
+
+    vanilla_variants = []
+    for config in variants:
+        vanilla_variants.append(config)
+        vanilla_variants.append(
+            replace(
+                config,
+                model_config=replace(
+                    config.model_config,
+                    pre_projection_transform=None,
+                ),
+                name=config.name + "_vanilla",
+            )
+        )
+    variants = vanilla_variants
 
     # nonlinearity_variants = []
     # for config in variants:
@@ -178,28 +189,6 @@ def config_variants(
 
     spelling_bee_variants = []
     for config in variants:
-        # out_scales = [1.0]
-        # for out_scale in out_scales:
-        #     spelling_bee_variants.append(
-        #         replace(
-        #             config,
-        #             model_config=replace(
-        #                 config.model_config,
-        #                 spelling_bee=True,
-        #                 char_init_scale=1.0,
-        #                 char_embedding_norm=True,
-        #                 spelling_bee_in_out_scale=1 / math.sqrt(640),
-        #                 spelling_bee_out=True,
-        #                 # apply_rotary=False,
-        #                 # embedding_norm=False,
-        #                 char_embedding_norm_out=True,
-        #                 apply_rotary_out=True,
-        #                 spelling_bee_out_scale=out_scale * 1 / math.sqrt(640),
-        #                 char_init_scale_out=1.0,
-        #             ),
-        #             name=config.name + f"_spellingbee_out_outscale_scale{out_scale}",
-        #         )
-        #     )
         spelling_bee_variants.append(
             replace(
                 config,
@@ -211,7 +200,7 @@ def config_variants(
                     spelling_bee_in_out_scale=1
                     / math.sqrt(config.model_config.embedding_size),
                 ),
-                name=config.name + f"_spellingbee_scaled",
+                name=config.name + f"_spellingbee_s",
             )
         )
     variants = spelling_bee_variants
@@ -234,9 +223,9 @@ def main(
         # "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
-        # "chinchilla-196m",
-        "chinchilla-251m",
-        "chinchilla-306m",
+        "chinchilla-196m",
+        # "chinchilla-251m",
+        # "chinchilla-306m",
         # "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
@@ -253,7 +242,6 @@ def main(
     for config_str in configs:
         cfg = language_model_training.get_model_config(config_str)
         cfg = replace(cfg, name=config_str.replace("chinchilla-", "c"))
-        # cfg = replace(cfg, name=cfg.name + "_embnorm2")
         all_configs.extend(config_variants(cfg))
 
     print(f"Sweeping a total of {len(all_configs)} configs")
