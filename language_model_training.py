@@ -221,6 +221,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
             "num_tokens": self.num_tokens_seen,
         }
 
+    @torch.no_grad()
     def eval(self, data: LMData) -> Metrics:
         inputs = torch.tensor(data.inputs, dtype=torch.int32)
         targets = torch.tensor(data.targets, dtype=torch.long)
@@ -229,14 +230,13 @@ class LanguageModelTrainingState(TrainingState[LMData]):
             self.config.eval_config.batch_size,
             self.config.eval_config.sequence_length,
         )
-        with torch.no_grad():
-            targets = torch.where(
-                loss_mask == 0.0,
-                cross_entropy.cross_entropy_ignore_index,
-                targets,
-            )
-            loss = self.model.compute_loss(inputs, targets)
-            loss = float(loss.to(torch.float32).detach().cpu().numpy())
+        targets = torch.where(
+            loss_mask == 0.0,
+            cross_entropy.cross_entropy_ignore_index,
+            targets,
+        )
+        loss = self.model.compute_loss(inputs, targets)
+        loss = float(loss.to(torch.float32).detach().cpu().numpy())
         return {"loss": loss}
 
     def num_parameters(self) -> int:
