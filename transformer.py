@@ -65,6 +65,9 @@ class TransformerConfig:
     char_embedding_norm_out: bool = False
     char_init_scale_out: float = 1.0
     apply_rotary_out: bool = False
+    spelling_bee_max_characters: int = 16
+    spelling_type: str = "full"  # one of "full", "dummy", "shuffled"
+    spelling_bee_rotary_base: int = 10000
 
     # initialization options
     zheren_init: bool = True
@@ -524,13 +527,15 @@ class TransformerModel(language_model_basics.LanguageModel):
                 num_tokens=vocab_size,
                 embedding_dim=self.dim,
                 vocab=vocab,
-                max_characters=16,
+                max_characters=config.spelling_bee_max_characters,
                 weight_dtype=emb_dtype,
                 separate_token_embedding=config.separate_token_embedding,
                 character_norm=config.char_embedding_norm,
                 char_init_scale=config.char_init_scale,
                 apply_rotary=config.apply_rotary,
                 scale=config.spelling_bee_in_out_scale,
+                spelling_type=config.spelling_type,
+                rotary_base=config.spelling_bee_rotary_base,
             )
         else:
             self.embedding = nn.Embedding(
@@ -578,13 +583,15 @@ class TransformerModel(language_model_basics.LanguageModel):
                 num_tokens=vocab_size,
                 embedding_dim=proj_input_dim,
                 vocab=vocab,
-                max_characters=16,
+                max_characters=config.spelling_bee_max_characters,
                 weight_dtype=self.params_dtype,
                 separate_token_embedding=False,
                 character_norm=config.char_embedding_norm_out,
                 char_init_scale=config.char_init_scale_out,
                 apply_rotary=config.apply_rotary_out,
                 scale=config.spelling_bee_out_scale,
+                spelling_type=config.spelling_type,
+                rotary_base=config.spelling_bee_rotary_base,
             )
         self.output_projection = nn.Linear(
             proj_input_dim,
@@ -596,10 +603,10 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        self._forward_opt = torch.compile(
-            self._forward, mode="max-autotune", fullgraph=True
-        )
-        # self._forward_opt = self._forward
+        # self._forward_opt = torch.compile(
+        #     self._forward, mode="max-autotune", fullgraph=True
+        # )
+        self._forward_opt = self._forward
 
         if config.zheren_init:
             self.init_weights()

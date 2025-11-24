@@ -12,6 +12,8 @@ Characters of each token are stored in the embedding module. We fix a limit of 3
 characters per token.
 """
 
+import random
+
 import torch
 import torch.nn as nn
 import torchtune
@@ -33,6 +35,8 @@ class SpellingBeeEmbedding(nn.Module):
         char_init_scale: float = 1.0,
         apply_rotary: bool = True,
         scale: float = 1.0,
+        spelling_type: str = "full",  # one of "full", "dummy", "shuffled"
+        rotary_base: int = 10000,
     ):
         super().__init__()
         self.num_tokens = num_tokens
@@ -40,11 +44,14 @@ class SpellingBeeEmbedding(nn.Module):
         self.max_characters_per_token = max_characters
         self.separate_token_embedding = separate_token_embedding
         vocab_bytes = [token.encode("utf-8") for token in vocab]
-        self.vocab_character_table = self._vocab_character_table(vocab_bytes)
         self.character_norm = character_norm
         self.char_init_scale = char_init_scale
         self.apply_rotary = apply_rotary
         self.scale = scale
+        self.spelling_type = spelling_type
+        self.rotary_base = rotary_base
+
+        self.vocab_character_table = self._vocab_character_table(vocab_bytes)
 
         if separate_token_embedding:
             self.token_embedding = nn.Embedding(
@@ -52,7 +59,7 @@ class SpellingBeeEmbedding(nn.Module):
             )
         self.character_embedding = nn.Embedding(256, embedding_dim, dtype=weight_dtype)
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
-            dim=embedding_dim, max_seq_len=max_characters
+            dim=embedding_dim, max_seq_len=max_characters, base=self.rotary_base
         )
         if character_norm:
             self.char_emb_norm = fp32norm.FP32LayerNorm(embedding_dim)
@@ -74,6 +81,15 @@ class SpellingBeeEmbedding(nn.Module):
 
     def _vocab_character_table(self, vocab_bytes: list[bytes]) -> torch.Tensor:
         """Compute the character table for the vocabulary."""
+        assert self.spelling_type in ["full", "dummy", "shuffled"]
+        if self.spelling_type == "dummy":
+            return torch.zeros(
+                (self.num_tokens, self.max_characters_per_token), dtype=torch.int32
+            )
+        if self.spelling_type == "shuffled":
+            # random permutation of the tokens
+            random.seed(4253217)
+            vocab_bytes = random.sample(vocab_bytes, len(vocab_bytes))
         character_table = torch.zeros(
             (self.num_tokens, self.max_characters_per_token), dtype=torch.int32
         )
@@ -115,7 +131,7 @@ class SpellingBeeEmbedding(nn.Module):
         )
         if self.apply_rotary:
             embeddings = self._apply_rotary(embeddings)
-        embeddings = embeddings.sum(dim=-2)
+        embeddings = embeddings.mean(dim=-2)
         if self.character_norm:
             embeddings = self.char_emb_norm(embeddings)
         if self.scale != 1.0:
