@@ -12,7 +12,7 @@ from language_model_dataloader import (
     default_tokenizer,
 )
 from language_model_basics import LMData, LanguageModelTrainingConfig
-import torch
+import pytest
 
 
 class DummyRawDataProvider(DataProvider[dict[str, Any]]):
@@ -61,6 +61,7 @@ class DummyTokenDataProvider(TokenizedDataLoader):
             yield {
                 "tokens": list(global_tokens[:4]),
                 "text_per_token": ["a", "b", "c", "d"],
+                "mask": [1.0, 1.0, 1.0, 1.0],
             }
             global_tokens = global_tokens[4:]
 
@@ -93,11 +94,7 @@ def test_batched_dataloader():
         6,
     ), f"Expected inputs shape (2, 6), got {data.inputs.shape}"
 
-    torch.testing.assert_close(
-        data.inputs,
-        torch.tensor([[0, 1, 2, 3, 4, 5], [8, 9, 10, 11, 12, 13]], dtype=torch.int32),
-        msg=f"Got wrong inputs: {data.inputs}",
-    )
+    assert data.inputs.tolist() == [[0, 1, 2, 3, 4, 5], [8, 9, 10, 11, 12, 13]]
 
     assert data.metadata["text_per_tokens"][0] == ["a", "b", "c", "d", "a", "b"]
     assert data.metadata["text_per_tokens"][1] == ["a", "b", "c", "d", "a", "b"]
@@ -108,13 +105,7 @@ def test_batched_dataloader():
     assert data.targets[0, 0] == 1
 
     data2 = next(datastream)
-    torch.testing.assert_close(
-        data2.inputs,
-        torch.tensor(
-            [[6, 7, 16, 17, 18, 19], [14, 15, 20, 21, 22, 23]], dtype=torch.int32
-        ),
-        msg=f"Got wrong inputs: {data2.inputs}",
-    )
+    assert data2.inputs.tolist() == [[6, 7, 16, 17, 18, 19], [14, 15, 20, 21, 22, 23]]
 
 
 def test_special_tokens_ok():
@@ -155,81 +146,140 @@ def test_special_tokens_ok():
     assert "".join(data["text_per_token"]) == text_to_tokenize
 
 
-def test_print_random_tokens():
-    """Test that prints 20 random tokens from the default tokenizer."""
-    import random
+# let's test data_to_input
+def test_data_to_input():
+    """Test the data_to_input function"""
 
-    tokenizer = default_tokenizer()
-    vocab_size = tokenizer.n_vocab
+    class DummyRawDataProvider(DataProvider[dict[str, Any]]):
+        """Dummy data provider for testing"""
 
-    print(f"\n{'='*60}")
-    print(f"Tokenizer vocabulary size: {vocab_size}")
-    print(f"{'='*60}")
+        def generate(self) -> Iterable[dict[str, Any]]:
+            """Generate dummy data"""
+            for _ in range(10):
+                yield {"text": " world", "input": "Hello"}
 
-    # Select 20 random token IDs
-    random.seed(42)  # For reproducibility
-    random_token_ids = random.sample(range(vocab_size), 20)
-    random_token_ids.sort()  # Sort for easier reading
+        def get_name(self) -> str:
+            return "DummyRawDataProvider"
 
-    print("\n20 Random Tokens:")
-    print(f"{'Token ID':<10} | {'Decoded Text'}")
-    print(f"{'-'*10}-+-{'-'*40}")
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=10,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+        ),
+    )
+    dataloader = TokenizedDataLoader(
+        config,
+        raw_data_loader=DummyRawDataProvider(),
+        tokenizer=default_tokenizer(),
+        data_to_text=lambda x: x["text"],
+        data_to_input=lambda x: x["input"],
+    )
+    data = next(iter(dataloader.generate()))
 
-    for token_id in random_token_ids:
-        try:
-            decoded = tokenizer.decode([token_id])
-            # Escape special characters for display
-            decoded_repr = repr(decoded)
-            print(f"{token_id:<10} | {decoded_repr}")
-        except Exception as e:
-            print(f"{token_id:<10} | ERROR: {e}")
-
-    print(f"{'='*60}\n")
-
-    # Force test to fail so output is visible
-    assert False, "Test intentionally fails to display token output"
+    assert isinstance(data, dict), f"Expected dict, got {type(data)}"
+    assert data["raw_text"] == "Hello world"
+    assert data["mask"] == [0.0, 1.0]
 
 
-def test_strawberry_tokenization():
-    """Test tokenization of different variations of 'strawberry'."""
-    tokenizer = default_tokenizer()
+# test loss mask split over multiple batches
+def test_loss_mask():
+    """Loss masks may be split over multiple batches."""
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=3,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=3, every_n_steps=1, steps=1
+        ),
+    )
 
-    test_strings = [
-        "strawberry",
-        " strawberry",
-        "Strawberry",
-        " Strawberry",
-        # "strawberry\n",
-        # "strawberry\n\n",
-        # "\nstrawberry",
-        ".strawberry",
-        ",strawberry",
-        "(strawberry)",
-        "(Strawberry)",
-        ",Strawberry",
-        ".Strawberry",
-        "strawberries",
-        "Strawberries",
-        " strawberries",
-        " Strawberries",
-        " (Strawberries",
+    class DummyRawDataProvider(DataProvider[dict[str, Any]]):
+        """Dummy data provider for testing"""
+
+        def generate(self) -> Iterable[dict[str, Any]]:
+            """Generate dummy data"""
+            for _ in range(10):
+                yield {
+                    "text": " o1 o2 o3 o4 o5 o6 o7 o8 o9 o10",
+                    "input": "i1 i2 i3 i4",
+                }
+
+        def get_name(self) -> str:
+            return "DummyRawDataProvider"
+
+    dataloader = BatchedDataLoader(
+        config.batch_size,
+        config.sequence_length,
+        TokenizedDataLoader(
+            config,
+            DummyRawDataProvider(),
+            default_tokenizer(),
+            lambda x: x["text"],
+            lambda x: x["input"],
+        ),
+        default_tokenizer(),
+    )
+    stream_of_batches = iter(dataloader.generate())
+    batch1 = next(stream_of_batches)
+    assert batch1.loss_mask.tolist() == [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+
+    batch2 = next(stream_of_batches)
+    assert batch2.loss_mask.tolist() == [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+
+    batch3 = next(stream_of_batches)
+    assert batch3.loss_mask.tolist() == [
+        [0.0, 1.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ]  # final token always masked
+
+    batch4 = next(stream_of_batches)
+    assert batch4.loss_mask.tolist() == [
+        [1.0, 1.0, 0.0],
+        [1.0, 1.0, 0.0],
     ]
 
-    print(f"\n{'='*70}")
-    print("Tokenization of 'strawberry' variations")
-    print(f"{'='*70}")
 
-    for text in test_strings:
-        tokens = tokenizer.encode(text)
-        decoded_tokens = [tokenizer.decode([t]) for t in tokens]
+@pytest.mark.parametrize(
+    "pad_to_multiple_of",
+    [
+        1,
+        3,
+        4,
+    ],
+)
+def test_pad_to_multiple_of(pad_to_multiple_of):
+    """Test the pad_to_multiple_of argument"""
+    config = LanguageModelTrainingConfig(
+        batch_size=2,
+        sequence_length=3,
+        training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
+        eval_config=EvalConfig(
+            batch_size=2, sequence_length=3, every_n_steps=1, steps=1
+        ),
+    )
 
-        print(f"\nText: {repr(text)}")
-        print(f"Token IDs: {tokens}")
-        print(f"Number of tokens: {len(tokens)}")
-        print(f"Decoded tokens: {[repr(t) for t in decoded_tokens]}")
-        print(f"Reconstructed: {repr(''.join(decoded_tokens))}")
+    class DummyRawDataProvider(DataProvider[dict[str, Any]]):
+        """Dummy data provider for testing"""
 
-    print(f"\n{'='*70}\n")
+        def generate(self) -> Iterable[dict[str, Any]]:
+            """Generate dummy data"""
+            for _ in range(10):
+                yield {"text": " o1 o2 o3 o4 o5 o6 o7 o8 o9 o10"}
 
-    # Force test to fail so output is visible
-    assert False, "Test intentionally fails to display tokenization output"
+        def get_name(self) -> str:
+            return "DummyRawDataProvider"
+
+    dataloader = TokenizedDataLoader(
+        config,
+        DummyRawDataProvider(),
+        default_tokenizer(),
+        lambda x: x["text"],
+        pad_to_multiple_of=pad_to_multiple_of,
+    )
+    data = next(iter(dataloader.generate()))
+    assert len(data["tokens"]) % pad_to_multiple_of == 0
+    assert len(data["mask"]) % pad_to_multiple_of == 0
+    assert len(data["text_per_token"]) % pad_to_multiple_of == 0
+    assert data["raw_text"] == " o1 o2 o3 o4 o5 o6 o7 o8 o9 o10"

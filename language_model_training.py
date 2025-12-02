@@ -27,6 +27,7 @@ import torch.optim as optim
 
 import stackv2_dataloader
 import slimpajama_dataloader
+import strawberry_dataloader
 import prng
 import language_model_basics
 import transformer
@@ -306,7 +307,16 @@ def train_language_model(
         eval_datasets = [
             slimpajama_dataloader.create_slimpajama_dataloader(
                 config, split="validation"
-            )
+            ),
+            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+                config, split="validation", count=1
+            ),
+            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+                config, split="validation", count=2
+            ),
+            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+                config, split="validation", count=3
+            ),
         ]
     else:
         raise ValueError(f"Unknown dataset {dataset}")

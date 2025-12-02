@@ -4,7 +4,7 @@ Data loader for JSONL files.
 
 import glob
 import json
-from typing import Any, Callable, Iterable, TypeVar
+from typing import Any, Callable, Iterable, TypeVar, Generic
 import time
 
 import numpy as np
@@ -59,31 +59,67 @@ class JSONLDataLoader(DataProvider[dict[str, Any]]):
         return f"JSONL dataset ({self.path=})"
 
 
-class TokenizedDataLoader(DataProvider[dict[str, Any]]):
+U = TypeVar("U")
+
+
+class TokenizedDataLoader(DataProvider[dict[str, Any]], Generic[U]):
     """Tokenizes text data on the fly and returns batches of token ids."""
 
     def __init__(
         self,
         config: LanguageModelTrainingConfig,
-        raw_data_loader: DataProvider[dict[str, Any]],
+        raw_data_loader: DataProvider[U],
         tokenizer: tiktoken.Encoding,
-        data_to_text: Callable[[dict[str, Any]], str],
+        data_to_text: Callable[[U], str],
+        data_to_input: Callable[[U], str] | None = None,
+        pad_to_multiple_of: int = 1,
     ):
+        """
+        Args:
+            config: Training configuration
+            raw_data_loader: Data loader returning raw data
+            tokenizer: Tokenizer
+            data_to_text: Function to extract text from raw data
+            data_to_input: Optional function to extract input from raw data.
+                "input", as opposed to "text" is masked out.
+            pad_to_multiple_of: Pad the number of tokens to a multiple of this number.
+                This helps with evaluations where the same information shouldn't be
+                repeated within the same batch.
+        """
         self.config = config
         self.raw_data_loader = raw_data_loader
         self.tokenizer = tokenizer
         self.data_to_text = data_to_text
+        self.data_to_input = data_to_input
+        self.pad_to_multiple_of = pad_to_multiple_of
+        self.pad_token = tokenizer.eot_token
 
     def generate(self) -> Iterable[dict[str, Any]]:
         """Create a fresh iterator."""
         for data in self.raw_data_loader.generate():
             text = self.data_to_text(data)
             tokens = self.tokenizer.encode(text, disallowed_special=())
+            mask = [1.0] * len(tokens)
+            if self.data_to_input is not None:
+                masked_input = self.data_to_input(data)
+                text = masked_input + text
+                masked_tokens = self.tokenizer.encode(
+                    masked_input, disallowed_special=()
+                )
+                tokens = masked_tokens + tokens
+                mask = [0.0] * len(masked_tokens) + mask
+            if self.pad_to_multiple_of > 1:
+                num_pad = (
+                    self.pad_to_multiple_of - len(tokens) % self.pad_to_multiple_of
+                ) % self.pad_to_multiple_of
+                tokens += [self.pad_token] * num_pad
+                mask += [0.0] * num_pad
             text_per_token = [self.tokenizer.decode([t]) for t in tokens]
             yield {
                 "tokens": tokens,
                 "raw_text": text,
                 "text_per_token": text_per_token,
+                "mask": mask,
             }
 
     def get_name(self) -> str:
@@ -139,11 +175,13 @@ class BatchedDataLoader(DataProvider[LMData]):
 
             for batch_idx, rest_data in enumerate(rest_data_per_batch):
                 tokens = []
+                mask = []
                 text_per_tokens = []
 
                 for data in continued_data_stream(rest_data):
                     free_space_in_batch_item = self.sequence_length - len(tokens)
                     tokens.extend(data["tokens"][:free_space_in_batch_item])
+                    mask.extend(data["mask"][:free_space_in_batch_item])
                     text_per_tokens.extend(
                         data["text_per_token"][:free_space_in_batch_item]
                     )
@@ -152,6 +190,7 @@ class BatchedDataLoader(DataProvider[LMData]):
                     if len(data["tokens"]) > free_space_in_batch_item:
                         rest_data = {
                             "tokens": data["tokens"][free_space_in_batch_item:],
+                            "mask": data["mask"][free_space_in_batch_item:],
                             "text_per_token": data["text_per_token"][
                                 free_space_in_batch_item:
                             ],
@@ -166,9 +205,10 @@ class BatchedDataLoader(DataProvider[LMData]):
                 ), f"got {len(tokens)}; expected {self.sequence_length} tokens."
                 assert len(text_per_tokens) == self.sequence_length
                 inputs[batch_idx] = tokens
-                target_tokens = tokens[1:] + [self.tokenizer.eot_token]
-                targets[batch_idx] = target_tokens
-                loss_mask[batch_idx, -1] = 0.0  # mask out the EOT token
+                # targets are the tokens shifted by one
+                targets[batch_idx] = tokens[1:] + [self.tokenizer.eot_token]
+                # shift the mask by one to lign up with targets, append a zero to also mask out the EOT token
+                loss_mask[batch_idx] = mask[1:] + [0.0]
                 metadata["text_per_tokens"].append(text_per_tokens)
 
             yield LMData(

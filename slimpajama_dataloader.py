@@ -32,7 +32,11 @@ def create_slimpajama_dataloader(
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
         config.batch_size if split == "train" else config.eval_config.batch_size,
-        config.sequence_length,
+        (
+            config.sequence_length
+            if split == "train"
+            else config.eval_config.sequence_length
+        ),
         tokenized_data_loader,
         tokenizer,
         name=f"SlimPajama_{split}",
