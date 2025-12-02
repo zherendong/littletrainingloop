@@ -16,11 +16,11 @@ Dataset 1: scaling_analysis/scaling_data_baseline.csv
 
 Dataset 2: scaling_analysis/scaling_data_v_baseline.csv
   Label: scaling_data_v_baseline
-  Number of data points: 8
-  PFLOPs range: 671.94 - 6154.89
-  Loss range: 3.2979 - 3.7759
+  Number of data points: 12
+  PFLOPs range: 671.94 - 29992.77
+  Loss range: 3.0283 - 3.7759
   Shifted Power Law (y = a * x^b + c):
-    a = 4.937262
-    b = -0.083105
+    a = 4.709265
+    b = -0.076794
     c = 0.885843 (shared)
 

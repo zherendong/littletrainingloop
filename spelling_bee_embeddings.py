@@ -13,6 +13,7 @@ characters per token.
 """
 
 import random
+import math
 
 import torch
 import torch.nn as nn
@@ -35,7 +36,7 @@ class SpellingBeeEmbedding(nn.Module):
         char_init_scale: float = 1.0,
         apply_rotary: bool = True,
         scale: float = 1.0,
-        spelling_type: str = "full",  # one of "full", "dummy", "shuffled"
+        spelling_type: str = "full",  # one of "full", "dummy", "shuffled", "double", "static_emb"
         rotary_base: int = 10000,
     ):
         super().__init__()
@@ -57,6 +58,15 @@ class SpellingBeeEmbedding(nn.Module):
             self.token_embedding = nn.Embedding(
                 num_tokens, embedding_dim, dtype=weight_dtype
             )
+        if self.spelling_type == "double":
+            self.token_embedding_2 = nn.Embedding(
+                num_tokens, embedding_dim, dtype=weight_dtype
+            )
+        if self.spelling_type == "static_emb":
+            # just a single embedding vector
+            self.aux_embedding = nn.Parameter(
+                torch.empty(1, embedding_dim, dtype=weight_dtype)
+            )
         self.character_embedding = nn.Embedding(256, embedding_dim, dtype=weight_dtype)
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
             dim=embedding_dim, max_seq_len=max_characters, base=self.rotary_base
@@ -76,13 +86,26 @@ class SpellingBeeEmbedding(nn.Module):
             self.character_embedding,
             scaling_factor=self.char_init_scale,  # / self.max_characters_per_token,
         )
+        if self.spelling_type == "double":
+            initialization.init_embedding(self.token_embedding_2, scaling_factor=1.0)
+        if self.spelling_type == "aux_embedding":
+            # manual initialization
+            with torch.no_grad():
+                self.aux_embedding.normal_(0, 1.0 / math.sqrt(self.embedding_dim))
         if self.character_norm:
             self.char_emb_norm.init_weights(init_val=1.0)
 
     def _vocab_character_table(self, vocab_bytes: list[bytes]) -> torch.Tensor:
         """Compute the character table for the vocabulary."""
-        assert self.spelling_type in ["full", "dummy", "shuffled"]
-        if self.spelling_type == "dummy":
+        assert self.spelling_type in [
+            "full",
+            "dummy",
+            "shuffled",
+            "double",
+            "static_emb",
+        ]
+        # raise ValueError(f"Unknown spelling type: {self.spelling_type}")
+        if self.spelling_type in ["dummy", "double"]:
             return torch.zeros(
                 (self.num_tokens, self.max_characters_per_token), dtype=torch.int32
             )
@@ -154,7 +177,12 @@ class SpellingBeeEmbedding(nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """input is a tensor of shape (batch_size, sequence_length) of token ids."""
-        embeddings = self.get_character_embeddings(input)
+        if self.spelling_type == "double":
+            embeddings = self.token_embedding_2(input)
+        elif self.spelling_type == "static_emb":
+            embeddings = self.aux_embedding
+        else:
+            embeddings = self.get_character_embeddings(input)
         if self.separate_token_embedding:
             token_embeddings = self.token_embedding(input)
             embeddings = 0.5 * embeddings + 0.5 * token_embeddings
