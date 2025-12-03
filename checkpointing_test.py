@@ -139,7 +139,10 @@ def test_save_and_load_checkpoint_with_optimizer_and_scheduler(tmp_path: Path) -
     new_optimizer.load_state_dict(loaded_optimizer_state)
     new_scheduler.load_state_dict(loaded_scheduler_state)
 
-    assert new_optimizer.state_dict()["state"].keys() == orig_optimizer_state["state"].keys()
+    assert (
+        new_optimizer.state_dict()["state"].keys()
+        == orig_optimizer_state["state"].keys()
+    )
     assert (
         new_scheduler.state_dict()["last_epoch"] == orig_scheduler_state["last_epoch"]
     )

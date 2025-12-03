@@ -46,13 +46,13 @@ logger = logging.getLogger(__name__)
 
 def save_checkpoint(
     model: language_model_basics.LanguageModel,
-    path: str | Path,
+    path: Path,
     metadata: dict[str, Any] | None = None,
     optimizer: torch.optim.Optimizer | None = None,
     scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
 ) -> None:
     """Save model checkpoint to disk.
-    
+
     Args:
         model: The language model to save
         path: Path to save checkpoint
@@ -60,28 +60,27 @@ def save_checkpoint(
         optimizer: Optional optimizer state to save
         scheduler: Optional scheduler state to save
     """
-    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     checkpoint = {
         "model_state_dict": model.state_dict(),
     }
-    
+
     if metadata is not None:
         checkpoint["metadata"] = metadata
-    
+
     if optimizer is not None:
         checkpoint["optimizer_state_dict"] = optimizer.state_dict()
-    
+
     if scheduler is not None:
         checkpoint["scheduler_state_dict"] = scheduler.state_dict()
-    
+
     torch.save(checkpoint, path)
     logger.info("Checkpoint saved to %s", path)
 
 
 def load_checkpoint(
-    path: str | Path,
+    path: Path,
     vocab_size: int,
     model_config: transformer.TransformerConfig,
     device: str | torch.device = "cuda",
@@ -118,7 +117,6 @@ def load_checkpoint(
         The caller is responsible for constructing the optimizer/scheduler objects
         and calling ``load_state_dict`` on them if needed.
     """
-    path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint not found at {path}")
 
@@ -148,7 +146,7 @@ def load_checkpoint(
 
 
 def load_model_from_training_checkpoint(
-    path: str | Path,
+    path: Path,
     device: str | torch.device = "cuda",
 ) -> dict[str, Any]:
     """Load a model from a training checkpoint saved with ``save_training_checkpoint``.
@@ -164,7 +162,6 @@ def load_model_from_training_checkpoint(
             - ``"optimizer_state_dict"``: Optimizer state dict.
             - ``"scheduler_state_dict"``: Scheduler state dict.
     """
-    path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint not found at {path}")
 
@@ -227,10 +224,10 @@ def save_training_checkpoint(
     config: language_model_basics.LanguageModelTrainingConfig,
     step: int,
     epoch: int,
-    path: str | Path,
+    path: Path,
 ) -> None:
     """Save a complete training checkpoint.
-    
+
     Args:
         model: The language model
         optimizer: The optimizer
