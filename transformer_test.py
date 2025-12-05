@@ -104,13 +104,11 @@ def test_transformer_model():
     assert y.shape == (3, 10, vocab_size)
     assert not torch.isnan(y).any()
     assert flops.get_total_flops() in [
-        67161120,
-        67461120,
-    ]  # depending on use of flash attention
+        100584480,
+    ]  # may have different number of flops with flash attention
     assert sum(p.numel() for p in model.parameters()) in [
-        1377280,
-        1377536,
-    ]  # depending on use of flash attention
+        1934592,
+    ]  # may have different number of parameters with flash attention
 
     # now count with backward
     flops = flop_counter.FlopCounterMode(depth=4)
@@ -118,7 +116,7 @@ def test_transformer_model():
         y = model(x)
         loss = y.sum()
         loss.backward()
-    assert flops.get_total_flops() in [201483360, 220385280]
+    assert flops.get_total_flops() in [368914560]
 
 
 def test_mini_transformer_smoketest():

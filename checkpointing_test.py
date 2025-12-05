@@ -49,7 +49,7 @@ def _make_training_config(model_config, vocab_size: int):
     )
 
 
-def test_save_and_load_checkpoint_basic(tmp_path: Path) -> None:
+def test_save_and_load_checkpoint_basic(tmp_path: Path):
     """Basic roundtrip for save_checkpoint/load_checkpoint."""
     vocab_size = 1000
     model, config = _create_model_and_config(vocab_size=vocab_size)
@@ -87,7 +87,7 @@ def test_save_and_load_checkpoint_basic(tmp_path: Path) -> None:
     logger.info("Basic checkpoint save/load test passed.")
 
 
-def test_save_and_load_checkpoint_with_optimizer_and_scheduler(tmp_path: Path) -> None:
+def test_save_and_load_checkpoint_with_optimizer_and_scheduler(tmp_path: Path):
     """Roundtrip including optimizer and scheduler state dicts."""
     vocab_size = 256
     model, config = _create_model_and_config(vocab_size=vocab_size)
@@ -150,7 +150,7 @@ def test_save_and_load_checkpoint_with_optimizer_and_scheduler(tmp_path: Path) -
     logger.info("Checkpoint with optimizer/scheduler state dicts roundtrip passed.")
 
 
-def test_save_and_load_training_checkpoint_roundtrip(tmp_path: Path) -> None:
+def test_save_and_load_training_checkpoint_roundtrip(tmp_path: Path):
     """Roundtrip for save_training_checkpoint/load_model_from_training_checkpoint."""
     vocab_size = 512
     model_config = _make_small_transformer_config()
@@ -207,7 +207,7 @@ def test_save_and_load_training_checkpoint_roundtrip(tmp_path: Path) -> None:
     logger.info("Training checkpoint roundtrip passed.")
 
 
-def test_load_model_from_training_checkpoint_requires_metadata(tmp_path: Path) -> None:
+def test_load_model_from_training_checkpoint_requires_metadata(tmp_path: Path):
     """load_model_from_training_checkpoint should require training metadata."""
     vocab_size = 64
     model, _ = _create_model_and_config(vocab_size=vocab_size)
@@ -223,7 +223,7 @@ def test_load_model_from_training_checkpoint_requires_metadata(tmp_path: Path) -
         )
 
 
-def test_load_checkpoint_requires_model_state_dict(tmp_path: Path) -> None:
+def test_load_checkpoint_requires_model_state_dict(tmp_path: Path):
     """load_checkpoint should fail if model_state_dict is missing."""
     checkpoint_path = tmp_path / "no_model_state.pt"
     torch.save({"metadata": {}}, checkpoint_path)
@@ -236,3 +236,91 @@ def test_load_checkpoint_requires_model_state_dict(tmp_path: Path) -> None:
             model_config=config,
             device=DEVICE,
         )
+
+
+def test_parameter_count_matches_after_load(tmp_path: Path):
+    """Check that the number of parameters matches after loading."""
+    vocab_size = 128
+    model, config = _create_model_and_config(vocab_size=vocab_size)
+
+    checkpoint_path = tmp_path / "param_count.pt"
+    checkpointing.save_training_checkpoint(
+        model=model,
+        optimizer=None,  # type: ignore
+        scheduler=None,
+        config=_make_training_config(config, vocab_size),
+        step=0,
+        epoch=0,
+        path=checkpoint_path,
+    )
+
+    loaded = checkpointing.load_checkpoint(
+        path=checkpoint_path,
+        vocab_size=vocab_size,
+        model_config=config,
+        device=DEVICE,
+    )
+
+    assert (
+        sum(p.numel() for p in loaded["model"].parameters()) == model.num_parameters()
+    )
+
+
+def test_load_checkpoint_with_vocab_size_in_metadata(tmp_path: Path):
+    """load_checkpoint should prefer vocab_size in metadata."""
+    vocab_size = 73
+    model, config = _create_model_and_config(vocab_size=vocab_size)
+
+    checkpoint_path = tmp_path / "vocab_size_in_metadata.pt"
+    checkpointing.save_training_checkpoint(
+        model=model,
+        optimizer=None,  # type: ignore
+        scheduler=None,
+        config=_make_training_config(config, vocab_size),
+        step=0,
+        epoch=0,
+        path=checkpoint_path,
+    )
+
+    loaded = checkpointing.load_checkpoint(
+        path=checkpoint_path,
+        vocab_size=vocab_size,  # explicitly given
+        model_config=config,
+        device=DEVICE,
+    )
+
+    assert loaded["model"].vocab_size == vocab_size
+
+
+def test_logits_shape_correct_after_load(tmp_path: Path):
+    """Check that the logits shape is correct after loading."""
+    vocab_size = 173
+    model, config = _create_model_and_config(vocab_size=vocab_size)
+
+    logits = model(torch.randint(0, vocab_size, (2, 8), device=DEVICE))
+    assert logits.shape == (2, 8, vocab_size)
+    logits = model.forward(torch.randint(0, vocab_size, (2, 8), device=DEVICE))
+    assert logits.shape == (2, 8, vocab_size)
+
+    checkpoint_path = tmp_path / "logits_shape.pt"
+    checkpointing.save_training_checkpoint(
+        model=model,
+        optimizer=None,  # type: ignore
+        scheduler=None,
+        config=_make_training_config(config, vocab_size),
+        step=0,
+        epoch=0,
+        path=checkpoint_path,
+    )
+
+    loaded = checkpointing.load_checkpoint(
+        path=checkpoint_path,
+        vocab_size=vocab_size,
+        model_config=config,
+        device=DEVICE,
+    )
+
+    model = loaded["model"]
+    input_ids = torch.randint(0, vocab_size, (2, 8), device=DEVICE)
+    logits = model(input_ids)
+    assert logits.shape == (2, 8, vocab_size)

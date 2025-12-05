@@ -30,6 +30,7 @@ class TransformerConfig:
     mlp_inner_size: int = 512
     embedding_size: int = 128
     use_flash_attention: bool = True
+    max_seq_len: int = 8192
 
     # classic architectural options
     gqa: bool = True
@@ -362,6 +363,7 @@ class SelfAttention(nn.Module):
         head_dim: int,
         use_flash_attention: bool,
         dtype: torch.dtype,
+        max_seq_len: int,
         head_dim_v: int | None = None,
         skinny_queries: bool = False,
         skinny_scaled_init: bool = False,
@@ -373,6 +375,8 @@ class SelfAttention(nn.Module):
         self.head_dim = head_dim
         self.head_dim_v = head_dim_v or head_dim
         self.q_per_kv = num_heads_q // num_heads_kv
+
+        self.max_seq_len = max_seq_len
 
         assert (
             self.q_per_kv * num_heads_kv == num_heads_q
@@ -409,7 +413,7 @@ class SelfAttention(nn.Module):
         )
 
         self.rotary_emb = torchtune.modules.RotaryPositionalEmbeddings(
-            dim=head_dim, max_seq_len=8192
+            dim=head_dim, max_seq_len=self.max_seq_len
         )
 
     def init_weights(self):
@@ -479,6 +483,7 @@ class TransformerBlock(nn.Module):
             head_dim=config.head_dim,
             use_flash_attention=config.use_flash_attention,
             dtype=params_dtype,
+            max_seq_len=config.max_seq_len,
             skinny_queries=config.skinny_queries,
             skinny_scaled_init=config.skinny_scaled_init,
         )
@@ -603,10 +608,10 @@ class TransformerModel(language_model_basics.LanguageModel):
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
         )
 
-        # self._forward_opt = torch.compile(
-        #     self._forward, mode="max-autotune", fullgraph=True
-        # )
-        self._forward_opt = self._forward
+        self._forward_opt = torch.compile(
+            self._forward, mode="max-autotune", fullgraph=True
+        )
+        # self._forward_opt = self._forward
 
         if config.zheren_init:
             self.init_weights()
