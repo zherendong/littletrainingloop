@@ -5,10 +5,9 @@ This module provides a bridge between littletrainingloop's TransformerModel
 and the lm-evaluation-harness framework for standardized model evaluation.
 """
 
-import logging
 from pathlib import Path
 import torch
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from lm_eval.api.model import LM
 from lm_eval.api.registry import register_model
@@ -16,10 +15,11 @@ from lm_eval.api.registry import register_model
 import checkpointing
 import language_model_dataloader
 import lm_eval
+import language_model_basics
 
 
 @register_model("littletrainingloop")
-class LittleTrainingLoopLM(LM):
+class LittleTrainingLoopWrapper(LM):
     """
     Wrapper class for littletrainingloop models to work with lm-evaluation-harness.
 
@@ -34,7 +34,8 @@ class LittleTrainingLoopLM(LM):
 
     def __init__(
         self,
-        checkpoint_path: Path,
+        model: language_model_basics.LanguageModel,
+        config: language_model_basics.LanguageModelTrainingConfig,
         device: str = "cuda",
         batch_size: int = 1,
         generate_until_max_length: int | None = None,
@@ -51,31 +52,16 @@ class LittleTrainingLoopLM(LM):
         """
         super().__init__()
 
-        self.checkpoint_path = checkpoint_path
+        self.model = model
+        self.config = config
         self.device = device
         self.batch_size = batch_size
         self.generate_until_max_length = generate_until_max_length or 256
+        self.vocab_size = config.vocab_size
 
         # Load tokenizer using the same default used for training
         # This keeps tokenization centralized in language_model_dataloader.default_tokenizer()
         self.tokenizer = language_model_dataloader.default_tokenizer()
-
-        # Load model and metadata from a training checkpoint. This centralizes
-        # how we interpret checkpoint metadata.
-        checkpoint_result = checkpointing.load_model_from_training_checkpoint(
-            checkpoint_path, device=device
-        )
-        self.model = checkpoint_result["model"]
-        self.max_length = self.model.config.max_seq_len
-        checkpoint_metadata = checkpoint_result.get("metadata", {})
-
-        # Get vocab_size from metadata if available, otherwise infer from model weights
-        if "vocab_size" in checkpoint_metadata:
-            self.vocab_size = checkpoint_metadata["vocab_size"]
-        else:
-            # Infer from embedding weight shape
-            embedding_weight = self.model.state_dict()["embedding.weight"]
-            self.vocab_size = embedding_weight.shape[0]
 
         # Ensure tokenizer and model vocabularies are aligned
         if self.tokenizer.n_vocab > self.vocab_size:
@@ -204,8 +190,8 @@ class LittleTrainingLoopLM(LM):
 
             # If sequence is longer than the model context window, keep the
             # most recent tokens so that [EOT] + tokens fits into max_length.
-            if len(token_ids) + 1 > self.max_length:
-                token_ids = token_ids[-(self.max_length - 1) :]
+            if len(token_ids) + 1 > self.config.sequence_length:
+                token_ids = token_ids[-(self.config.sequence_length - 1) :]
 
             # Use a single EOT token as prefix context and compute logprobs
             # for the entire sequence in one shot.
@@ -362,6 +348,59 @@ class LittleTrainingLoopLM(LM):
         return results
 
 
+def evaluate_model(
+    model: language_model_basics.LanguageModel,
+    config: language_model_basics.LanguageModelTrainingConfig,
+    tasks: list[str],
+    limit: int | None = None,
+    device: str = "cuda",
+    generate_until_max_length: int | None = None,
+):
+    """Convenience helper to run lm-eval at the end of training.
+
+    This is intended for programmatic use inside a training script, e.g.:
+
+        results = evaluate_model(
+            model=model,
+            config=config,
+            tasks=["hellaswag", "arc_easy"],
+        )
+
+    Args:
+        model: The model to evaluate.
+        config: The training config.
+        tasks: List of lm-eval task names.
+        limit: Optional sample limit per task for quicker smoke tests.
+        device: Device to run evaluation on.
+        generate_until_max_length: Maximum length to generate until
+
+    Returns:
+        The dictionary returned by ``lm_eval.simple_evaluate``.
+    """
+    wrapper = LittleTrainingLoopWrapper(
+        model=model,
+        config=config,
+        device=device,
+        batch_size=1,
+        generate_until_max_length=generate_until_max_length,
+    )
+
+    print("[lm_eval_wrapper] Starting simple_evaluate()", flush=True)
+    # documentation:
+    # https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/evaluator.py
+    results = lm_eval.simple_evaluate(  # type: ignore
+        model=wrapper,
+        tasks=tasks,
+        # num_fewshot=0,  # what is this?
+        limit=limit,
+        device=wrapper.device,
+        max_batch_size=wrapper.batch_size,
+        cache_requests=True,
+    )
+    print("[lm_eval_wrapper] simple_evaluate() returned", flush=True)
+    return results
+
+
 def evaluate_checkpoint(
     checkpoint_path: Path,
     tasks: list[str],
@@ -390,23 +429,16 @@ def evaluate_checkpoint(
     Returns:
         The dictionary returned by ``lm_eval.simple_evaluate``.
     """
-    wrapper = LittleTrainingLoopLM(
-        checkpoint_path=checkpoint_path,
+    checkpoint = checkpointing.load_model_from_training_checkpoint(
+        checkpoint_path, device=device
+    )
+
+    results = evaluate_model(
+        model=checkpoint.model,
+        config=checkpoint.config,
+        tasks=tasks,
+        limit=limit,
         device=device,
         generate_until_max_length=generate_until_max_length,
     )
-
-    print("[lm_eval_wrapper] Starting simple_evaluate()", flush=True)
-    # documentation:
-    # https://github.com/EleutherAI/lm-evaluation-harness/blob/main/lm_eval/evaluator.py
-    results = lm_eval.simple_evaluate(
-        model=wrapper,
-        tasks=tasks,
-        # num_fewshot=0,  # what is this?
-        limit=limit,
-        device=wrapper.device,
-        max_batch_size=wrapper.batch_size,
-        cache_requests=True,
-    )
-    print("[lm_eval_wrapper] simple_evaluate() returned", flush=True)
     return results

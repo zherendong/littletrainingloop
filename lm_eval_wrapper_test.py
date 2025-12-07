@@ -6,71 +6,53 @@ and produces expected outputs for the three core methods.
 """
 
 import math
-import torch
-import tempfile
-from pathlib import Path
 
-import dataclasses
 import pytest
 
 import transformer
-import checkpointing
 import language_model_basics
 import tiktoken
 import lm_eval_wrapper
+import torch
+
+if not torch.cuda.is_available():
+    pytest.skip("CUDA is required for lm_eval_wrapper tests", allow_module_level=True)
+
+torch.set_default_device("cuda")
 
 
-def create_test_checkpoint():
-    """Create a small test checkpoint for testing."""
-
+def create_test_model() -> tuple[
+    language_model_basics.LanguageModel,
+    language_model_basics.LanguageModelTrainingConfig,
+]:
+    """Create a small test model for testing."""
     tokenizer = tiktoken.get_encoding("cl100k_base")
     vocab_size = tokenizer.n_vocab  # 100277
-    assert vocab_size == 100277
 
     config = transformer.TransformerConfig(
         num_layers=2,
         num_heads=2,
         embedding_size=64,
         mlp_inner_size=256,
-        zheren_init=False,  # Disable custom init for faster testing
     )
 
     model = transformer.TransformerModel(vocab_size, config)
-
-    # Create a temporary checkpoint
-    tmpdir = tempfile.mkdtemp()
-    checkpoint_path = Path(tmpdir) / "test_model.pt"
 
     training_config = language_model_basics.LanguageModelTrainingConfig(
         vocab_size=vocab_size,
         model_config=config,
     )
 
-    # Save with metadata mirroring a training checkpoint
-    metadata = {
-        "config": dataclasses.asdict(training_config),
-        "vocab_size": vocab_size,
-        "step": 0,
-        "epoch": 0,
-    }
-
-    checkpointing.save_checkpoint(
-        model=model,
-        path=checkpoint_path,
-        metadata=metadata,
-    )
-
-    return checkpoint_path, vocab_size, config
+    return model, training_config
 
 
 @pytest.fixture(scope="module")
 def wrapper():
     """Fixture that provides an initialized LittleTrainingLoopLM wrapper."""
-    checkpoint_path, vocab_size, config = create_test_checkpoint()
-
-    return lm_eval_wrapper.LittleTrainingLoopLM(
-        checkpoint_path=checkpoint_path,
-        device="cuda" if torch.cuda.is_available() else "cpu",
+    model, config = create_test_model()
+    return lm_eval_wrapper.LittleTrainingLoopWrapper(
+        model=model,
+        config=config,
         generate_until_max_length=10,
     )
 
@@ -79,7 +61,7 @@ def test_wrapper_initialization(wrapper):
     """Test that we can initialize the wrapper."""
     # Basic sanity checks
     assert wrapper.vocab_size > 0
-    assert wrapper.max_length > 0
+    assert wrapper.generate_until_max_length > 0
     assert wrapper.eot_token_id >= 0
 
 
@@ -101,7 +83,6 @@ def test_tokenization(wrapper):
 def test_loglikelihood(wrapper):
     """Test loglikelihood method returns well-formed outputs."""
 
-    # Create a mock request object
     class MockRequest:
         def __init__(self, context, continuation):
             self.args = (context, continuation)
@@ -174,11 +155,12 @@ def test_generate_until(wrapper):
         assert isinstance(generated, str)
 
 
-def test_evaluate_checkpoint():
-    """Test the evaluate_checkpoint function."""
-    checkpoint_path, _vocab_size, _config = create_test_checkpoint()
-    results = lm_eval_wrapper.evaluate_checkpoint(
-        checkpoint_path,
+def test_evaluate():
+    """Test the evaluate_model function."""
+    model, config = create_test_model()
+    results = lm_eval_wrapper.evaluate_model(
+        model=model,
+        config=config,
         tasks=["hellaswag"],
         limit=1,
         generate_until_max_length=3,

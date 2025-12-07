@@ -175,34 +175,31 @@ def test_save_and_load_training_checkpoint_roundtrip(tmp_path: Path):
         path=checkpoint_path,
     )
 
-    loaded = checkpointing.load_model_from_training_checkpoint(
+    ckpt = checkpointing.load_model_from_training_checkpoint(
         path=checkpoint_path,
         device=DEVICE,
     )
 
-    loaded_model = loaded["model"]
-    metadata = loaded["metadata"]
-
-    assert isinstance(loaded_model, transformer.TransformerModel)
-    assert loaded_model.vocab_size == vocab_size
+    assert isinstance(ckpt.model, transformer.TransformerModel)
+    assert ckpt.model.vocab_size == vocab_size
 
     # metadata should contain the training config and basic fields
-    assert metadata["step"] == 42
-    assert metadata["epoch"] == 3
-    assert metadata["config"]["name"] == training_config.name
-    assert metadata["config"]["vocab_size"] == training_config.vocab_size
+    assert ckpt.metadata["step"] == 42
+    assert ckpt.metadata["epoch"] == 3
+    assert ckpt.metadata["config"]["name"] == training_config.name
+    assert ckpt.metadata["config"]["vocab_size"] == training_config.vocab_size
 
     # model_config roundtrip via metadata
     loaded_model_config = transformer.TransformerConfig(
-        **metadata["config"]["model_config"]
+        **ckpt.metadata["config"]["model_config"]
     )
     assert loaded_model_config == model_config
 
-    for p_loaded, p_orig in zip(loaded_model.parameters(), model.parameters()):
+    for p_loaded, p_orig in zip(ckpt.model.parameters(), model.parameters()):
         assert torch.allclose(p_loaded, p_orig, rtol=1e-5, atol=1e-8)
 
-    assert "optimizer_state_dict" in loaded
-    assert "scheduler_state_dict" in loaded
+    assert ckpt.optimizer_state_dict is not None
+    assert ckpt.scheduler_state_dict is not None
 
     logger.info("Training checkpoint roundtrip passed.")
 

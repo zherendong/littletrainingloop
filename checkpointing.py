@@ -124,11 +124,9 @@ def load_checkpoint(
     if "model_state_dict" not in checkpoint:
         raise KeyError("Checkpoint is missing 'model_state_dict'.")
 
-    # Create model and load state
     model = transformer.TransformerModel(vocab_size, model_config)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
-    model.eval()
 
     result = {"model": model}
 
@@ -145,22 +143,31 @@ def load_checkpoint(
     return result
 
 
+@dataclasses.dataclass
+class TrainingCheckpoint:
+    model: language_model_basics.LanguageModel
+    config: language_model_basics.LanguageModelTrainingConfig
+    metadata: dict[str, Any]
+    optimizer_state_dict: dict[str, Any] | None
+    scheduler_state_dict: dict[str, Any] | None
+
+
 def load_model_from_training_checkpoint(
     path: Path,
     device: str | torch.device = "cuda",
-) -> dict[str, Any]:
+) -> TrainingCheckpoint:
     """Load a model from a training checkpoint saved with ``save_training_checkpoint``.
 
     This helper infers the ``vocab_size`` and :class:`TransformerConfig` from the
     checkpoint metadata, so callers only need to provide the checkpoint path.
 
     Returns:
-        A dictionary containing at least:
-            - ``"model"``: Loaded :class:`TransformerModel`.
-            - ``"metadata"``: Original metadata dict from the checkpoint.
-        If present in the checkpoint, the following keys are also included:
-            - ``"optimizer_state_dict"``: Optimizer state dict.
-            - ``"scheduler_state_dict"``: Scheduler state dict.
+        TrainingCheckpoint:
+            model: Loaded :class:`TransformerModel`.
+            config: Loaded :class:`LanguageModelTrainingConfig`.
+            metadata: Original metadata dict from the checkpoint.
+            optimizer_state_dict: Optimizer state dict (if available).
+            scheduler_state_dict: Scheduler state dict (if available).
     """
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint not found at {path}")
@@ -168,7 +175,6 @@ def load_model_from_training_checkpoint(
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     if "model_state_dict" not in checkpoint:
         raise KeyError("Training checkpoint is missing 'model_state_dict'.")
-
     if "metadata" not in checkpoint or "config" not in checkpoint["metadata"]:
         raise ValueError(
             "Checkpoint must contain config metadata. "
@@ -177,44 +183,25 @@ def load_model_from_training_checkpoint(
 
     metadata = checkpoint["metadata"]
     config_data = metadata["config"]
+    config = language_model_basics.LanguageModelTrainingConfig(**config_data)
+    config = dataclasses.replace(
+        config, model_config=transformer.TransformerConfig(**config.model_config)
+    )
 
-    # config_data comes from dataclasses.asdict(LanguageModelTrainingConfig)
-    # and contains a nested 'model_config' field.
-    if not isinstance(config_data, dict):
-        raise TypeError("Expected config metadata to be a dict.")
-
-    if "model_config" not in config_data:
-        raise KeyError("Expected 'model_config' in training config metadata.")
-
-    model_config_data = config_data["model_config"]
-    if isinstance(model_config_data, dict):
-        model_config = transformer.TransformerConfig(**model_config_data)
-    else:
-        model_config = model_config_data
-
-    # Prefer vocab_size from the stored training config; fall back to inferring
-    # from the embedding shape if necessary.
-    if "vocab_size" in config_data:
-        vocab_size = config_data["vocab_size"]
-    else:
-        embedding_weight = checkpoint["model_state_dict"]["embedding.weight"]
-        vocab_size = embedding_weight.shape[0]
-
-    model = transformer.TransformerModel(vocab_size, model_config)
+    model = transformer.TransformerModel(config.vocab_size, config.model_config)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
-    model.eval()
 
-    result: dict[str, Any] = {"model": model, "metadata": metadata}
-
-    if "optimizer_state_dict" in checkpoint:
-        result["optimizer_state_dict"] = checkpoint["optimizer_state_dict"]
-
-    if "scheduler_state_dict" in checkpoint:
-        result["scheduler_state_dict"] = checkpoint["scheduler_state_dict"]
+    ckpt = TrainingCheckpoint(
+        model=model,
+        config=config,
+        metadata=metadata,
+        optimizer_state_dict=checkpoint.get("optimizer_state_dict", None),
+        scheduler_state_dict=checkpoint.get("scheduler_state_dict", None),
+    )
 
     logger.info("Training checkpoint loaded from %s", path)
-    return result
+    return ckpt
 
 
 def save_training_checkpoint(
