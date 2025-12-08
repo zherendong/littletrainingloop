@@ -730,9 +730,8 @@ class TransformerModel(language_model_basics.LanguageModel):
     def num_non_embedding_parameters(self):
         return self.num_parameters() - self.num_embedding_parameters()
 
-    @torch.inference_mode()
     def get_logits(self, input_ids: torch.Tensor) -> torch.Tensor:
-        """Get logits for input tokens (inference mode).
+        """Get logits for input tokens.
 
         Args:
             input_ids: Token IDs of shape [batch_size, seq_len]
@@ -742,7 +741,6 @@ class TransformerModel(language_model_basics.LanguageModel):
         """
         return self.forward(input_ids)
 
-    @torch.inference_mode()
     def compute_token_logprobs(
         self, input_ids: torch.Tensor, target_ids: torch.Tensor
     ) -> torch.Tensor:
@@ -788,7 +786,6 @@ class TransformerModel(language_model_basics.LanguageModel):
 
         return token_logprobs
 
-    @torch.inference_mode()
     def is_greedy_generation(
         self, input_ids: torch.Tensor, continuation_ids: torch.Tensor
     ) -> torch.Tensor:
