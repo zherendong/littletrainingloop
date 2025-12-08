@@ -766,13 +766,19 @@ class TransformerModel(language_model_basics.LanguageModel):
         # Concatenate context and targets
         full_input = torch.cat([input_ids, target_ids], dim=1)
 
-        # Get logits
-        logits = self.forward(full_input)  # [batch, seq_len, vocab]
+        # Get embeddings for all positions (needed for causal attention)
+        # but only project to vocab space for the positions we need.
+        # This saves memory: [batch, seq_len, embed_dim] is much smaller than
+        # [batch, seq_len, vocab_size].
+        embeddings = self._forward_opt(full_input)  # [batch, seq_len, embed_dim]
 
-        # Extract logits for positions where we predict target tokens
-        # We want logits at positions [context_len-1 : context_len+target_len-1]
+        # Extract embeddings for positions where we predict target tokens
+        # We want positions [context_len-1 : context_len+target_len-1]
         target_len = target_ids.shape[1]
-        prediction_logits = logits[:, context_len - 1 : context_len + target_len - 1, :]
+        prediction_embeddings = embeddings[:, context_len - 1 : context_len + target_len - 1, :]
+
+        # Project only the needed positions to vocab space
+        prediction_logits = self.output_projection(prediction_embeddings)
 
         # Compute log probabilities
         log_probs = torch.nn.functional.log_softmax(prediction_logits, dim=-1)
@@ -811,12 +817,16 @@ class TransformerModel(language_model_basics.LanguageModel):
         # Concatenate context and continuation
         full_input = torch.cat([input_ids, continuation_ids], dim=1)
 
-        # Get logits
-        logits = self.forward(full_input)
+        # Get embeddings for all positions (needed for causal attention)
+        # but only project to vocab space for the positions we need.
+        embeddings = self._forward_opt(full_input)  # [batch, seq_len, embed_dim]
 
-        # Extract logits for positions where we predict continuation tokens
+        # Extract embeddings for positions where we predict continuation tokens
         cont_len = continuation_ids.shape[1]
-        prediction_logits = logits[:, context_len - 1 : context_len + cont_len - 1, :]
+        prediction_embeddings = embeddings[:, context_len - 1 : context_len + cont_len - 1, :]
+
+        # Project only the needed positions to vocab space
+        prediction_logits = self.output_projection(prediction_embeddings)
 
         # Get greedy predictions
         greedy_tokens = prediction_logits.argmax(dim=-1)
