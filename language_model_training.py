@@ -2,6 +2,14 @@
 Language model training.
 """
 
+# Block TensorFlow from being imported (it's installed system-wide and causes
+# CUDA factory registration warnings that conflict with PyTorch)
+import sys
+
+sys.modules["tensorflow"] = None
+
+from collections import defaultdict
+from typing import Iterable
 import argparse
 import dataclasses
 import os
@@ -18,7 +26,6 @@ from training_basics import (
 from language_model_basics import (
     LMData,
     LanguageModelTrainingConfig,
-    EvalConfig,
 )
 from training_loop import train
 import torch
@@ -33,6 +40,9 @@ import language_model_basics
 import transformer
 import model_configs.chinchilla  # noqa: F401
 import cross_entropy
+import lm_eval_wrapper
+import aggregation
+
 
 # import bf16_fused_adam
 import optimi  # for 16-bit optimizers
@@ -41,6 +51,12 @@ import optimi  # for 16-bit optimizers
 os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
 os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
 os.environ["TORCHINDUCTOR_AUTOGRAD_CACHE"] = "1"
+
+# Needed for humaneval
+os.environ["HF_ALLOW_CODE_EVAL"] = "1"
+
+# Silence tensorflow warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 torch.set_float32_matmul_precision("high")  # enable use TF32 to enable tensor cores
 
@@ -132,7 +148,9 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         self.config = config
 
         with prng.PRNG(config.seed + 345345):
-            # self.optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate)
+            assert (
+                config.learning_rate is not None
+            ), "Learning rate auto-selection hasn't been applied."
             # https://optimi.benjaminwarner.dev/kahan_summation/
             self.optimizer = optimi.AdamW(
                 model.parameters(),
@@ -223,7 +241,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         }
 
     @torch.no_grad()
-    def eval(self, data: LMData) -> Metrics:
+    def _eval(self, data: LMData) -> Metrics:
         inputs = torch.tensor(data.inputs, dtype=torch.int32)
         targets = torch.tensor(data.targets, dtype=torch.long)
         loss_mask = torch.tensor(data.loss_mask, dtype=torch.float32)
@@ -239,6 +257,63 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         loss = self.model.compute_loss(inputs, targets)
         loss = float(loss.to(torch.float32).detach().cpu().numpy())
         return {"loss": loss}
+
+    def validation_loss(
+        self,
+        eval_data: Iterable[LMData],
+        eval_steps: int,
+    ) -> Metrics:
+        """Compute validation loss on the entire dataset."""
+        metric_aggregators = defaultdict(aggregation.ExactMetricsAggregator)
+        for idx, data in enumerate(eval_data):
+            if idx > eval_steps:
+                break
+            step_metrics = self._eval(data)
+            for name, value in step_metrics.items():
+                metric_aggregators[name].observe(value)
+        return {
+            name: aggregator.mean() for name, aggregator in metric_aggregators.items()
+        }
+
+    def evaluate(self) -> Metrics:
+        """Run the lm-eval harness on the model."""
+        eval_start_time = time.time()
+        tasks = [
+            "hellaswag",
+            "arc_easy",
+            # "humaneval",
+        ]
+        task_keys = [
+            "acc_norm,none",
+            "acc_norm,none",
+            # "pass@1,create_test",
+        ]
+        task_key_names = [
+            "accuracy",
+            "accuracy",
+            # "pass@1",
+        ]
+        print("Evaluating model...")
+        result_dict = lm_eval_wrapper.evaluate_model(
+            model=self.model,
+            config=self.config,
+            tasks=tasks,
+            limit=1000,
+            # generate_until_max_length=100,
+        )
+        assert isinstance(result_dict, dict)
+        results = {}
+        for task, key, name in zip(tasks, task_keys, task_key_names):
+            # result_dict["results"]["hellaswag"]["acc_norm,none"]
+            try:
+                results[f"{task}/{name}"] = result_dict["results"][task][key]
+            except KeyError as e:
+                print(f"Could not find accuracy for {task}. Error: {e}. Skipping")
+                print(f"{result_dict['results'][task]=}")
+        eval_time = time.time() - eval_start_time
+        results["eval_time"] = eval_time
+        print(f"Eval time: {eval_time:.2f} seconds")
+        return results
 
     def num_parameters(self) -> int:
         return self.model.num_parameters()
@@ -309,13 +384,22 @@ def train_language_model(
                 config, split="validation"
             ),
             strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
-                config, split="validation", count=1
+                config,
+                split="validation",
+                count=1,
+                prefetch=2,
             ),
             strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
-                config, split="validation", count=2
+                config,
+                split="validation",
+                count=2,
+                prefetch=2,
             ),
             strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
-                config, split="validation", count=3
+                config,
+                split="validation",
+                count=3,
+                prefetch=2,
             ),
         ]
     else:

@@ -6,6 +6,7 @@ and produces expected outputs for the three core methods.
 """
 
 import math
+import os
 
 import pytest
 
@@ -19,6 +20,7 @@ if not torch.cuda.is_available():
     pytest.skip("CUDA is required for lm_eval_wrapper tests", allow_module_level=True)
 
 torch.set_default_device("cuda")
+os.environ["HF_ALLOW_CODE_EVAL"] = "1"
 
 
 def create_test_model() -> tuple[
@@ -53,6 +55,7 @@ def wrapper():
     return lm_eval_wrapper.LittleTrainingLoopWrapper(
         model=model,
         config=config,
+        batch_size=4,
         generate_until_max_length=10,
     )
 
@@ -161,8 +164,12 @@ def test_evaluate():
     results = lm_eval_wrapper.evaluate_model(
         model=model,
         config=config,
-        tasks=["hellaswag"],
-        limit=1,
+        tasks=["humaneval", "hellaswag", "arc_easy"],
+        limit=100,
         generate_until_max_length=3,
     )
     assert isinstance(results, dict)
+    # print(results["results"]["humaneval"])
+    # print(results["results"]["hellaswag"])
+    # print(results["results"]["arc_easy"])
+    # assert False

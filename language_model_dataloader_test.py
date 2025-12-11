@@ -34,7 +34,11 @@ def test_tokenized_dataloader():
         sequence_length=10,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=10,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -76,7 +80,11 @@ def test_batched_dataloader():
         sequence_length=6,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=6, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=6,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = BatchedDataLoader(
@@ -130,7 +138,11 @@ def test_special_tokens_ok():
         sequence_length=10,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=10,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -166,7 +178,11 @@ def test_data_to_input():
         sequence_length=10,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=10, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=10,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -191,7 +207,11 @@ def test_loss_mask():
         sequence_length=3,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=3, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=3,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
 
@@ -256,7 +276,11 @@ def test_pad_to_multiple_of(pad_to_multiple_of):
         sequence_length=3,
         training_config=TrainingConfig(num_epochs=1, training_steps_per_epoch=1),
         eval_config=EvalConfig(
-            batch_size=2, sequence_length=3, every_n_steps=1, steps=1
+            batch_size=2,
+            sequence_length=3,
+            every_n_steps=1,
+            steps=1,
+            full_eval_every_n_steps=2000,
         ),
     )
 

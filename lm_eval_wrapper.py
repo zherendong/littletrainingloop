@@ -63,6 +63,17 @@ class LittleTrainingLoopWrapper(LM):
         # This keeps tokenization centralized in language_model_dataloader.default_tokenizer()
         self.tokenizer = language_model_dataloader.default_tokenizer()
 
+        def is_illegal_token(token: int) -> bool:
+            try:
+                self.tokenizer.decode([token])
+                return False
+            except KeyError:
+                return True
+
+        self.illegal_tokens = set(
+            filter(is_illegal_token, range(self.tokenizer.n_vocab))
+        )
+
         # Ensure tokenizer and model vocabularies are aligned
         if self.tokenizer.n_vocab > self.vocab_size:
             raise ValueError(
@@ -104,7 +115,17 @@ class LittleTrainingLoopWrapper(LM):
         Returns:
             Decoded text string
         """
-        return self.tokenizer.decode(tokens)
+        if self.eot_token_id in tokens:
+            tokens = tokens[: tokens.index(self.eot_token_id)]
+
+        # Remove illegal tokens
+        tokens = [t for t in tokens if t not in self.illegal_tokens]
+        try:
+            decoded = self.tokenizer.decode(tokens)
+        except KeyError as e:
+            print(f"Could not decode tokens: {e}")
+            decoded = ""
+        return decoded
 
     @torch.inference_mode()
     def loglikelihood(self, requests) -> List[Tuple[float, bool]]:
@@ -239,7 +260,10 @@ class LittleTrainingLoopWrapper(LM):
         full_input = torch.cat([input_ids, target_ids], dim=1)
 
         # Get logits
-        logits = self.model.forward(full_input)  # [batch, seq_len, vocab]
+        logits = self.model.forward(
+            full_input,
+            use_optimized=False,  # otherwise we trigger cuda graph recompilation
+        )  # [batch, seq_len, vocab]
 
         # Extract logits for positions where we predict target tokens.
         # We exclude the final token (at position context_len + target_len - 1)
@@ -381,7 +405,7 @@ def evaluate_model(
         model=model,
         config=config,
         device=device,
-        batch_size=1,
+        batch_size=config.eval_config.batch_size,
         generate_until_max_length=generate_until_max_length,
     )
 
@@ -396,6 +420,7 @@ def evaluate_model(
         device=wrapper.device,
         max_batch_size=wrapper.batch_size,
         cache_requests=True,
+        confirm_run_unsafe_code=True,
     )
     print("[lm_eval_wrapper] simple_evaluate() returned", flush=True)
     return results

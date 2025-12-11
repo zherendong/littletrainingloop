@@ -18,7 +18,9 @@ import spelling_bee_embeddings
 import language_model_dataloader
 import fp32norm
 
-torch._dynamo.config.cache_size_limit = 64
+# The cache size limit is very limited by default.
+# This can crash or stall training runs.
+torch._dynamo.config.cache_size_limit = 128
 
 
 @dataclasses.dataclass(frozen=True)
@@ -727,8 +729,11 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
         return loss
 
-    def forward(self, x: torch.Tensor):
-        final_emb = self._forward_opt(x)
+    def forward(self, x: torch.Tensor, use_optimized=True):
+        if use_optimized:
+            final_emb = self._forward_opt(x)
+        else:
+            final_emb = self._forward(x)
         logits = F.linear(final_emb, self.get_output_projection_weights())
         return logits
 

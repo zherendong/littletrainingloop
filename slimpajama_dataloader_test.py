@@ -6,7 +6,11 @@ import torch
 def test_dataloader_resets_on_generate_call():
     config = language_model_basics.LanguageModelTrainingConfig(
         eval_config=language_model_basics.EvalConfig(
-            every_n_steps=10, steps=4, batch_size=4, sequence_length=128
+            every_n_steps=10,
+            steps=4,
+            batch_size=4,
+            sequence_length=128,
+            full_eval_every_n_steps=100,
         )
     )
     dl = slimpajama_dataloader.create_slimpajama_dataloader(config=config)
@@ -20,7 +24,11 @@ def test_dataloader_resets_on_generate_call():
 def test_multiprocess_dataloader():
     config = language_model_basics.LanguageModelTrainingConfig(
         eval_config=language_model_basics.EvalConfig(
-            every_n_steps=10, steps=4, batch_size=4, sequence_length=128
+            every_n_steps=10,
+            steps=4,
+            batch_size=4,
+            sequence_length=128,
+            full_eval_every_n_steps=100,
         )
     )
     dl = slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(

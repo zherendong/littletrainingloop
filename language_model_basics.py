@@ -51,6 +51,7 @@ class LanguageModelTrainingConfig:
         default_factory=lambda: EvalConfig(
             every_n_steps=100,
             steps=5,
+            full_eval_every_n_steps=5000,
             batch_size=256,
             sequence_length=512,
         )

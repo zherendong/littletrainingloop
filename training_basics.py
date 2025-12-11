@@ -25,6 +25,7 @@ class EvalConfig:
 
     every_n_steps: int
     steps: int
+    full_eval_every_n_steps: int
 
 
 Metrics = dict[str, float]
@@ -113,14 +114,19 @@ class TrainingState(Generic[D], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def eval(self, data: D) -> Metrics:
-        """Evaluate the model, return metrics."""
-        pass
-
-    @abc.abstractmethod
     def get_training_pflops(self) -> float:
         pass
 
     @abc.abstractmethod
     def get_training_tokens_seen(self) -> int:
+        pass
+
+    @abc.abstractmethod
+    def evaluate(self) -> Metrics:
+        """Run the evaluation harness on the model."""
+        pass
+
+    @abc.abstractmethod
+    def validation_loss(self, eval_data: Iterable[D], eval_steps: int) -> Metrics:
+        """Compute validation loss on the entire dataset."""
         pass

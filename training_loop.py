@@ -7,7 +7,6 @@ Design goals:
 """
 
 import time
-from collections import defaultdict
 from typing import Sequence
 
 import torch
@@ -20,7 +19,6 @@ from training_basics import (
     Metrics,
     D,
 )
-import aggregation
 import neptune_lib
 
 
@@ -44,7 +42,31 @@ def mem_gb():
     return alloc, peak, resv, frag
 
 
-def do_eval(
+def record_eval(
+    state: TrainingState[D],
+    metrics: Metrics,
+    step: int | None = None,
+    neptune_run=neptune_lib.NullNeptuneRun(),
+    eval_name: str = "",
+):
+    """Record evaluation metrics"""
+    for step_val, step_name in [
+        (step, ""),
+        (
+            state.get_training_tokens_seen(),
+            "/num_tokens",
+        ),  # TODO: replace the "/" to "_vs_" so that it doesn't collide with the existing naming pattern
+        (state.get_training_pflops(), "/pflops"),
+    ]:
+        process_metrics(
+            metrics,
+            neptune_run=neptune_run,
+            step=step_val,
+            mode=f"eval/{eval_name}{step_name}",
+        )
+
+
+def validation(
     config: EvalConfig,
     state: TrainingState[D],
     eval_data_providers: Sequence[DataProvider[D]],
@@ -55,32 +77,36 @@ def do_eval(
     """Evaluate the model"""
     print(f"Eval metrics ({epoch=}, {step=}):")
     for eval_data_provider in eval_data_providers:
+        start_time = time.time()
         print(f"  {eval_data_provider.get_name()}:")
+        final_metrics = state.validation_loss(
+            eval_data_provider.generate(), config.steps
+        )
+        name = eval_data_provider.get_name()
+        record_eval(
+            state=state,
+            metrics=final_metrics,
+            step=step,
+            neptune_run=neptune_run,
+            eval_name=name,
+        )
+        print(f"Eval {name} completed in {time.time() - start_time:.2f}s")
 
-        metric_aggregators = defaultdict(aggregation.ExactMetricsAggregator)
-        for idx, data in enumerate(eval_data_provider.generate()):
-            if idx > config.steps:
-                break
-            metrics = state.eval(data)
-            for name, value in metrics.items():
-                metric_aggregators[name].observe(value)
 
-        metrics = {
-            name: aggregator.mean() for name, aggregator in metric_aggregators.items()
-        }
-        training_tokens_seen = state.get_training_tokens_seen()
-        training_pflops = state.get_training_pflops()
-        for step_val, step_name in [
-            (step, ""),
-            (training_tokens_seen, "/num_tokens"),
-            (training_pflops, "/pflops"),
-        ]:
-            process_metrics(
-                metrics,
-                neptune_run=neptune_run,
-                step=step_val,
-                mode=f"eval/{eval_data_provider.get_name()}{step_name}",
-            )
+def lm_eval(
+    step: int,
+    state: TrainingState[D],
+    neptune_run=neptune_lib.NullNeptuneRun(),
+):
+    """Evaluate the model"""
+    metrics = state.evaluate()
+    record_eval(
+        state=state,
+        metrics=metrics,
+        step=step,
+        neptune_run=neptune_run,
+        eval_name="lm_eval_harness",
+    )
 
 
 def train(
@@ -99,7 +125,7 @@ def train(
         idx = 0
         for idx, data in enumerate(data_provider.generate()):
             if idx % eval_config.every_n_steps == 0:
-                do_eval(
+                validation(
                     eval_config,
                     state,
                     eval_data_providers,
@@ -107,7 +133,13 @@ def train(
                     idx,
                     neptune_run=neptune_run,
                 )
-            if idx >= config.training_steps_per_epoch:
+            if idx % eval_config.full_eval_every_n_steps == 0:
+                lm_eval(idx, state, neptune_run=neptune_run)
+
+            if (
+                config.training_steps_per_epoch
+                and idx >= config.training_steps_per_epoch
+            ):
                 break
             if idx == 5:
                 torch.cuda.synchronize()
@@ -128,7 +160,7 @@ def train(
                 )
 
         print(f"Epoch {epoch + 1} completed.")
-        do_eval(
+        validation(
             eval_config,
             state,
             eval_data_providers,
@@ -136,6 +168,7 @@ def train(
             idx,
             neptune_run=neptune_run,
         )
+        lm_eval(idx, state, neptune_run=neptune_run)
 
     print("-" * 50)
     print("Training completed!")

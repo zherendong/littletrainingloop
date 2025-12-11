@@ -271,24 +271,24 @@ def config_variants(
     #     #     )
     #     # )
 
-    spelling_bee_variants = []
-    for config in variants:
-        spelling_bee_variants.append(config)
-        spelling_bee_variants.append(
-            replace(
-                config,
-                model_config=replace(
-                    config.model_config,
-                    spelling_bee=True,
-                    char_init_scale=1.0,
-                    char_embedding_norm=False,
-                    spelling_bee_in_out_scale=1.0,
-                    spelling_type="full",
-                ),
-                name=config.name + f"_spellingbee",
-            )
-        )
-    variants = spelling_bee_variants
+    # spelling_bee_variants = []
+    # for config in variants:
+    #     spelling_bee_variants.append(config)
+    #     spelling_bee_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 spelling_bee=True,
+    #                 char_init_scale=1.0,
+    #                 char_embedding_norm=False,
+    #                 spelling_bee_in_out_scale=1.0,
+    #                 spelling_type="full",
+    #             ),
+    #             name=config.name + f"_spellingbee",
+    #         )
+    #     )
+    # variants = spelling_bee_variants
 
     print(f"Generated {len(variants)} variants")
     return variants
@@ -301,16 +301,16 @@ def main(
     no_neptune: bool = False,
 ):
     configs = [  # extended group of models
-        # "chinchilla-44m",
+        "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
-        # "chinchilla-106m",
+        "chinchilla-106m",
         # "chinchilla-117m",
-        # "chinchilla-140m",
+        "chinchilla-140m",
         # "chinchilla-163m",
         # "chinchilla-196m",
-        # "chinchilla-251m",
-        "chinchilla-306m",
+        "chinchilla-251m",
+        # "chinchilla-306m",
         # "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
