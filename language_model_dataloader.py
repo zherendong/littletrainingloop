@@ -25,9 +25,10 @@ def get_default_tokenizer_vocab() -> list[str]:
     vocab = []
     for token in range(tok.n_vocab):
         try:
-            vocab.append(tok.decode([token]))
-        except KeyError:
-            print(f"Could not decode token {token}")
+            token_bytes = tok.decode_single_token_bytes(token)
+            vocab.append(token_bytes.decode("utf-8", errors="replace"))
+        except Exception as e:
+            print(f"Could not decode token {token}: {e}")
             vocab.append("<unk>")
     assert len(vocab) == tok.n_vocab
     return vocab
