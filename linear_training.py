@@ -59,6 +59,27 @@ class LinearModelTrainingState(TrainingState[DataItem]):
 
         return {"loss": loss_numpy}
 
+    def validation_loss(
+        self, eval_data: Iterable[DataItem], eval_steps: int
+    ) -> Metrics:
+        """Compute validation loss on the entire dataset."""
+        raise NotImplementedError
+
+    def evaluate(self) -> Metrics:
+        raise NotImplementedError
+
+    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
+        pass
+
+    def num_non_embedding_parameters(self) -> int:
+        return self.num_parameters()
+
+    def get_training_pflops(self) -> float:
+        raise NotImplementedError
+
+    def get_training_tokens_seen(self) -> int:
+        raise NotImplementedError
+
 
 def generate_random_data(
     config: TrainingConfig,

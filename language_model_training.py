@@ -9,6 +9,7 @@ import sys
 sys.modules["tensorflow"] = None
 
 from collections import defaultdict
+from pathlib import Path
 from typing import Iterable
 import argparse
 import dataclasses
@@ -26,6 +27,7 @@ from training_basics import (
 from language_model_basics import (
     LMData,
     LanguageModelTrainingConfig,
+    EvalConfig,
 )
 import training_loop
 import torch
@@ -42,6 +44,7 @@ import model_configs.chinchilla  # noqa: F401
 import cross_entropy
 import lm_eval_wrapper
 import aggregation
+import checkpointing
 
 
 # import bf16_fused_adam
@@ -266,7 +269,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         """Compute validation loss on the entire dataset."""
         metric_aggregators = defaultdict(aggregation.ExactMetricsAggregator)
         for idx, data in enumerate(eval_data):
-            if idx > eval_steps:
+            if idx >= eval_steps:
                 break
             step_metrics = self._eval(data)
             for name, value in step_metrics.items():
@@ -327,6 +330,21 @@ class LanguageModelTrainingState(TrainingState[LMData]):
     def get_training_tokens_seen(self) -> int:
         return self.num_tokens_seen
 
+    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
+        path_str = f"{path}/{run_id}/checkpoint-{step:06d}.pt"
+        if epoch > 0:
+            path_str = f"{path_str}/{run_id}/checkpoint-{step:06d}-epoch-{epoch:06d}.pt"
+        path_obj = Path(path_str)
+        checkpointing.save_training_checkpoint(
+            model=self.model,
+            optimizer=self.optimizer,
+            scheduler=self.scheduler,
+            config=self.config,
+            step=step,
+            epoch=epoch,
+            path=path_obj,
+        )
+
 
 def train_language_model(
     config: LanguageModelTrainingConfig,
@@ -380,26 +398,23 @@ def train_language_model(
             )
         )
         eval_datasets = [
-            slimpajama_dataloader.create_slimpajama_dataloader(
+            slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
                 config, split="validation"
             ),
-            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+            strawberry_dataloader.create_strawberry_dataloader(
                 config,
                 split="validation",
                 count=1,
-                prefetch=2,
             ),
-            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+            strawberry_dataloader.create_strawberry_dataloader(
                 config,
                 split="validation",
                 count=2,
-                prefetch=2,
             ),
-            strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+            strawberry_dataloader.create_strawberry_dataloader(
                 config,
                 split="validation",
                 count=3,
-                prefetch=2,
             ),
         ]
     else:
@@ -461,9 +476,11 @@ def run(
 def get_model_config(
     model_config_str: str,
     profile_only: bool = False,
+    checkpoint_path: str | None = None,
 ):
     model_config = transformer.transformer_config_registry.get(model_config_str)
-    return LanguageModelTrainingConfig(
+    checkpoint_path = checkpoint_path if not profile_only else None
+    config = LanguageModelTrainingConfig(
         name=model_config_str,
         vocab_size=100277,
         learning_rate=None,  # Auto-select based on model size
@@ -473,10 +490,19 @@ def get_model_config(
             training_steps_per_epoch=(
                 None if not profile_only else 10
             ),  # None defaults to Chinchilla
+            train_metrics_every_n_steps=100 if not profile_only else 1,
             seed=42,
+            checkpoint_path=checkpoint_path,
+        ),
+        eval_config=EvalConfig(
+            every_n_steps=100,
+            # It used to be steps=5, but we had miscounted in the eval loop which has since been fixed
+            steps=6,
+            full_eval_every_n_steps=5000 if not profile_only else None,
         ),
         model_config=model_config,
     )
+    return config
 
 
 if __name__ == "__main__":
@@ -495,18 +521,13 @@ if __name__ == "__main__":
     parser.add_argument("--name", "-n", type=str, default=None)
     parser.add_argument("--gpu_id", "-g", type=int, default=None)
     parser.add_argument("--neptune_tags", type=str, nargs="+", default=[])
+    parser.add_argument("--checkpoint_path", "-c", type=str, default="../checkpoints")
     args = parser.parse_args()
 
-    config = get_model_config(args.model_config, args.profile_only)
-    if args.profile_only:
-        config = dataclasses.replace(
-            config,
-            training_config=dataclasses.replace(
-                config.training_config,
-                training_steps_per_epoch=10,
-                train_metrics_every_n_steps=1,
-            ),
-        )
+    config = get_model_config(
+        args.model_config, args.profile_only, args.checkpoint_path
+    )
+    print(f"Config: {config}")
     run(
         config=config,
         use_neptune=not args.no_neptune and not args.profile_only,

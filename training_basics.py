@@ -17,15 +17,16 @@ class TrainingConfig:
     training_steps_per_epoch: int | None = 100
     seed: int = 42
     train_metrics_every_n_steps: int = 100
+    checkpoint_path: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class EvalConfig:
     """Configuration class for evaluation"""
 
-    every_n_steps: int
-    steps: int
-    full_eval_every_n_steps: int
+    every_n_steps: int = 100
+    steps: int = 1  # maximum number of batches to evaluate
+    full_eval_every_n_steps: int | None = None
 
 
 Metrics = dict[str, float]
@@ -119,6 +120,7 @@ class TrainingState(Generic[D], abc.ABC):
 
     @abc.abstractmethod
     def get_training_tokens_seen(self) -> int:
+        # TODO: this should not be in the interface. Move this into the language model training state.
         pass
 
     @abc.abstractmethod
@@ -129,4 +131,9 @@ class TrainingState(Generic[D], abc.ABC):
     @abc.abstractmethod
     def validation_loss(self, eval_data: Iterable[D], eval_steps: int) -> Metrics:
         """Compute validation loss on the entire dataset."""
+        pass
+
+    @abc.abstractmethod
+    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int):
+        """Save a training checkpoint."""
         pass

@@ -25,7 +25,6 @@ class IrisTrainingConfig:
     training_config: TrainingConfig = dataclasses.field(
         default_factory=lambda: TrainingConfig(
             num_epochs=50,
-            eval_every_n_steps=10,
         )
     )
 
@@ -147,6 +146,10 @@ class IrisDataGenerator(DataProvider[DataItem]):
     def get_name(self) -> str:
         """Name of the dataset"""
         return f"Iris dataset ({self.config.seed=}, {self.is_train=})"
+
+    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
+        del path, step, epoch
+        pass
 
 
 def train_iris_model(config: TrainingConfig):

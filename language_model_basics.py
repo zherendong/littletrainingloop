@@ -24,8 +24,8 @@ class LMData:
 
 @dataclasses.dataclass(frozen=True)
 class EvalConfig(training_basics.EvalConfig):
-    batch_size: int
-    sequence_length: int
+    batch_size: int = 256
+    sequence_length: int = 512
 
 
 @dataclasses.dataclass(frozen=True)
@@ -47,15 +47,7 @@ class LanguageModelTrainingConfig:
     training_config: training_basics.TrainingConfig = dataclasses.field(
         default_factory=lambda: training_basics.TrainingConfig()
     )
-    eval_config: EvalConfig = dataclasses.field(
-        default_factory=lambda: EvalConfig(
-            every_n_steps=100,
-            steps=5,
-            full_eval_every_n_steps=5000,
-            batch_size=256,
-            sequence_length=512,
-        )
-    )
+    eval_config: EvalConfig = dataclasses.field(default_factory=lambda: EvalConfig())
     chinchilla_factor: float = 1.0
 
 
