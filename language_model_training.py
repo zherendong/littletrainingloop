@@ -27,7 +27,7 @@ from language_model_basics import (
     LMData,
     LanguageModelTrainingConfig,
 )
-from training_loop import train
+import training_loop
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -417,7 +417,7 @@ def train_language_model(
     neptune_run["num_non_embedding_parameters"] = state.num_non_embedding_parameters()
     neptune_run["config"] = dataclasses.asdict(config)
     # Train the model
-    losses = train(
+    losses = training_loop.train(
         state,
         train_dataset,
         config=config.training_config,

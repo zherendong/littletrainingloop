@@ -5,7 +5,7 @@ from language_model_dataloader import TokenizedDataLoader, BatchedDataLoader
 import language_model_dataloader
 
 
-class _CountRsInStrawberryDataloader(DataProvider[dict[str, str]]):
+class CountRsInStrawberryDataloader(DataProvider[dict[str, str]]):
     """Dataloader for the number of Rs in strawberry."""
 
     def __init__(self, count: int):
@@ -32,7 +32,7 @@ def create_strawberry_dataloader(
     count: int,
 ) -> BatchedDataLoader:
     """Create a dataloader for the number of Rs in strawberry."""
-    base_dl = _CountRsInStrawberryDataloader(count)
+    base_dl = CountRsInStrawberryDataloader(count)
     tokenizer = language_model_dataloader.default_tokenizer()
     tokenized_dl = TokenizedDataLoader(
         config,

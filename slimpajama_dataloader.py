@@ -7,6 +7,8 @@ from typing import Iterable
 import language_model_dataloader
 from language_model_basics import LanguageModelTrainingConfig, LMData
 
+import strawberry_dataloader
+
 
 def extract_slimpajama_data(row: dict) -> str:
     """Extract text from a row."""
@@ -22,14 +24,55 @@ def create_slimpajama_dataloader(
     raw_data_loader = language_model_dataloader.JSONLDataLoader(
         config, f"{path}_{split}"
     )
+
+    # #################### REMOVE THIS TEMP CODE ####################
+    # With this piece of code, we are mixing in strawberry data into the training data before tokenization.
+    # We are not seeing an improvment of the strawberry eval as we would expect.
+    # raw_strawberry_dl = strawberry_dataloader.CountRsInStrawberryDataloader(3)
+
+    # def extract_strawberry(row: dict) -> str:
+    #     # this is dangerous, as we lose the loss mask here. Don't check in.
+    #     if "input" in row:
+    #         return row["input"] + row["text"]
+    #     return row["text"]
+
+    # mixed_dl = language_model_dataloader.MixedDataLoader(
+    #     [raw_data_loader, raw_strawberry_dl], [1.0, 0.1], name="Mixed"
+    # )
+    # raw_data_loader = mixed_dl
+    # extract_slimpajama_data = extract_strawberry
+    # #################### REMOVE THIS TEMP CODE ####################
+
     tokenizer = language_model_dataloader.default_tokenizer()
     if tokenizer.n_vocab > config.vocab_size:
         raise ValueError(
             f"Tokenizer vocab size ({tokenizer.n_vocab}) is larger than the model vocab size ({config.vocab_size})"
         )
     tokenized_data_loader = language_model_dataloader.TokenizedDataLoader(
-        config, raw_data_loader, tokenizer, extract_slimpajama_data
+        config,
+        raw_data_loader,
+        tokenizer,
+        extract_slimpajama_data,  # tmp code for extract strawberry
     )
+
+    # #################### REMOVE THIS TEMP CODE ####################
+    # With this piece of code, however, we are seeing an improvment of the strawberry eval.
+    # # To check that our evals work, let's mix in strawberry data
+    # strawberry_dl = strawberry_dataloader.CountRsInStrawberryDataloader(3)
+    # strawberry_tokenized_dl = language_model_dataloader.TokenizedDataLoader(
+    #     config,
+    #     strawberry_dl,
+    #     tokenizer,
+    #     lambda x: x["text"],
+    #     data_to_input=lambda x: x["input"],
+    #     pad_to_multiple_of=config.eval_config.sequence_length,
+    # )
+    # mixed_dl = language_model_dataloader.MixedDataLoader(
+    #     [tokenized_data_loader, strawberry_tokenized_dl], [1.0, 0.1], name="Mixed"
+    # )
+    # tokenized_data_loader = mixed_dl
+    # #################### REMOVE THIS TEMP CODE ####################
+
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
         config.batch_size if split == "train" else config.eval_config.batch_size,
         (
