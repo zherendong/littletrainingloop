@@ -7,7 +7,7 @@ and the lm-evaluation-harness framework for standardized model evaluation.
 
 from pathlib import Path
 import torch
-from typing import Any, List, Tuple
+from typing import List, Tuple
 
 from lm_eval.api.model import LM
 from lm_eval.api.registry import register_model
@@ -16,6 +16,63 @@ import checkpointing
 import language_model_dataloader
 import lm_eval
 import language_model_basics
+import dataclasses
+
+
+@dataclasses.dataclass
+class Task:
+    name: str
+    key: str
+    task_key_name: str
+
+
+available_tasks = {
+    "hellaswag": Task("hellaswag", "acc_norm,none", "accuracy"),
+    "arc_easy": Task("arc_easy", "acc_norm,none", "accuracy"),
+    "arc_challenge": Task("arc_challenge", "acc_norm,none", "accuracy"),
+    "humaneval": Task("humaneval", "pass@1,create_test", "pass@1"),
+    # untested below
+    # interesting
+    "humaneval_infilling": Task("humaneval", "pass@1,infilling", "pass@1"),
+    "gsm8k": Task("gsm8k", "acc_norm,none", "accuracy"),
+    "hendrycks_math": Task("hendrycks_math", "acc_norm,none", "accuracy"),
+    "mmlu": Task("mmlu", "acc_norm,none", "accuracy"),  # TODO: is "none" right?
+    # other standard tasks
+    "piqa": Task("piqa", "acc_norm,none", "accuracy"),
+    "sciq": Task("sciq", "acc_norm,none", "accuracy"),
+    "winogrande": Task("winogrande", "acc_norm,none", "accuracy"),
+    "triviaqa": Task("triviaqa", "acc_norm,none", "accuracy"),
+    "openbookqa": Task("openbookqa", "acc_norm,none", "accuracy"),
+    # unknown
+    "lambada": Task("lambada", "acc_norm,none", "accuracy"),
+    "mathqa": Task("mathqa", "acc_norm,none", "accuracy"),
+    "pubmedqa": Task("pubmedqa", "acc_norm,none", "accuracy"),
+    "strategyqa": Task("strategyqa", "acc_norm,none", "accuracy"),
+    "qasc": Task("qasc", "acc_norm,none", "accuracy"),
+    "socialiqa": Task("socialiqa", "acc_norm,none", "accuracy"),
+    "commonsenseqa": Task("commonsenseqa", "acc_norm,none", "accuracy"),
+}
+
+default_tasks = [
+    "hellaswag",
+    "arc_easy",
+    "arc_challenge",
+    "humaneval",
+    "humaneval_infilling",
+    "gsm8k",
+    "hendrycks_math",
+    "mmlu",
+    "piqa",
+    "sciq",
+    "winogrande",
+    "triviaqa",
+    "openbookqa",
+]
+
+
+def get_task_details(task_name: str) -> Task:
+    """Get the task details for a given task name."""
+    return available_tasks[task_name]
 
 
 @register_model("littletrainingloop")
@@ -331,7 +388,7 @@ class LittleTrainingLoopWrapper(LM):
 
             for _ in range(self.generate_until_max_length):
                 # Get logits for next token
-                logits = self.model.forward(input_ids)
+                logits = self.model.forward(input_ids, use_optimized=False)
 
                 # Take the last token's logits and get argmax (greedy decoding)
                 next_token_logits = logits[0, -1, :]
@@ -428,7 +485,7 @@ def evaluate_model(
 
 def evaluate_checkpoint(
     checkpoint_path: Path,
-    tasks: list[str],
+    tasks: list[str] | None = None,
     limit: int | None = None,
     device: str = "cuda",
     generate_until_max_length: int | None = None,
@@ -457,6 +514,9 @@ def evaluate_checkpoint(
     checkpoint = checkpointing.load_model_from_training_checkpoint(
         checkpoint_path, device=device
     )
+
+    if tasks is None:
+        tasks = default_tasks
 
     results = evaluate_model(
         model=checkpoint.model,

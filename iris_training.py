@@ -6,6 +6,7 @@ from training_loop import (
     DataProvider,
     TrainingState,
     Metrics,
+    MetricItem,
     train,
 )
 import torch
@@ -98,7 +99,7 @@ class IrisTrainingState(TrainingState[DataItem]):
         # detach loss
         loss_numpy = float(loss.detach().cpu().numpy())
 
-        return {
+        metrics = {
             "loss": loss_numpy,
             "learning_rate": self.optimizer.param_groups[0]["lr"],
             "weight_norm": float(self.model.fc1.weight.data.norm()),
@@ -112,11 +113,13 @@ class IrisTrainingState(TrainingState[DataItem]):
             "weight_mean": float(self.model.fc1.weight.data.mean()),
             "bias_mean": float(self.model.fc1.bias.data.mean()),
         }
+        return {name: MetricItem(value) for name, value in metrics.items()}
 
     def eval(self, data: DataItem) -> Metrics:
         predictions = self.model(data.inputs)
         loss = self.criterion(predictions, data.targets)
-        return {"loss": float(loss.detach().cpu().numpy())}
+        metrics = {"loss": float(loss.detach().cpu().numpy())}
+        return {name: MetricItem(value) for name, value in metrics.items()}
 
 
 class IrisDataGenerator(DataProvider[DataItem]):

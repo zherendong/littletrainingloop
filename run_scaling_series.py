@@ -304,7 +304,7 @@ def main(
         "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
-        "chinchilla-106m",
+        # "chinchilla-106m",
         # "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
@@ -325,7 +325,9 @@ def main(
     # create all variants
     all_configs = []
     for config_str in configs:
-        cfg = language_model_training.get_model_config(config_str)
+        cfg = language_model_training.get_model_config(
+            config_str, checkpoint_path="../checkpoints"
+        )
         cfg = replace(cfg, name=config_str.replace("chinchilla-", "c"))
         all_configs.extend(config_variants(cfg))
 
@@ -466,7 +468,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     assert (
-        args.stop_all_jobs or args.check_jobs or args.neptune_tags
+        args.no_neptune or args.stop_all_jobs or args.check_jobs or args.neptune_tags
     ), "Please provide neptune tags"
 
     if args.stop_all_jobs:
