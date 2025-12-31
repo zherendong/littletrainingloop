@@ -133,7 +133,10 @@ def train(
                     idx,
                     neptune_run=neptune_run,
                 )
-            if idx % eval_config.full_eval_every_n_steps == 0:
+            if (
+                eval_config.full_eval_every_n_steps is not None
+                and idx % eval_config.full_eval_every_n_steps == 0
+            ):
                 lm_eval(idx, state, neptune_run=neptune_run)
 
             if (
@@ -168,7 +171,14 @@ def train(
             idx,
             neptune_run=neptune_run,
         )
-        lm_eval(idx, state, neptune_run=neptune_run)
+        if eval_config.full_eval_every_n_steps is not None:
+            lm_eval(idx, state, neptune_run=neptune_run)
+
+        if config.checkpoint_path:
+            print(f"Saving checkpoint to {config.checkpoint_path}")
+            state.save_checkpoint(
+                config.checkpoint_path, neptune_run.get_run_id(), idx, epoch
+            )
 
     print("-" * 50)
     print("Training completed!")

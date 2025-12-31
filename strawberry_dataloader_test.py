@@ -2,6 +2,7 @@ import strawberry_dataloader
 import language_model_basics
 import torch
 import pytest
+import time
 
 
 def test_dataloader_resets_on_generate_call():
@@ -11,7 +12,6 @@ def test_dataloader_resets_on_generate_call():
             steps=4,
             batch_size=4,
             sequence_length=128,
-            full_eval_every_n_steps=100,
         )
     )
     dl = strawberry_dataloader.create_strawberry_dataloader(config, "validation", 1)
@@ -30,7 +30,6 @@ def test_multiprocess_dataloader():
             steps=4,
             batch_size=4,
             sequence_length=128,
-            full_eval_every_n_steps=100,
         )
     )
     dl = strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
@@ -52,7 +51,6 @@ def test_exact_token_sequence(count: int):
             steps=4,
             batch_size=4,
             sequence_length=128,
-            full_eval_every_n_steps=100,
         )
     )
     dl = strawberry_dataloader.create_strawberry_dataloader(config, "validation", count)
@@ -102,3 +100,26 @@ def test_exact_token_sequence(count: int):
         0.0,
         0.0,
     ]
+
+
+def test_strawberry_dataloader_performance():
+    """Repeated invocations of strawberry dataloader should be below 2s each."""
+    config = language_model_basics.LanguageModelTrainingConfig(
+        eval_config=language_model_basics.EvalConfig(
+            every_n_steps=10,
+            steps=4,
+            batch_size=4,
+            sequence_length=128,
+        )
+    )
+    dl = strawberry_dataloader.create_strawberry_dataloader_in_separate_process(
+        config, "validation", 1
+    )
+
+    for _ in range(3):
+        start = time.time()
+        for _, data in zip(range(10), dl.generate()):
+            print(data.inputs.shape)
+        time_taken = time.time() - start
+        print(f"Time taken: {time_taken:.2f}s")
+        assert time_taken < 2.0, f"Time taken: {time_taken:.2f}s"

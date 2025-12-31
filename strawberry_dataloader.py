@@ -52,6 +52,7 @@ def create_strawberry_dataloader(
         tokenized_dl,
         tokenizer,
         split=split,
+        name=f"Strawberry_{count}",
     )
     return batched_dl
 
@@ -71,7 +72,7 @@ def create_strawberry_dataloader_in_separate_process(
     split: str,
     count: int,
     prefetch: int = 10,
-) -> language_model_dataloader.MultiProcessDataloader:
+) -> language_model_dataloader.MultiProcessDataloader[LMData]:
     """Create a dataloader for the number of Rs in strawberry."""
     return language_model_dataloader.MultiProcessDataloader(
         create_strawberry_and_call_generate,

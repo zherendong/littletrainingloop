@@ -38,8 +38,6 @@ def test_tokenized_dataloader():
             batch_size=2,
             sequence_length=10,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -84,8 +82,6 @@ def test_batched_dataloader():
             batch_size=2,
             sequence_length=6,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = BatchedDataLoader(
@@ -142,8 +138,6 @@ def test_special_tokens_ok():
             batch_size=2,
             sequence_length=10,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -182,8 +176,6 @@ def test_data_to_input():
             batch_size=2,
             sequence_length=10,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
     dataloader = TokenizedDataLoader(
@@ -211,8 +203,6 @@ def test_loss_mask():
             batch_size=2,
             sequence_length=3,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
 
@@ -280,8 +270,6 @@ def test_pad_to_multiple_of(pad_to_multiple_of):
             batch_size=2,
             sequence_length=3,
             every_n_steps=1,
-            steps=1,
-            full_eval_every_n_steps=2000,
         ),
     )
 

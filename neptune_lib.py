@@ -9,7 +9,7 @@ import os
 class NullNeptuneFloatSeries:
 
     def fetch_value(self):
-        raise NotImplementedError()
+        raise AttributeError("fetch_value not implemented for NullNeptuneFloatSeries")
 
     def append(self, value, step=None):
         pass
@@ -25,6 +25,9 @@ class NullNeptuneRun:
 
     def stop(self):
         pass
+
+    def get_run_id(self) -> str:
+        return "NoIDset"
 
 
 class NeptuneRunWrapper:
@@ -57,6 +60,12 @@ class NeptuneRunWrapper:
             )
         else:
             self.run = NullNeptuneRun()
+
+    def get_run_id(self) -> str:
+        try:
+            return self.run["sys/id"].fetch_value()
+        except AttributeError:
+            return "ID_error"
 
     def __getitem__(self, key):
         if self.print_calls:
@@ -99,6 +108,7 @@ class NeptuneRunWrapper:
         """
         try:
             from neptune.utils import stringify_unsupported  # type: ignore
+
             return stringify_unsupported(obj)
         except Exception:
             return str(obj)
