@@ -59,6 +59,72 @@ class JSONLDataLoader(DataProvider[dict[str, Any]]):
         return f"JSONL dataset ({self.path=})"
 
 
+class MixedDataLoader(DataProvider[dict[str, Any]]):
+    """Mixes multiple data loaders together."""
+
+    def __init__(
+        self,
+        data_loaders: list[DataProvider[dict[str, Any]]],
+        weights: list[float],
+        name: str | None = None,
+    ):
+        self.data_loaders = data_loaders
+        self.weights = weights
+        self.name = name
+
+    def generate(self) -> Iterable[dict[str, Any]]:
+        """Mix data from multiple loaders deterministically according to weights.
+
+        The algorithm maintains cumulative counts for each iterator and always
+        selects the iterator that is most behind its target proportion. This
+        ensures deterministic, reproducible mixing that respects the weights.
+
+        When a dataloader is exhausted, it is automatically restarted by calling
+        generate() again, allowing for infinite iteration over finite datasets.
+        """
+        iterators = [iter(loader.generate()) for loader in self.data_loaders]
+        weights = np.array(self.weights, dtype=np.float64) / sum(self.weights)
+
+        # Track how many items we've pulled from each iterator
+        counts = np.zeros(len(iterators), dtype=np.int64)
+
+        while True:
+            # Calculate the ratio counts[i] / weights[i] for each iterator
+            # We want to pull from the iterator with the smallest ratio
+            # (the one most "behind" its target proportion)
+            ratios = counts / weights
+            selected_idx = np.argmin(ratios)
+
+            # Try to get the next item from the selected iterator
+            try:
+                item = next(iterators[selected_idx])
+                counts[selected_idx] += 1
+                yield item
+            except StopIteration:
+                # This iterator is exhausted, restart it by calling generate() again
+                iterators[selected_idx] = iter(
+                    self.data_loaders[selected_idx].generate()
+                )
+                # Try again to get an item from the restarted iterator
+                try:
+                    item = next(iterators[selected_idx])
+                    counts[selected_idx] += 1
+                    yield item
+                except StopIteration:
+                    # The dataloader is empty (generates nothing), this is an error
+                    raise ValueError(
+                        f"Dataloader {self.data_loaders[selected_idx].get_name()} "
+                        "is empty and cannot be used in MixedDataLoader"
+                    )
+
+    def get_name(self) -> str:
+        """Name of the dataset"""
+        if self.name:
+            return self.name
+        loader_names = ", ".join([loader.get_name() for loader in self.data_loaders])
+        return f"MixedDataLoader([{loader_names}], weights={self.weights})"
+
+
 U = TypeVar("U")
 
 

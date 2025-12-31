@@ -10,6 +10,7 @@ from language_model_dataloader import (
     BatchedDataLoader,
     TokenizedDataLoader,
     default_tokenizer,
+    get_default_tokenizer_vocab,
 )
 from language_model_basics import LMData, LanguageModelTrainingConfig
 import pytest
