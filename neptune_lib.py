@@ -63,8 +63,9 @@ class NeptuneRunWrapper:
 
     def get_run_id(self) -> str:
         try:
-            return self.run["sys/id"].fetch_value()
-        except AttributeError:
+            return str(self.run["sys/id"].fetch())
+        except AttributeError as e:
+            print(f"Error getting run id: {e}")
             return "ID_error"
 
     def __getitem__(self, key):

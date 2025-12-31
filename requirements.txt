@@ -1,7 +1,7 @@
 # Previously this was necessary:
 # pip uninstall torch -y && pip install torch --index-url https://download.pytorch.org/whl/cu128
 # Now, it doesn't and I needed this:
-# pip install --force-reinstall torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+# pip install --force-reinstall torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 # pip install --force-reinstall pandas scipy
 numpy==1.26.4
 tiktoken>=0.4.0

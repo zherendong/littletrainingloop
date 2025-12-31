@@ -16,19 +16,10 @@ from training_basics import (
     EvalConfig,
     DataProvider,
     TrainingState,
-    Metrics,
+    MetricItem,
     D,
 )
 import neptune_lib
-
-
-def process_metrics(metrics: Metrics, neptune_run, step=None, mode="train") -> None:
-    """Print metrics sorted by name"""
-    print(f"{mode} step {step}:")
-    for name, value in sorted(metrics.items()):
-        print(f"  {name}: {value:.6f}")
-    for name, value in sorted(metrics.items()):
-        neptune_run[f"{mode}/{name}"].append(value, step=step)
 
 
 def mem_gb():
@@ -42,37 +33,41 @@ def mem_gb():
     return alloc, peak, resv, frag
 
 
-def record_eval(
-    state: TrainingState[D],
-    metrics: Metrics,
-    step: int | None = None,
-    neptune_run=neptune_lib.NullNeptuneRun(),
-    eval_name: str = "",
+def record_metrics(
+    metrics: dict[str, MetricItem],
+    metric_path: str,
+    step: int,
+    neptune_run: neptune_lib.NeptuneRunWrapper,
 ):
-    """Record evaluation metrics"""
-    for step_val, step_name in [
-        (step, ""),
-        (
-            state.get_training_tokens_seen(),
-            "/num_tokens",
-        ),  # TODO: replace the "/" to "_vs_" so that it doesn't collide with the existing naming pattern
-        (state.get_training_pflops(), "/pflops"),
-    ]:
-        process_metrics(
-            metrics,
-            neptune_run=neptune_run,
-            step=step_val,
-            mode=f"eval/{eval_name}{step_name}",
-        )
+    """Record metrics with custom X-axis values.
+
+    Handles both training and evaluation metrics. Iterates through MetricItem instances
+    and logs them to Neptune. For each metric, uses the custom x_axis if provided,
+    otherwise uses the passed step.
+
+    Args:
+        metrics: Dict mapping metric names to MetricItem instances.
+                 Each MetricItem contains a value and optional custom x_axis.
+        metric_path: Path for the metric (e.g., "eval/validation", "eval/lm_eval_harness").
+        step: Step to use for metrics where MetricItem.x_axis is None.
+        neptune_run: Neptune run for logging.
+    """
+    print(f"{metric_path}:")
+    for key, item in sorted(metrics.items()):
+        print(f"  {key}: {item.value:.6f}")
+    for key, item in metrics.items():
+        x = step if item.x_axis is None else item.x_axis
+        neptune_run[f"{metric_path}/{key}"].append(item.value, step=x)
 
 
 def validation(
+    *,
     config: EvalConfig,
     state: TrainingState[D],
     eval_data_providers: Sequence[DataProvider[D]],
-    epoch: int | None = None,
-    step: int | None = None,
-    neptune_run=neptune_lib.NullNeptuneRun(),
+    epoch: int,
+    step: int,
+    neptune_run: neptune_lib.NeptuneRunWrapper,
 ):
     """Evaluate the model"""
     print(f"Eval metrics ({epoch=}, {step=}):")
@@ -83,12 +78,11 @@ def validation(
             eval_data_provider.generate(), config.steps
         )
         name = eval_data_provider.get_name()
-        record_eval(
-            state=state,
+        record_metrics(
             metrics=final_metrics,
+            metric_path=f"eval/{name}",
             step=step,
             neptune_run=neptune_run,
-            eval_name=name,
         )
         print(f"Eval {name} completed in {time.time() - start_time:.2f}s")
 
@@ -96,16 +90,15 @@ def validation(
 def lm_eval(
     step: int,
     state: TrainingState[D],
-    neptune_run=neptune_lib.NullNeptuneRun(),
+    neptune_run: neptune_lib.NeptuneRunWrapper,
 ):
     """Evaluate the model"""
     metrics = state.evaluate()
-    record_eval(
-        state=state,
+    record_metrics(
         metrics=metrics,
+        metric_path="eval/lm_eval_harness",
         step=step,
         neptune_run=neptune_run,
-        eval_name="lm_eval_harness",
     )
 
 
@@ -114,8 +107,8 @@ def train(
     data_provider: DataProvider[D],
     config: TrainingConfig,
     eval_config: EvalConfig,
+    neptune_run: neptune_lib.NeptuneRunWrapper,
     eval_data_providers: Sequence[DataProvider[D]] = (),
-    neptune_run=neptune_lib.NullNeptuneRun(),
 ):
     """Training loop using configuration object"""
 
@@ -126,11 +119,11 @@ def train(
         for idx, data in enumerate(data_provider.generate()):
             if idx % eval_config.every_n_steps == 0:
                 validation(
-                    eval_config,
-                    state,
-                    eval_data_providers,
-                    epoch,
-                    idx,
+                    config=eval_config,
+                    state=state,
+                    eval_data_providers=eval_data_providers,
+                    epoch=epoch,
+                    step=idx,
                     neptune_run=neptune_run,
                 )
             if (
@@ -158,27 +151,30 @@ def train(
             metrics = state.step(data)
             if idx % config.train_metrics_every_n_steps == 0 or idx == 10:
                 mem_gb()
-                process_metrics(
-                    metrics, neptune_run=neptune_run, step=idx, mode="train"
+                record_metrics(
+                    metrics=metrics,
+                    metric_path="train",
+                    step=idx,
+                    neptune_run=neptune_run,
                 )
 
         print(f"Epoch {epoch + 1} completed.")
         validation(
-            eval_config,
-            state,
-            eval_data_providers,
-            epoch,
-            idx,
+            config=eval_config,
+            state=state,
+            eval_data_providers=eval_data_providers,
+            epoch=epoch,
+            step=idx,
             neptune_run=neptune_run,
         )
-        if eval_config.full_eval_every_n_steps is not None:
-            lm_eval(idx, state, neptune_run=neptune_run)
 
-        if config.checkpoint_path:
+        if config.checkpoint_path is not None:
             print(f"Saving checkpoint to {config.checkpoint_path}")
             state.save_checkpoint(
                 config.checkpoint_path, neptune_run.get_run_id(), idx, epoch
             )
+        if eval_config.full_eval_every_n_steps is not None:
+            lm_eval(idx, state, neptune_run=neptune_run)
 
     print("-" * 50)
     print("Training completed!")

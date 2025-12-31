@@ -6,6 +6,7 @@ from training_loop import (
     DataProvider,
     TrainingState,
     Metrics,
+    MetricItem,
     train,
 )
 import torch
@@ -57,7 +58,9 @@ class LinearModelTrainingState(TrainingState[DataItem]):
         # detach loss
         loss_numpy = float(loss.detach().cpu().numpy())
 
-        return {"loss": loss_numpy}
+        return {
+            "loss": MetricItem(loss_numpy),
+        }
 
     def validation_loss(
         self, eval_data: Iterable[DataItem], eval_steps: int
@@ -73,12 +76,6 @@ class LinearModelTrainingState(TrainingState[DataItem]):
 
     def num_non_embedding_parameters(self) -> int:
         return self.num_parameters()
-
-    def get_training_pflops(self) -> float:
-        raise NotImplementedError
-
-    def get_training_tokens_seen(self) -> int:
-        raise NotImplementedError
 
 
 def generate_random_data(

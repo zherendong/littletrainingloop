@@ -29,7 +29,13 @@ class EvalConfig:
     full_eval_every_n_steps: int | None = None
 
 
-Metrics = dict[str, float]
+@dataclasses.dataclass(frozen=True)
+class MetricItem:
+    value: float
+    x_axis: float | None = None  # if None, use step number
+
+
+Metrics = dict[str, MetricItem]
 
 
 D = TypeVar("D")
@@ -112,15 +118,6 @@ class TrainingState(Generic[D], abc.ABC):
     @abc.abstractmethod
     def step(self, data: D) -> Metrics:
         """Take a training step, return metrics."""
-        pass
-
-    @abc.abstractmethod
-    def get_training_pflops(self) -> float:
-        pass
-
-    @abc.abstractmethod
-    def get_training_tokens_seen(self) -> int:
-        # TODO: this should not be in the interface. Move this into the language model training state.
         pass
 
     @abc.abstractmethod

@@ -23,6 +23,7 @@ from training_basics import (
     ShuffleBuffer,
     TrainingState,
     Metrics,
+    MetricItem,
 )
 from language_model_basics import (
     LMData,
@@ -235,16 +236,20 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         self.num_tokens_seen += inputs.numel()
 
         return {
-            "loss": loss_numpy,
-            "learning_rate": self.optimizer.param_groups[0]["lr"],
-            "pflops_total": self.training_flops_total / 1e15,
-            "tflops_per_second": flops_this_step / step_time / 1e12,
-            "step_time_seconds": step_time,
-            "num_tokens": self.num_tokens_seen,
+            "loss": MetricItem(loss_numpy),
+            "loss_vs_pflops": MetricItem(loss_numpy, self._get_training_pflops()),
+            "loss_vs_num_tokens": MetricItem(
+                loss_numpy, self._get_training_tokens_seen()
+            ),
+            "learning_rate": MetricItem(value=self.optimizer.param_groups[0]["lr"]),
+            "pflops_total": MetricItem(value=self._get_training_pflops()),
+            "tflops_per_second": MetricItem(value=flops_this_step / step_time / 1e12),
+            "step_time_seconds": MetricItem(value=step_time),
+            "num_tokens": MetricItem(value=self._get_training_tokens_seen()),
         }
 
     @torch.no_grad()
-    def _eval(self, data: LMData) -> Metrics:
+    def _eval(self, data: LMData) -> dict[str, float]:
         inputs = torch.tensor(data.inputs, dtype=torch.int32)
         targets = torch.tensor(data.targets, dtype=torch.long)
         loss_mask = torch.tensor(data.loss_mask, dtype=torch.float32)
@@ -274,48 +279,56 @@ class LanguageModelTrainingState(TrainingState[LMData]):
             step_metrics = self._eval(data)
             for name, value in step_metrics.items():
                 metric_aggregators[name].observe(value)
-        return {
-            name: aggregator.mean() for name, aggregator in metric_aggregators.items()
+        metrics = {
+            name: MetricItem(value=aggregator.mean())
+            for name, aggregator in metric_aggregators.items()
         }
+
+        multi_axis_metrics = ["loss"]
+        for name, value in list(metrics.items()):
+            if name in multi_axis_metrics:
+                metrics[f"{name}_vs_pflops"] = MetricItem(
+                    value=value.value, x_axis=self._get_training_pflops()
+                )
+                metrics[f"{name}_vs_num_tokens"] = MetricItem(
+                    value=value.value, x_axis=self._get_training_tokens_seen()
+                )
+        return metrics
 
     def evaluate(self) -> Metrics:
         """Run the lm-eval harness on the model."""
         eval_start_time = time.time()
-        tasks = [
-            "hellaswag",
-            "arc_easy",
-            # "humaneval",
-        ]
-        task_keys = [
-            "acc_norm,none",
-            "acc_norm,none",
-            # "pass@1,create_test",
-        ]
-        task_key_names = [
-            "accuracy",
-            "accuracy",
-            # "pass@1",
-        ]
         print("Evaluating model...")
+        task_names = lm_eval_wrapper.default_tasks
         result_dict = lm_eval_wrapper.evaluate_model(
             model=self.model,
             config=self.config,
-            tasks=tasks,
+            tasks=task_names,
             limit=1000,
             # generate_until_max_length=100,
         )
         assert isinstance(result_dict, dict)
         results = {}
-        for task, key, name in zip(tasks, task_keys, task_key_names):
-            # result_dict["results"]["hellaswag"]["acc_norm,none"]
+        for task_name in task_names:
+            task = lm_eval_wrapper.get_task_details(task_name)
+            key = task.key
+            key_name = task.task_key_name
+            # Example:
+            #    result_dict["results"]["hellaswag"]["acc_norm,none"]
             try:
-                results[f"{task}/{name}"] = result_dict["results"][task][key]
+                results[f"{task_name}/{key_name}"] = result_dict["results"][task_name][
+                    key
+                ]
             except KeyError as e:
-                print(f"Could not find accuracy for {task}. Error: {e}. Skipping")
-                print(f"{result_dict['results'][task]=}")
+                print(f"Could not find accuracy for {task_name}. Error: {e}. Skipping")
+                print(f"{result_dict['results'][task_name]=}")
         eval_time = time.time() - eval_start_time
         results["eval_time"] = eval_time
         print(f"Eval time: {eval_time:.2f} seconds")
+        results = {
+            name: MetricItem(value=value, x_axis=self._get_training_pflops())
+            for name, value in results.items()
+        }
         return results
 
     def num_parameters(self) -> int:
@@ -324,10 +337,10 @@ class LanguageModelTrainingState(TrainingState[LMData]):
     def num_non_embedding_parameters(self) -> int:
         return self.model.num_non_embedding_parameters()
 
-    def get_training_pflops(self) -> float:
+    def _get_training_pflops(self) -> float:
         return self.training_flops_total / 1e15
 
-    def get_training_tokens_seen(self) -> int:
+    def _get_training_tokens_seen(self) -> int:
         return self.num_tokens_seen
 
     def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
@@ -487,18 +500,19 @@ def get_model_config(
         batch_size=192,
         training_config=TrainingConfig(
             num_epochs=1,
-            training_steps_per_epoch=(
-                None if not profile_only else 10
-            ),  # None defaults to Chinchilla
+            training_steps_per_epoch=4,
+            # training_steps_per_epoch=(
+            #     None if not profile_only else 10
+            # ),  # None defaults to Chinchilla
             train_metrics_every_n_steps=100 if not profile_only else 1,
             seed=42,
             checkpoint_path=checkpoint_path,
         ),
         eval_config=EvalConfig(
-            every_n_steps=100,
+            every_n_steps=500,
             # It used to be steps=5, but we had miscounted in the eval loop which has since been fixed
             steps=6,
-            full_eval_every_n_steps=5000 if not profile_only else None,
+            full_eval_every_n_steps=None,
         ),
         model_config=model_config,
     )
