@@ -348,6 +348,7 @@ class LanguageModelTrainingState(TrainingState[LMData]):
         if epoch > 0:
             path_str = f"{path_str}/{run_id}/checkpoint-{step:06d}-epoch-{epoch:06d}.pt"
         path_obj = Path(path_str)
+        print(f"Saving checkpoint to {path_obj}")
         checkpointing.save_training_checkpoint(
             model=self.model,
             optimizer=self.optimizer,
@@ -500,10 +501,9 @@ def get_model_config(
         batch_size=192,
         training_config=TrainingConfig(
             num_epochs=1,
-            training_steps_per_epoch=4,
-            # training_steps_per_epoch=(
-            #     None if not profile_only else 10
-            # ),  # None defaults to Chinchilla
+            training_steps_per_epoch=(
+                None if not profile_only else 10
+            ),  # None defaults to Chinchilla
             train_metrics_every_n_steps=100 if not profile_only else 1,
             seed=42,
             checkpoint_path=checkpoint_path,

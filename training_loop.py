@@ -131,12 +131,6 @@ def train(
                 and idx % eval_config.full_eval_every_n_steps == 0
             ):
                 lm_eval(idx, state, neptune_run=neptune_run)
-
-            if (
-                config.training_steps_per_epoch
-                and idx >= config.training_steps_per_epoch
-            ):
-                break
             if idx == 5:
                 torch.cuda.synchronize()
                 torch.cuda.reset_peak_memory_stats()
@@ -158,6 +152,21 @@ def train(
                     neptune_run=neptune_run,
                 )
 
+            if (
+                config.save_checkpoint_every_n_steps is not None
+                and idx % config.save_checkpoint_every_n_steps == 0
+                and config.checkpoint_path is not None
+            ):
+                state.save_checkpoint(
+                    config.checkpoint_path, neptune_run.get_run_id(), idx, epoch
+                )
+
+            if (
+                config.training_steps_per_epoch
+                and idx >= config.training_steps_per_epoch
+            ):
+                break
+
         print(f"Epoch {epoch + 1} completed.")
         validation(
             config=eval_config,
@@ -169,7 +178,6 @@ def train(
         )
 
         if config.checkpoint_path is not None:
-            print(f"Saving checkpoint to {config.checkpoint_path}")
             state.save_checkpoint(
                 config.checkpoint_path, neptune_run.get_run_id(), idx, epoch
             )
