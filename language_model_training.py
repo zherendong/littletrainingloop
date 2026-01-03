@@ -465,7 +465,6 @@ def run(
     gpu_id: int | None = None,
     neptune_tags: list[str] = [],
 ):
-    # Add device detection at the top of your training function
     if torch.cuda.is_available():
         device = f"cuda:{gpu_id}" if gpu_id is not None else "cuda"
     else:

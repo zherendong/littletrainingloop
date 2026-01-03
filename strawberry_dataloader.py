@@ -10,7 +10,7 @@ class CountRsInStrawberryDataloader(DataProvider[dict[str, str]]):
 
     def __init__(self, count: int):
         self.count = count
-        self.input_string = f"The number of Rs in strawberry is "
+        self.input_string = f"The number of times the letter R occurs in strawberry is "
         self.output_string = f"{count}"
 
     def generate(self) -> Iterable[dict[str, str]]:
