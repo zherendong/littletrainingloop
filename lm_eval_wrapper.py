@@ -349,6 +349,62 @@ class LittleTrainingLoopWrapper(LM):
 
         return token_logprobs, is_greedy
 
+    def infer(self, context: str, until: list[str]):
+        # Extract generation parameters
+        # until = gen_kwargs.get("until", [self.tok_decode([self.eot_token_id])])
+
+        assert context != "", "Context must not be empty"
+        context_ids = self.tok_encode(context)
+
+        # Convert to tensor
+        input_ids = torch.tensor([context_ids], device=self.device)
+        assert input_ids.shape == (1, len(context_ids))
+
+        # Generate tokens autoregressively
+        generated_ids = []
+
+        for _ in range(self.generate_until_max_length):
+            # asser both model and input_ids are on GPU
+            assert input_ids.device.type == "cuda"
+            assert next(self.model.parameters()).device.type == "cuda"
+
+            # Get logits for next token
+            logits = self.model.forward(input_ids, use_optimized=False)
+
+            # Take the last token's logits and get argmax (greedy decoding)
+            next_token_logits = logits[0, -1, :]
+            next_token_id = next_token_logits.argmax().item()
+
+            # Add to generated sequence
+            generated_ids.append(next_token_id)
+
+            # Decode to check for stop sequences
+            generated_text = self.tok_decode(generated_ids)
+
+            # check for EOS token
+            if next_token_id == self.eot_token_id:
+                return generated_text
+
+            # Check if we've hit a stop sequence
+            for stop_seq in until:
+                if stop_seq in generated_text:
+                    # Trim the stop sequence from the output
+                    generated_text = generated_text.split(stop_seq)[0]
+                    return generated_text
+
+            # Append next token to input for next iteration
+            input_ids = torch.cat(
+                [
+                    input_ids,
+                    torch.tensor([[next_token_id]], device=self.device),
+                ],
+                dim=1,
+            )
+        else:
+            # Max tokens reached without hitting stop sequence
+            generated_text = self.tok_decode(generated_ids)
+            return generated_text
+
     @torch.inference_mode()
     def generate_until(self, requests) -> List[str]:
         """Generate text continuations until stopping criteria are met.
@@ -369,62 +425,9 @@ class LittleTrainingLoopWrapper(LM):
 
         for request in requests:
             context, gen_kwargs = request.args
-
-            # Extract generation parameters
             until = gen_kwargs.get("until", [self.tok_decode([self.eot_token_id])])
-
-            assert context != "", "Context must not be empty"
-            # Tokenize context
-            if context == "":  # TODO(markus): remove
-                context_ids = [self.eot_token_id]
-            else:
-                context_ids = self.tok_encode(context)
-
-            # Convert to tensor
-            input_ids = torch.tensor([context_ids], device=self.device)
-
-            # Generate tokens autoregressively
-            generated_ids = []
-
-            for _ in range(self.generate_until_max_length):
-                # Get logits for next token
-                logits = self.model.forward(input_ids, use_optimized=False)
-
-                # Take the last token's logits and get argmax (greedy decoding)
-                next_token_logits = logits[0, -1, :]
-                next_token_id = next_token_logits.argmax().item()
-
-                # Add to generated sequence
-                generated_ids.append(next_token_id)
-
-                # Decode to check for stop sequences
-                generated_text = self.tok_decode(generated_ids)
-
-                # Check if we've hit a stop sequence
-                should_stop = False
-                for stop_seq in until:
-                    if stop_seq in generated_text:
-                        # Trim the stop sequence from the output
-                        generated_text = generated_text.split(stop_seq)[0]
-                        should_stop = True
-                        break
-
-                if should_stop:
-                    results.append(generated_text)
-                    break
-
-                # Append next token to input for next iteration
-                input_ids = torch.cat(
-                    [
-                        input_ids,
-                        torch.tensor([[next_token_id]], device=self.device),
-                    ],
-                    dim=1,
-                )
-            else:
-                # Max tokens reached without hitting stop sequence
-                generated_text = self.tok_decode(generated_ids)
-                results.append(generated_text)
+            generated_text = self.infer(context, until)
+            results.append(generated_text)
 
         return results
 

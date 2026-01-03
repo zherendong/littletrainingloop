@@ -296,3 +296,14 @@ def test_pad_to_multiple_of(pad_to_multiple_of):
     assert len(data["mask"]) % pad_to_multiple_of == 0
     assert len(data["text_per_token"]) % pad_to_multiple_of == 0
     assert data["raw_text"] == " o1 o2 o3 o4 o5 o6 o7 o8 o9 o10"
+
+
+def test_strawberry_tokenization():
+    """Test that the test string is split correctly so that input and target string tokenized separately give the correct output."""
+    tokenizer = default_tokenizer()
+    text = "The number of Rs in strawberry is 2"
+    split_text = ["The number of Rs in strawberry is ", "2"]
+    tokens = tokenizer.encode(text, disallowed_special=())
+    input_tokens = tokenizer.encode(split_text[0], disallowed_special=())
+    output_tokens = tokenizer.encode(split_text[1], disallowed_special=())
+    assert tokens == input_tokens + output_tokens
