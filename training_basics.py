@@ -18,6 +18,7 @@ class TrainingConfig:
     seed: int = 42
     train_metrics_every_n_steps: int = 100
     checkpoint_path: str | None = None
+    save_checkpoint_every_n_steps: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
