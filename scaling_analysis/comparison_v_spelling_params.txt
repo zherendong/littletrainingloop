@@ -1,0 +1,26 @@
+Scaling Law Fit Parameters (Shifted Power Law)
+======================================================================
+
+NOTE: All datasets use shared c = 1.779072 from first dataset
+      (c represents the irreducible loss floor)
+
+Dataset 1: scaling_analysis/scaling_data_v_baseline.csv
+  Label: scaling_data_v_baseline
+  Number of data points: 13
+  PFLOPs range: 1407.03 - 69809.80
+  Loss range: 2.9131 - 3.5884
+  Shifted Power Law (y = a * x^b + c):
+    a = 4.199942
+    b = -0.117134
+    c = 1.779072
+
+Dataset 2: scaling_analysis/scaling_data_v_spelling_bee_frontier.csv
+  Label: scaling_data_v_spelling_bee_frontier
+  Number of data points: 13
+  PFLOPs range: 1407.03 - 69944.91
+  Loss range: 2.8975 - 3.5654
+  Shifted Power Law (y = a * x^b + c):
+    a = 4.122689
+    b = -0.116444
+    c = 1.779072 (shared)
+

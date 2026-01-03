@@ -142,7 +142,13 @@ def fit_single_dataset(
             }
 
 
-def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float = 0):
+def fit_scaling_laws(
+    data_files: list[str],
+    output_base: str,
+    min_pflops: float = 0,
+    title: str | None = None,
+    legend_items: list[str] | None = None,
+):
     """Fit shifted power laws to multiple datasets and generate comparison plots.
 
     For multiple datasets, the c parameter from the first dataset is used for all
@@ -153,6 +159,8 @@ def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float 
         data_files: List of paths to CSV files with pflops and final_loss columns
         output_base: Base name for output files (plots and fit parameters)
         min_pflops: Minimum PFLOPs threshold - datapoints below this are excluded
+        title: Title for the plot (default: Scaling Studies)
+        legend_items: Legend items for the plot (default: derived from data file names)
     """
     print(f"Fitting scaling laws for {len(data_files)} dataset(s)...")
     if min_pflops > 0:
@@ -182,18 +190,22 @@ def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float 
     # Determine global x-axis range for plotting
     all_x = np.concatenate([r["x"] for r in results])
     x_min, x_max = all_x.min(), all_x.max()
-    x_pred = np.logspace(np.log10(x_min), np.log10(x_max * 10), 200)
+    x_pred = np.logspace(np.log10(x_min), np.log10(x_max * 1.5), 200)
 
     # Define colors for different datasets
     colors = plt.cm.tab10(np.linspace(0, 1, len(results)))
 
     # Create plot
     plt.figure(figsize=(12, 8))
+    plt.rcParams.update({"font.family": "serif"})
 
     # Plot each dataset
     for i, result in enumerate(results):
         color = colors[i]
         label = result["label"]
+
+        if legend_items is not None:
+            label = legend_items[i]
 
         # Plot data points
         plt.scatter(
@@ -201,7 +213,7 @@ def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float 
             result["y"],
             color=color,
             s=100,
-            label=f"{label} (data)",
+            # label=label,
             zorder=5,
             alpha=0.7,
         )
@@ -216,25 +228,24 @@ def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float 
                 "-",
                 color=color,
                 linewidth=2,
-                label=(
-                    f"{label} fit: a={params[0]:.3f}, "
-                    f"b={params[1]:.3f}, c={params[2]:.3f}"
-                ),
+                label=label,
+                # label=(
+                #     f"{label} fit: a={params[0]:.3f}, "
+                #     f"b={params[1]:.3f}, c={params[2]:.3f}"
+                # ),
                 alpha=0.8,
             )
 
     plt.xscale("log")
-    plt.xlabel("Compute (PFLOPs)", fontsize=12)
-    plt.ylabel("Final Evaluation Loss", fontsize=12)
+    plt.xlabel("Compute (PFLOPs)", fontsize=16)
+    plt.ylabel("Final Test Loss", fontsize=16)
 
     # Add note about shared c in title if applicable
-    if len(results) > 1 and shared_c is not None:
-        title = f"Scaling Law Comparison (Shifted Power Law, shared c={shared_c:.3f})"
-    else:
-        title = "Scaling Law Comparison (Shifted Power Law)"
-    plt.title(title, fontsize=14)
+    if title is None:
+        title = "Scaling Studies"
+    plt.title(title, fontsize=18)
 
-    plt.legend(fontsize=9, loc="best")
+    plt.legend(fontsize=16, loc="best")
     plt.grid(True, which="both", ls="--", alpha=0.5)
     plt.tight_layout()
 
@@ -310,13 +321,21 @@ def fit_scaling_laws(data_files: list[str], output_base: str, min_pflops: float 
         print(f"Fit parameters CSV saved to: {params_csv_path}")
 
 
-def main(data_files: list[str], output_base: str | None = None, min_pflops: float = 0):
+def main(
+    data_files: list[str],
+    output_base: str | None = None,
+    min_pflops: float = 0,
+    title: str | None = None,
+    legend_items: list[str] | None = None,
+):
     """Main function to fit scaling laws and generate plots.
 
     Args:
         data_files: List of paths to CSV files with prepared scaling data
         output_base: Base name for output files (default: derived from input files)
         min_pflops: Minimum PFLOPs threshold - datapoints below this are excluded (default: 0)
+        title: Title for the plot (default: Scaling Studies)
+        legend_items: Legend items for the plot (default: derived from data file names)
     """
     # Set default output base if not specified
     if output_base is None:
@@ -331,7 +350,13 @@ def main(data_files: list[str], output_base: str | None = None, min_pflops: floa
             # Multiple files: use generic name
             output_base = "scaling_analysis/scaling_law_comparison"
 
-    fit_scaling_laws(data_files, output_base, min_pflops=min_pflops)
+    fit_scaling_laws(
+        data_files,
+        output_base,
+        min_pflops=min_pflops,
+        title=title,
+        legend_items=legend_items,
+    )
 
 
 if __name__ == "__main__":
@@ -359,7 +384,26 @@ if __name__ == "__main__":
         default=500,
         help="Minimum PFLOPs threshold - datapoints below this are excluded (default: 500)",
     )
+    parser.add_argument(
+        "--title",
+        type=str,
+        default=None,
+        help="Title for the plot (default: Scaling Studies)",
+    )
+    parser.add_argument(
+        "--legend_items",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Legend items for the plot (default: derived from data file names)",
+    )
 
     args = parser.parse_args()
 
-    main(data_files=args.data, output_base=args.output, min_pflops=args.min_pflops)
+    main(
+        data_files=args.data,
+        output_base=args.output,
+        min_pflops=args.min_pflops,
+        title=args.title,
+        legend_items=args.legend_items,
+    )
