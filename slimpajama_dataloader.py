@@ -22,14 +22,14 @@ def create_slimpajama_dataloader(
         config: Training configuration.
         split: Dataset split ("train" or "eval").
         path: Path to the SlimPajama data directory.
-        mix_strawberry: If True, mix in strawberry counting data for training.
-            Defaults to True.
+        mix_strawberry: If True and split="train", mix in strawberry counting
+            data. Has no effect for validation/eval splits. Defaults to True.
     """
     raw_data_loader = language_model_dataloader.JSONLDataLoader(
         config, f"{path}_{split}"
     )
 
-    if mix_strawberry:
+    if mix_strawberry and split == "train":
         raw_strawberry_dl = strawberry_dataloader.CountRsInStrawberryDataloader(3)
         raw_data_loader = language_model_dataloader.MixedDataLoader(
             [raw_data_loader, raw_strawberry_dl], [1.0, 0.1], name="Mixed"
@@ -77,8 +77,8 @@ def create_slimpajama_and_call_generate(
         config: Training configuration.
         split: Dataset split ("train" or "eval").
         path: Path to the SlimPajama data directory.
-        mix_strawberry: If True, mix in strawberry counting data for training.
-            Defaults to True.
+        mix_strawberry: If True and split="train", mix in strawberry counting
+            data. Has no effect for validation/eval splits. Defaults to True.
     """
     dataloader = create_slimpajama_dataloader(config, split, path, mix_strawberry)
     return dataloader.generate()
@@ -98,8 +98,8 @@ def create_slimpajama_dataloader_in_separate_process(
         split: Dataset split ("train" or "eval").
         path: Path to the SlimPajama data directory.
         prefetch: Number of batches to prefetch.
-        mix_strawberry: If True, mix in strawberry counting data for training.
-            Defaults to True.
+        mix_strawberry: If True and split="train", mix in strawberry counting
+            data. Has no effect for validation/eval splits. Defaults to True.
     """
     return language_model_dataloader.MultiProcessDataloader(
         create_slimpajama_and_call_generate,
