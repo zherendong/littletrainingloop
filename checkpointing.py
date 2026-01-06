@@ -187,6 +187,9 @@ def load_model_from_training_checkpoint(
     config = dataclasses.replace(
         config, model_config=transformer.TransformerConfig(**config.model_config)
     )
+    config = dataclasses.replace(
+        config, eval_config=language_model_basics.EvalConfig(**config.eval_config)  # type: ignore
+    )
 
     model = transformer.TransformerModel(config.vocab_size, config.model_config)
     model.load_state_dict(checkpoint["model_state_dict"])
