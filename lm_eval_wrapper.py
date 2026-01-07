@@ -146,12 +146,13 @@ class LittleTrainingLoopWrapper(LM):
     @property
     def eot_token_id(self) -> int:
         """End of text token ID."""
-        # If the tokenizer's EOT token is out of bounds for our vocab,
-        # use a fallback (e.g., 0 or vocab_size - 1)
         eot = self.tokenizer.eot_token
         if eot >= self.vocab_size:
-            # Use 0 as EOT for small vocab models
-            return 0
+            raise ValueError(
+                f"Tokenizer EOT token ({eot}) is out of bounds for the model vocab "
+                f"size ({self.vocab_size}). "
+                "Ensure the model was trained with a compatible tokenizer."
+            )
         return eot
 
     def tok_encode(self, string: str) -> List[int]:
