@@ -53,6 +53,7 @@ def create_slimpajama_dataloader(
         raw_data_loader,
         tokenizer,
         extract_slimpajama_data,  # tmp code for extract strawberry
+        append_eot=config.separate_data_with_eot,
     )
 
     # #################### REMOVE THIS TEMP CODE ####################
