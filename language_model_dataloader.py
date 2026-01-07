@@ -139,6 +139,7 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]], Generic[U]):
         data_to_text: Callable[[U], str],
         data_to_input: Callable[[U], str] | None = None,
         pad_to_multiple_of: int = 1,
+        append_eot: bool = False,
     ):
         """
         Args:
@@ -151,6 +152,7 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]], Generic[U]):
             pad_to_multiple_of: Pad the number of tokens to a multiple of this number.
                 This helps with evaluations where the same information shouldn't be
                 repeated within the same batch.
+            append_eot: Append an EOT token to the end of each sequence.
         """
         self.config = config
         self.raw_data_loader = raw_data_loader
@@ -159,12 +161,15 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]], Generic[U]):
         self.data_to_input = data_to_input
         self.pad_to_multiple_of = pad_to_multiple_of
         self.pad_token = tokenizer.eot_token
+        self.append_eot = append_eot
 
     def generate(self) -> Iterable[dict[str, Any]]:
         """Create a fresh iterator."""
         for data in self.raw_data_loader.generate():
             text = self.data_to_text(data)
             tokens = self.tokenizer.encode(text, disallowed_special=())
+            if self.append_eot:
+                tokens.append(self.tokenizer.eot_token)
             mask = [1.0] * len(tokens)
             if self.data_to_input is not None:
                 masked_input = self.data_to_input(data)
@@ -172,8 +177,15 @@ class TokenizedDataLoader(DataProvider[dict[str, Any]], Generic[U]):
                 masked_tokens = self.tokenizer.encode(
                     masked_input, disallowed_special=()
                 )
-                tokens = masked_tokens + tokens
-                mask = [0.0] * len(masked_tokens) + mask
+                num_masked_tokens = len(masked_tokens)
+                ### start of optimization
+                # More efficien variant of the following line:
+                # tokens = masked_tokens + tokens
+                concatenated_tokens = masked_tokens
+                concatenated_tokens.extend(tokens)
+                tokens = concatenated_tokens
+                ### end of optimization
+                mask = [0.0] * num_masked_tokens + mask
             if self.pad_to_multiple_of > 1:
                 num_pad = (
                     self.pad_to_multiple_of - len(tokens) % self.pad_to_multiple_of

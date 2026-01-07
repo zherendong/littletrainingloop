@@ -153,7 +153,6 @@ def test_special_tokens_ok():
     assert "".join(data["text_per_token"]) == text_to_tokenize
 
 
-# let's test data_to_input
 def test_data_to_input():
     """Test the data_to_input function"""
 
@@ -184,12 +183,14 @@ def test_data_to_input():
         tokenizer=default_tokenizer(),
         data_to_text=lambda x: x["text"],
         data_to_input=lambda x: x["input"],
+        append_eot=True,
     )
     data = next(iter(dataloader.generate()))
 
     assert isinstance(data, dict), f"Expected dict, got {type(data)}"
     assert data["raw_text"] == "Hello world"
-    assert data["mask"] == [0.0, 1.0]
+    assert data["mask"] == [0.0, 1.0, 1.0]
+    assert data["text_per_token"] == ["Hello", " world", "<|endoftext|>"]
 
 
 # test loss mask split over multiple batches
