@@ -17,6 +17,9 @@ import language_model_dataloader
 import lm_eval
 import language_model_basics
 import dataclasses
+import os
+
+os.environ["HF_ALLOW_CODE_EVAL"] = "1"
 
 
 @dataclasses.dataclass
@@ -31,17 +34,15 @@ available_tasks = {
     "arc_easy": Task("arc_easy", "acc_norm,none", "accuracy"),
     "arc_challenge": Task("arc_challenge", "acc_norm,none", "accuracy"),
     "humaneval": Task("humaneval", "pass@1,create_test", "pass@1"),
-    # untested below
     # interesting
-    "humaneval_infilling": Task("humaneval", "pass@1,infilling", "pass@1"),
-    "gsm8k": Task("gsm8k", "acc_norm,none", "accuracy"),
-    "hendrycks_math": Task("hendrycks_math", "acc_norm,none", "accuracy"),
-    "mmlu": Task("mmlu", "acc_norm,none", "accuracy"),  # TODO: is "none" right?
+    "gsm8k": Task("gsm8k", "exact_match,flexible-extract", "accuracy"),
+    "hendrycks_math": Task("hendrycks_math", "exact_match,none", "accuracy"),
+    "mmlu": Task("mmlu", "acc,none", "accuracy"),  # TODO: is "none" right?
     # other standard tasks
     "piqa": Task("piqa", "acc_norm,none", "accuracy"),
     "sciq": Task("sciq", "acc_norm,none", "accuracy"),
-    "winogrande": Task("winogrande", "acc_norm,none", "accuracy"),
-    "triviaqa": Task("triviaqa", "acc_norm,none", "accuracy"),
+    "winogrande": Task("winogrande", "acc,none", "accuracy"),
+    "triviaqa": Task("triviaqa", "exact_match,remove_whitespace", "accuracy"),
     "openbookqa": Task("openbookqa", "acc_norm,none", "accuracy"),
     # unknown
     "lambada": Task("lambada", "acc_norm,none", "accuracy"),
@@ -51,6 +52,8 @@ available_tasks = {
     "qasc": Task("qasc", "acc_norm,none", "accuracy"),
     "socialiqa": Task("socialiqa", "acc_norm,none", "accuracy"),
     "commonsenseqa": Task("commonsenseqa", "acc_norm,none", "accuracy"),
+    "drop": Task("drop", "f1,none", "accuracy"),
+    "ceval-valid": Task("ceval-valid", "acc_norm,none", "accuracy"),
 }
 
 default_tasks = [
@@ -58,7 +61,6 @@ default_tasks = [
     "arc_easy",
     "arc_challenge",
     "humaneval",
-    "humaneval_infilling",
     "gsm8k",
     "hendrycks_math",
     "mmlu",
@@ -67,6 +69,8 @@ default_tasks = [
     "winogrande",
     "triviaqa",
     "openbookqa",
+    "drop",
+    "ceval-valid",
 ]
 
 
