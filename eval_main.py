@@ -87,7 +87,8 @@ def save_result(result: EvalResult, output_dir: Path) -> Path:
 def evaluate_single_task(
     wrapper: lm_eval_wrapper.LittleTrainingLoopWrapper,
     task: str,
-    limit: int | None = None,
+    num_fewshot: int | None,
+    limit: int | None,
 ) -> dict:
     """Run evaluation for a single task using an already-loaded model wrapper."""
     print(f"  [lm_eval] Starting evaluation for task: {task}", flush=True)
@@ -96,6 +97,7 @@ def evaluate_single_task(
         model=wrapper,
         tasks=[task],
         limit=limit,
+        num_fewshot=num_fewshot,
         device=wrapper.device,
         max_batch_size=wrapper.batch_size,
         cache_requests=True,
@@ -109,8 +111,9 @@ def evaluate_single_task(
 def evaluate_checkpoint(
     checkpoint_path: Path,
     tasks: list[str],
-    generate_until_max_length: int | None = None,
-    limit: int | None = None,
+    generate_until_max_length: int | None,
+    num_fewshot: int | None,
+    limit: int | None,
     output_dir: Path = RESULTS_DIR,
 ) -> list[EvalResult]:
     """
@@ -164,6 +167,7 @@ def evaluate_checkpoint(
             task_results = evaluate_single_task(
                 wrapper=wrapper,
                 task=task,
+                num_fewshot=num_fewshot,
                 limit=limit,
             )
 
@@ -209,8 +213,9 @@ def evaluate_checkpoint(
 def run_all_evaluations(
     checkpoint_paths: list[Path],
     tasks: list[str],
-    generate_until_max_length: int | None = None,
-    limit: int | None = None,
+    generate_until_max_length: int | None,
+    num_fewshot: int | None,
+    limit: int | None,
     output_dir: Path = RESULTS_DIR,
 ) -> list[EvalResult]:
     """
@@ -233,6 +238,7 @@ def run_all_evaluations(
             checkpoint_path=checkpoint_path,
             tasks=tasks,
             generate_until_max_length=generate_until_max_length,
+            num_fewshot=num_fewshot,
             limit=limit,
             output_dir=output_dir,
         )
@@ -296,6 +302,12 @@ if __name__ == "__main__":
         help="Maximum generation length for generative tasks",
     )
     parser.add_argument(
+        "--num_fewshot",
+        type=int,
+        default=None,
+        help="Number of few-shot examples to use (default is set in task definition)",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -328,6 +340,7 @@ if __name__ == "__main__":
         checkpoint_paths=checkpoint_paths,
         tasks=args.tasks,
         generate_until_max_length=args.generate_max_length,
+        num_fewshot=args.num_fewshot,
         limit=args.limit,
         output_dir=Path(args.output_dir),
     )
