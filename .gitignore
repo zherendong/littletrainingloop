@@ -221,5 +221,6 @@ scaling_data/
 *.qdstrm
 *.nsys-rep
 
-# torchinductor_cache
 torchinductor_cache/
+
+lm_eval_results/
