@@ -234,15 +234,13 @@ class LittleTrainingLoopWrapper(LM):
         for request in requests:
             context, continuation = request.args
 
-            assert context != "", "Context must not be empty"
             # Tokenize context and continuation
-            if context == "":  # TODO(markus): remove
+            if context == "":
                 # Empty context: use EOT token
                 context_ids = [self.eot_token_id]
-                continuation_ids = self.tok_encode(continuation)
             else:
                 context_ids = self.tok_encode(context)
-                continuation_ids = self.tok_encode(continuation)
+            continuation_ids = self.tok_encode(continuation)
 
             # Convert to tensors
             context_tokens = torch.tensor([context_ids], device=self.device)
@@ -302,7 +300,7 @@ class LittleTrainingLoopWrapper(LM):
 
             # Use a single EOT token as prefix context and compute logprobs
             # for the entire sequence in one shot.
-            context_ids = [self.eot_token_id]  # TODO(markus): this looks broken
+            context_ids = [self.eot_token_id]
 
             context_tokens = torch.tensor([context_ids], device=self.device)
             target_tokens = torch.tensor([token_ids], device=self.device)
