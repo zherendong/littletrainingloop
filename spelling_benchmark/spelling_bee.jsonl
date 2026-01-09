@@ -1,0 +1,1000 @@
+{"input": "Reverse the word 'inroader'.", "target": "redaorni", "task_type": "reverse", "metadata": {"word": "inroader"}}
+{"input": "What is the 8th letter of the word 'latvians'?", "target": "s", "task_type": "index", "metadata": {"word": "latvians", "index": 7}}
+{"input": "Reverse the word 'fanged'.", "target": "degnaf", "task_type": "reverse", "metadata": {"word": "fanged"}}
+{"input": "Reverse the word 'anastrophe'.", "target": "ehportsana", "task_type": "reverse", "metadata": {"word": "anastrophe"}}
+{"input": "How many times does the letter 'c' appear in the word 'dipsetic'?", "target": "1", "task_type": "count", "metadata": {"word": "dipsetic", "char": "c"}}
+{"input": "What is the 8th letter of the word 'sayonaras'?", "target": "a", "task_type": "index", "metadata": {"word": "sayonaras", "index": 7}}
+{"input": "How many times does the letter 'o' appear in the word 'bannition'?", "target": "1", "task_type": "count", "metadata": {"word": "bannition", "char": "o"}}
+{"input": "Reverse the word 'subacrid'.", "target": "dircabus", "task_type": "reverse", "metadata": {"word": "subacrid"}}
+{"input": "What is the 10th letter of the word 'subsection'?", "target": "n", "task_type": "index", "metadata": {"word": "subsection", "index": 9}}
+{"input": "What is the 2nd letter of the word 'raved'?", "target": "a", "task_type": "index", "metadata": {"word": "raved", "index": 1}}
+{"input": "How many times does the letter 'i' appear in the word 'jiffy'?", "target": "1", "task_type": "count", "metadata": {"word": "jiffy", "char": "i"}}
+{"input": "Reverse the word 'pummel'.", "target": "lemmup", "task_type": "reverse", "metadata": {"word": "pummel"}}
+{"input": "What is the 5th letter of the word 'cheesewood'?", "target": "s", "task_type": "index", "metadata": {"word": "cheesewood", "index": 4}}
+{"input": "What is the 2nd letter of the word 'timbang'?", "target": "i", "task_type": "index", "metadata": {"word": "timbang", "index": 1}}
+{"input": "Reverse the word 'bapistery'.", "target": "yretsipab", "task_type": "reverse", "metadata": {"word": "bapistery"}}
+{"input": "What is the 2nd letter of the word 'auntly'?", "target": "u", "task_type": "index", "metadata": {"word": "auntly", "index": 1}}
+{"input": "Reverse the word 'successor'.", "target": "rosseccus", "task_type": "reverse", "metadata": {"word": "successor"}}
+{"input": "How many times does the letter 'p' appear in the word 'flops'?", "target": "1", "task_type": "count", "metadata": {"word": "flops", "char": "p"}}
+{"input": "Reverse the word 'whichways'.", "target": "syawhcihw", "task_type": "reverse", "metadata": {"word": "whichways"}}
+{"input": "What is the 8th letter of the word 'fableland'?", "target": "n", "task_type": "index", "metadata": {"word": "fableland", "index": 7}}
+{"input": "What is the 4th letter of the word 'caite'?", "target": "t", "task_type": "index", "metadata": {"word": "caite", "index": 3}}
+{"input": "Reverse the word 'ribbiest'.", "target": "tseibbir", "task_type": "reverse", "metadata": {"word": "ribbiest"}}
+{"input": "What is the 7th letter of the word 'flanerie'?", "target": "i", "task_type": "index", "metadata": {"word": "flanerie", "index": 6}}
+{"input": "What is the 8th letter of the word 'epibatus'?", "target": "s", "task_type": "index", "metadata": {"word": "epibatus", "index": 7}}
+{"input": "What is the 1st letter of the word 'kiotome'?", "target": "k", "task_type": "index", "metadata": {"word": "kiotome", "index": 0}}
+{"input": "What is the 1st letter of the word 'pesach'?", "target": "p", "task_type": "index", "metadata": {"word": "pesach", "index": 0}}
+{"input": "What is the 7th letter of the word 'unwindowed'?", "target": "o", "task_type": "index", "metadata": {"word": "unwindowed", "index": 6}}
+{"input": "What is the 6th letter of the word 'shoddydom'?", "target": "y", "task_type": "index", "metadata": {"word": "shoddydom", "index": 5}}
+{"input": "What is the 3rd letter of the word 'pianic'?", "target": "a", "task_type": "index", "metadata": {"word": "pianic", "index": 2}}
+{"input": "Reverse the word 'alphonso'.", "target": "osnohpla", "task_type": "reverse", "metadata": {"word": "alphonso"}}
+{"input": "What is the 4th letter of the word 'bilgewater'?", "target": "g", "task_type": "index", "metadata": {"word": "bilgewater", "index": 3}}
+{"input": "Reverse the word 'relayer'.", "target": "reyaler", "task_type": "reverse", "metadata": {"word": "relayer"}}
+{"input": "Reverse the word 'tourisms'.", "target": "smsiruot", "task_type": "reverse", "metadata": {"word": "tourisms"}}
+{"input": "What is the 5th letter of the word 'uncoked'?", "target": "k", "task_type": "index", "metadata": {"word": "uncoked", "index": 4}}
+{"input": "Reverse the word 'patentees'.", "target": "seetnetap", "task_type": "reverse", "metadata": {"word": "patentees"}}
+{"input": "What is the 5th letter of the word 'alcaides'?", "target": "i", "task_type": "index", "metadata": {"word": "alcaides", "index": 4}}
+{"input": "What is the 1st letter of the word 'paganizer'?", "target": "p", "task_type": "index", "metadata": {"word": "paganizer", "index": 0}}
+{"input": "Reverse the word 'sourdock'.", "target": "kcodruos", "task_type": "reverse", "metadata": {"word": "sourdock"}}
+{"input": "How many times does the letter 'e' appear in the word 'snooled'?", "target": "1", "task_type": "count", "metadata": {"word": "snooled", "char": "e"}}
+{"input": "What is the 4th letter of the word 'quant'?", "target": "n", "task_type": "index", "metadata": {"word": "quant", "index": 3}}
+{"input": "How many times does the letter 't' appear in the word 'waterdoe'?", "target": "1", "task_type": "count", "metadata": {"word": "waterdoe", "char": "t"}}
+{"input": "How many times does the letter 'i' appear in the word 'kibsey'?", "target": "1", "task_type": "count", "metadata": {"word": "kibsey", "char": "i"}}
+{"input": "Reverse the word 'bilbies'.", "target": "seiblib", "task_type": "reverse", "metadata": {"word": "bilbies"}}
+{"input": "How many times does the letter 'o' appear in the word 'lowrie'?", "target": "1", "task_type": "count", "metadata": {"word": "lowrie", "char": "o"}}
+{"input": "What is the 6th letter of the word 'frowzy'?", "target": "y", "task_type": "index", "metadata": {"word": "frowzy", "index": 5}}
+{"input": "Reverse the word 'bootikin'.", "target": "nikitoob", "task_type": "reverse", "metadata": {"word": "bootikin"}}
+{"input": "How many times does the letter 'u' appear in the word 'unbigoted'?", "target": "1", "task_type": "count", "metadata": {"word": "unbigoted", "char": "u"}}
+{"input": "How many times does the letter 'e' appear in the word 'roysters'?", "target": "1", "task_type": "count", "metadata": {"word": "roysters", "char": "e"}}
+{"input": "Reverse the word 'improvers'.", "target": "srevorpmi", "task_type": "reverse", "metadata": {"word": "improvers"}}
+{"input": "How many times does the letter 'l' appear in the word 'telluret'?", "target": "2", "task_type": "count", "metadata": {"word": "telluret", "char": "l"}}
+{"input": "What is the 1st letter of the word 'lensman'?", "target": "l", "task_type": "index", "metadata": {"word": "lensman", "index": 0}}
+{"input": "Reverse the word 'forksmith'.", "target": "htimskrof", "task_type": "reverse", "metadata": {"word": "forksmith"}}
+{"input": "How many times does the letter 'u' appear in the word 'duxelles'?", "target": "1", "task_type": "count", "metadata": {"word": "duxelles", "char": "u"}}
+{"input": "How many times does the letter 'a' appear in the word 'undissuade'?", "target": "1", "task_type": "count", "metadata": {"word": "undissuade", "char": "a"}}
+{"input": "What is the 8th letter of the word 'rajarshi'?", "target": "i", "task_type": "index", "metadata": {"word": "rajarshi", "index": 7}}
+{"input": "What is the 1st letter of the word 'inurn'?", "target": "i", "task_type": "index", "metadata": {"word": "inurn", "index": 0}}
+{"input": "Reverse the word 'corsetier'.", "target": "reitesroc", "task_type": "reverse", "metadata": {"word": "corsetier"}}
+{"input": "Reverse the word 'mousle'.", "target": "elsuom", "task_type": "reverse", "metadata": {"word": "mousle"}}
+{"input": "How many times does the letter 'e' appear in the word 'hamulose'?", "target": "1", "task_type": "count", "metadata": {"word": "hamulose", "char": "e"}}
+{"input": "What is the 8th letter of the word 'possumwood'?", "target": "o", "task_type": "index", "metadata": {"word": "possumwood", "index": 7}}
+{"input": "What is the 1st letter of the word 'solums'?", "target": "s", "task_type": "index", "metadata": {"word": "solums", "index": 0}}
+{"input": "How many times does the letter 't' appear in the word 'cutesiest'?", "target": "2", "task_type": "count", "metadata": {"word": "cutesiest", "char": "t"}}
+{"input": "What is the 3rd letter of the word 'wittily'?", "target": "t", "task_type": "index", "metadata": {"word": "wittily", "index": 2}}
+{"input": "What is the 4th letter of the word 'kishy'?", "target": "h", "task_type": "index", "metadata": {"word": "kishy", "index": 3}}
+{"input": "What is the 1st letter of the word 'butteries'?", "target": "b", "task_type": "index", "metadata": {"word": "butteries", "index": 0}}
+{"input": "Reverse the word 'preciting'.", "target": "gniticerp", "task_type": "reverse", "metadata": {"word": "preciting"}}
+{"input": "What is the 4th letter of the word 'pioneers'?", "target": "n", "task_type": "index", "metadata": {"word": "pioneers", "index": 3}}
+{"input": "How many times does the letter 'a' appear in the word 'savoriest'?", "target": "1", "task_type": "count", "metadata": {"word": "savoriest", "char": "a"}}
+{"input": "How many times does the letter 'm' appear in the word 'omina'?", "target": "1", "task_type": "count", "metadata": {"word": "omina", "char": "m"}}
+{"input": "How many times does the letter 'o' appear in the word 'tribadism'?", "target": "0", "task_type": "count", "metadata": {"word": "tribadism", "char": "o"}}
+{"input": "How many times does the letter 'a' appear in the word 'bulla'?", "target": "1", "task_type": "count", "metadata": {"word": "bulla", "char": "a"}}
+{"input": "How many times does the letter 'j' appear in the word 'midst'?", "target": "0", "task_type": "count", "metadata": {"word": "midst", "char": "j"}}
+{"input": "What is the 5th letter of the word 'mizzling'?", "target": "l", "task_type": "index", "metadata": {"word": "mizzling", "index": 4}}
+{"input": "How many times does the letter 'p' appear in the word 'youthy'?", "target": "0", "task_type": "count", "metadata": {"word": "youthy", "char": "p"}}
+{"input": "What is the 4th letter of the word 'douche'?", "target": "c", "task_type": "index", "metadata": {"word": "douche", "index": 3}}
+{"input": "Reverse the word 'oleacina'.", "target": "anicaelo", "task_type": "reverse", "metadata": {"word": "oleacina"}}
+{"input": "Reverse the word 'chayma'.", "target": "amyahc", "task_type": "reverse", "metadata": {"word": "chayma"}}
+{"input": "Reverse the word 'homerology'.", "target": "ygoloremoh", "task_type": "reverse", "metadata": {"word": "homerology"}}
+{"input": "How many times does the letter 'q' appear in the word 'covary'?", "target": "0", "task_type": "count", "metadata": {"word": "covary", "char": "q"}}
+{"input": "Reverse the word 'sixtowns'.", "target": "snwotxis", "task_type": "reverse", "metadata": {"word": "sixtowns"}}
+{"input": "Reverse the word 'unput'.", "target": "tupnu", "task_type": "reverse", "metadata": {"word": "unput"}}
+{"input": "What is the 2nd letter of the word 'cashment'?", "target": "a", "task_type": "index", "metadata": {"word": "cashment", "index": 1}}
+{"input": "How many times does the letter 'n' appear in the word 'erns'?", "target": "1", "task_type": "count", "metadata": {"word": "erns", "char": "n"}}
+{"input": "Reverse the word 'glariness'.", "target": "sseniralg", "task_type": "reverse", "metadata": {"word": "glariness"}}
+{"input": "How many times does the letter 'z' appear in the word 'zapateados'?", "target": "1", "task_type": "count", "metadata": {"word": "zapateados", "char": "z"}}
+{"input": "Reverse the word 'thermidor'.", "target": "rodimreht", "task_type": "reverse", "metadata": {"word": "thermidor"}}
+{"input": "Reverse the word 'abris'.", "target": "sirba", "task_type": "reverse", "metadata": {"word": "abris"}}
+{"input": "How many times does the letter 'e' appear in the word 'evictions'?", "target": "1", "task_type": "count", "metadata": {"word": "evictions", "char": "e"}}
+{"input": "What is the 2nd letter of the word 'undraws'?", "target": "n", "task_type": "index", "metadata": {"word": "undraws", "index": 1}}
+{"input": "How many times does the letter 'm' appear in the word 'laminating'?", "target": "1", "task_type": "count", "metadata": {"word": "laminating", "char": "m"}}
+{"input": "Reverse the word 'geminous'.", "target": "suonimeg", "task_type": "reverse", "metadata": {"word": "geminous"}}
+{"input": "How many times does the letter 'k' appear in the word 'ollock'?", "target": "1", "task_type": "count", "metadata": {"word": "ollock", "char": "k"}}
+{"input": "What is the 3rd letter of the word 'leprid'?", "target": "p", "task_type": "index", "metadata": {"word": "leprid", "index": 2}}
+{"input": "What is the 4th letter of the word 'ungouged'?", "target": "o", "task_type": "index", "metadata": {"word": "ungouged", "index": 3}}
+{"input": "How many times does the letter 'r' appear in the word 'rozzer'?", "target": "2", "task_type": "count", "metadata": {"word": "rozzer", "char": "r"}}
+{"input": "Reverse the word 'disempower'.", "target": "rewopmesid", "task_type": "reverse", "metadata": {"word": "disempower"}}
+{"input": "What is the 7th letter of the word 'unalerted'?", "target": "t", "task_type": "index", "metadata": {"word": "unalerted", "index": 6}}
+{"input": "What is the 3rd letter of the word 'appals'?", "target": "p", "task_type": "index", "metadata": {"word": "appals", "index": 2}}
+{"input": "How many times does the letter 's' appear in the word 'siphonata'?", "target": "1", "task_type": "count", "metadata": {"word": "siphonata", "char": "s"}}
+{"input": "Reverse the word 'horkey'.", "target": "yekroh", "task_type": "reverse", "metadata": {"word": "horkey"}}
+{"input": "Reverse the word 'rebeget'.", "target": "tegeber", "task_type": "reverse", "metadata": {"word": "rebeget"}}
+{"input": "How many times does the letter 'e' appear in the word 'subventive'?", "target": "2", "task_type": "count", "metadata": {"word": "subventive", "char": "e"}}
+{"input": "Reverse the word 'meterage'.", "target": "egaretem", "task_type": "reverse", "metadata": {"word": "meterage"}}
+{"input": "Reverse the word 'anoli'.", "target": "ilona", "task_type": "reverse", "metadata": {"word": "anoli"}}
+{"input": "What is the 5th letter of the word 'calling'?", "target": "i", "task_type": "index", "metadata": {"word": "calling", "index": 4}}
+{"input": "Reverse the word 'pedante'.", "target": "etnadep", "task_type": "reverse", "metadata": {"word": "pedante"}}
+{"input": "Reverse the word 'geissoloma'.", "target": "amolossieg", "task_type": "reverse", "metadata": {"word": "geissoloma"}}
+{"input": "Reverse the word 'ungrasp'.", "target": "psargnu", "task_type": "reverse", "metadata": {"word": "ungrasp"}}
+{"input": "How many times does the letter 'o' appear in the word 'boatly'?", "target": "1", "task_type": "count", "metadata": {"word": "boatly", "char": "o"}}
+{"input": "What is the 8th letter of the word 'bluffing'?", "target": "g", "task_type": "index", "metadata": {"word": "bluffing", "index": 7}}
+{"input": "Reverse the word 'agalawood'.", "target": "doowalaga", "task_type": "reverse", "metadata": {"word": "agalawood"}}
+{"input": "How many times does the letter 'r' appear in the word 'semecarpus'?", "target": "1", "task_type": "count", "metadata": {"word": "semecarpus", "char": "r"}}
+{"input": "What is the 4th letter of the word 'basnet'?", "target": "n", "task_type": "index", "metadata": {"word": "basnet", "index": 3}}
+{"input": "How many times does the letter 'k' appear in the word 'stirlessly'?", "target": "0", "task_type": "count", "metadata": {"word": "stirlessly", "char": "k"}}
+{"input": "What is the 6th letter of the word 'poopsie'?", "target": "i", "task_type": "index", "metadata": {"word": "poopsie", "index": 5}}
+{"input": "Reverse the word 'imbodied'.", "target": "deidobmi", "task_type": "reverse", "metadata": {"word": "imbodied"}}
+{"input": "How many times does the letter 's' appear in the word 'pushed'?", "target": "1", "task_type": "count", "metadata": {"word": "pushed", "char": "s"}}
+{"input": "What is the 9th letter of the word 'twanglers'?", "target": "s", "task_type": "index", "metadata": {"word": "twanglers", "index": 8}}
+{"input": "How many times does the letter 'u' appear in the word 'hippos'?", "target": "0", "task_type": "count", "metadata": {"word": "hippos", "char": "u"}}
+{"input": "How many times does the letter 'p' appear in the word 'seabeds'?", "target": "0", "task_type": "count", "metadata": {"word": "seabeds", "char": "p"}}
+{"input": "What is the 9th letter of the word 'unintwined'?", "target": "e", "task_type": "index", "metadata": {"word": "unintwined", "index": 8}}
+{"input": "What is the 10th letter of the word 'anisotrope'?", "target": "e", "task_type": "index", "metadata": {"word": "anisotrope", "index": 9}}
+{"input": "What is the 4th letter of the word 'balanoid'?", "target": "a", "task_type": "index", "metadata": {"word": "balanoid", "index": 3}}
+{"input": "How many times does the letter 'r' appear in the word 'predrawer'?", "target": "3", "task_type": "count", "metadata": {"word": "predrawer", "char": "r"}}
+{"input": "What is the 6th letter of the word 'dielec'?", "target": "c", "task_type": "index", "metadata": {"word": "dielec", "index": 5}}
+{"input": "How many times does the letter 'a' appear in the word 'bifaces'?", "target": "1", "task_type": "count", "metadata": {"word": "bifaces", "char": "a"}}
+{"input": "Reverse the word 'somepart'.", "target": "trapemos", "task_type": "reverse", "metadata": {"word": "somepart"}}
+{"input": "Reverse the word 'preparer'.", "target": "reraperp", "task_type": "reverse", "metadata": {"word": "preparer"}}
+{"input": "Reverse the word 'sallowest'.", "target": "tsewollas", "task_type": "reverse", "metadata": {"word": "sallowest"}}
+{"input": "What is the 2nd letter of the word 'uniovular'?", "target": "n", "task_type": "index", "metadata": {"word": "uniovular", "index": 1}}
+{"input": "Reverse the word 'labrose'.", "target": "esorbal", "task_type": "reverse", "metadata": {"word": "labrose"}}
+{"input": "Reverse the word 'cloud'.", "target": "duolc", "task_type": "reverse", "metadata": {"word": "cloud"}}
+{"input": "Reverse the word 'romancelet'.", "target": "telecnamor", "task_type": "reverse", "metadata": {"word": "romancelet"}}
+{"input": "What is the 1st letter of the word 'figures'?", "target": "f", "task_type": "index", "metadata": {"word": "figures", "index": 0}}
+{"input": "What is the 6th letter of the word 'aratinga'?", "target": "n", "task_type": "index", "metadata": {"word": "aratinga", "index": 5}}
+{"input": "Reverse the word 'sunnas'.", "target": "sannus", "task_type": "reverse", "metadata": {"word": "sunnas"}}
+{"input": "How many times does the letter 'o' appear in the word 'astrolater'?", "target": "1", "task_type": "count", "metadata": {"word": "astrolater", "char": "o"}}
+{"input": "How many times does the letter 'd' appear in the word 'kaladana'?", "target": "1", "task_type": "count", "metadata": {"word": "kaladana", "char": "d"}}
+{"input": "What is the 10th letter of the word 'interworld'?", "target": "d", "task_type": "index", "metadata": {"word": "interworld", "index": 9}}
+{"input": "Reverse the word 'resoluter'.", "target": "retuloser", "task_type": "reverse", "metadata": {"word": "resoluter"}}
+{"input": "Reverse the word 'subworkman'.", "target": "namkrowbus", "task_type": "reverse", "metadata": {"word": "subworkman"}}
+{"input": "Reverse the word 'conicity'.", "target": "yticinoc", "task_type": "reverse", "metadata": {"word": "conicity"}}
+{"input": "Reverse the word 'codical'.", "target": "lacidoc", "task_type": "reverse", "metadata": {"word": "codical"}}
+{"input": "How many times does the letter 'c' appear in the word 'combiner'?", "target": "1", "task_type": "count", "metadata": {"word": "combiner", "char": "c"}}
+{"input": "Reverse the word 'polyacid'.", "target": "dicaylop", "task_type": "reverse", "metadata": {"word": "polyacid"}}
+{"input": "What is the 4th letter of the word 'resupplied'?", "target": "u", "task_type": "index", "metadata": {"word": "resupplied", "index": 3}}
+{"input": "What is the 10th letter of the word 'microsomic'?", "target": "c", "task_type": "index", "metadata": {"word": "microsomic", "index": 9}}
+{"input": "What is the 4th letter of the word 'cerebroid'?", "target": "e", "task_type": "index", "metadata": {"word": "cerebroid", "index": 3}}
+{"input": "How many times does the letter 'n' appear in the word 'linesman'?", "target": "2", "task_type": "count", "metadata": {"word": "linesman", "char": "n"}}
+{"input": "Reverse the word 'ecuelling'.", "target": "gnilleuce", "task_type": "reverse", "metadata": {"word": "ecuelling"}}
+{"input": "Reverse the word 'rectify'.", "target": "yfitcer", "task_type": "reverse", "metadata": {"word": "rectify"}}
+{"input": "Reverse the word 'addnl'.", "target": "lndda", "task_type": "reverse", "metadata": {"word": "addnl"}}
+{"input": "What is the 8th letter of the word 'vasoreflex'?", "target": "l", "task_type": "index", "metadata": {"word": "vasoreflex", "index": 7}}
+{"input": "What is the 3rd letter of the word 'ventoy'?", "target": "n", "task_type": "index", "metadata": {"word": "ventoy", "index": 2}}
+{"input": "What is the 5th letter of the word 'repage'?", "target": "g", "task_type": "index", "metadata": {"word": "repage", "index": 4}}
+{"input": "What is the 2nd letter of the word 'ciconiform'?", "target": "i", "task_type": "index", "metadata": {"word": "ciconiform", "index": 1}}
+{"input": "How many times does the letter 's' appear in the word 'kotwali'?", "target": "0", "task_type": "count", "metadata": {"word": "kotwali", "char": "s"}}
+{"input": "How many times does the letter 'e' appear in the word 'fifed'?", "target": "1", "task_type": "count", "metadata": {"word": "fifed", "char": "e"}}
+{"input": "Reverse the word 'rilievo'.", "target": "oveilir", "task_type": "reverse", "metadata": {"word": "rilievo"}}
+{"input": "Reverse the word 'dugongidae'.", "target": "eadignogud", "task_type": "reverse", "metadata": {"word": "dugongidae"}}
+{"input": "What is the 3rd letter of the word 'levite'?", "target": "v", "task_type": "index", "metadata": {"word": "levite", "index": 2}}
+{"input": "How many times does the letter 'p' appear in the word 'cuarto'?", "target": "0", "task_type": "count", "metadata": {"word": "cuarto", "char": "p"}}
+{"input": "What is the 2nd letter of the word 'bouget'?", "target": "o", "task_type": "index", "metadata": {"word": "bouget", "index": 1}}
+{"input": "What is the 5th letter of the word 'hobbism'?", "target": "i", "task_type": "index", "metadata": {"word": "hobbism", "index": 4}}
+{"input": "Reverse the word 'hagadic'.", "target": "cidagah", "task_type": "reverse", "metadata": {"word": "hagadic"}}
+{"input": "Reverse the word 'oxwort'.", "target": "trowxo", "task_type": "reverse", "metadata": {"word": "oxwort"}}
+{"input": "What is the 5th letter of the word 'fenchone'?", "target": "h", "task_type": "index", "metadata": {"word": "fenchone", "index": 4}}
+{"input": "Reverse the word 'alfin'.", "target": "nifla", "task_type": "reverse", "metadata": {"word": "alfin"}}
+{"input": "What is the 7th letter of the word 'titubancy'?", "target": "n", "task_type": "index", "metadata": {"word": "titubancy", "index": 6}}
+{"input": "How many times does the letter 'p' appear in the word 'epoxidize'?", "target": "1", "task_type": "count", "metadata": {"word": "epoxidize", "char": "p"}}
+{"input": "Reverse the word 'revert'.", "target": "trever", "task_type": "reverse", "metadata": {"word": "revert"}}
+{"input": "What is the 1st letter of the word 'steerling'?", "target": "s", "task_type": "index", "metadata": {"word": "steerling", "index": 0}}
+{"input": "What is the 8th letter of the word 'vulgarise'?", "target": "s", "task_type": "index", "metadata": {"word": "vulgarise", "index": 7}}
+{"input": "How many times does the letter 'j' appear in the word 'tonotaxis'?", "target": "0", "task_type": "count", "metadata": {"word": "tonotaxis", "char": "j"}}
+{"input": "What is the 7th letter of the word 'stammer'?", "target": "r", "task_type": "index", "metadata": {"word": "stammer", "index": 6}}
+{"input": "Reverse the word 'dinguses'.", "target": "sesugnid", "task_type": "reverse", "metadata": {"word": "dinguses"}}
+{"input": "Reverse the word 'piloti'.", "target": "itolip", "task_type": "reverse", "metadata": {"word": "piloti"}}
+{"input": "How many times does the letter 's' appear in the word 'swivellike'?", "target": "1", "task_type": "count", "metadata": {"word": "swivellike", "char": "s"}}
+{"input": "What is the 10th letter of the word 'courbettes'?", "target": "s", "task_type": "index", "metadata": {"word": "courbettes", "index": 9}}
+{"input": "Reverse the word 'dumfounder'.", "target": "rednuofmud", "task_type": "reverse", "metadata": {"word": "dumfounder"}}
+{"input": "What is the 3rd letter of the word 'reparatory'?", "target": "p", "task_type": "index", "metadata": {"word": "reparatory", "index": 2}}
+{"input": "How many times does the letter 'a' appear in the word 'praham'?", "target": "2", "task_type": "count", "metadata": {"word": "praham", "char": "a"}}
+{"input": "How many times does the letter 'f' appear in the word 'fluocerite'?", "target": "1", "task_type": "count", "metadata": {"word": "fluocerite", "char": "f"}}
+{"input": "How many times does the letter 'r' appear in the word 'pander'?", "target": "1", "task_type": "count", "metadata": {"word": "pander", "char": "r"}}
+{"input": "How many times does the letter 'k' appear in the word 'bidi'?", "target": "0", "task_type": "count", "metadata": {"word": "bidi", "char": "k"}}
+{"input": "What is the 7th letter of the word 'skydivers'?", "target": "e", "task_type": "index", "metadata": {"word": "skydivers", "index": 6}}
+{"input": "Reverse the word 'commander'.", "target": "rednammoc", "task_type": "reverse", "metadata": {"word": "commander"}}
+{"input": "Reverse the word 'cumberless'.", "target": "sselrebmuc", "task_type": "reverse", "metadata": {"word": "cumberless"}}
+{"input": "Reverse the word 'caragheen'.", "target": "neehgarac", "task_type": "reverse", "metadata": {"word": "caragheen"}}
+{"input": "What is the 9th letter of the word 'struggling'?", "target": "n", "task_type": "index", "metadata": {"word": "struggling", "index": 8}}
+{"input": "How many times does the letter 'q' appear in the word 'unnarrowly'?", "target": "0", "task_type": "count", "metadata": {"word": "unnarrowly", "char": "q"}}
+{"input": "How many times does the letter 'f' appear in the word 'minorcas'?", "target": "0", "task_type": "count", "metadata": {"word": "minorcas", "char": "f"}}
+{"input": "What is the 4th letter of the word 'eggnog'?", "target": "n", "task_type": "index", "metadata": {"word": "eggnog", "index": 3}}
+{"input": "What is the 3rd letter of the word 'tanbur'?", "target": "n", "task_type": "index", "metadata": {"word": "tanbur", "index": 2}}
+{"input": "What is the 3rd letter of the word 'skance'?", "target": "a", "task_type": "index", "metadata": {"word": "skance", "index": 2}}
+{"input": "What is the 2nd letter of the word 'tailbacks'?", "target": "a", "task_type": "index", "metadata": {"word": "tailbacks", "index": 1}}
+{"input": "Reverse the word 'lophiodon'.", "target": "nodoihpol", "task_type": "reverse", "metadata": {"word": "lophiodon"}}
+{"input": "How many times does the letter 'a' appear in the word 'batara'?", "target": "3", "task_type": "count", "metadata": {"word": "batara", "char": "a"}}
+{"input": "How many times does the letter 'c' appear in the word 'unclimb'?", "target": "1", "task_type": "count", "metadata": {"word": "unclimb", "char": "c"}}
+{"input": "What is the 5th letter of the word 'imbibe'?", "target": "b", "task_type": "index", "metadata": {"word": "imbibe", "index": 4}}
+{"input": "Reverse the word 'hauls'.", "target": "sluah", "task_type": "reverse", "metadata": {"word": "hauls"}}
+{"input": "How many times does the letter 'b' appear in the word 'bienvenu'?", "target": "1", "task_type": "count", "metadata": {"word": "bienvenu", "char": "b"}}
+{"input": "How many times does the letter 't' appear in the word 'encaustes'?", "target": "1", "task_type": "count", "metadata": {"word": "encaustes", "char": "t"}}
+{"input": "What is the 3rd letter of the word 'hedgy'?", "target": "d", "task_type": "index", "metadata": {"word": "hedgy", "index": 2}}
+{"input": "Reverse the word 'parodinia'.", "target": "ainidorap", "task_type": "reverse", "metadata": {"word": "parodinia"}}
+{"input": "How many times does the letter 'l' appear in the word 'hittitics'?", "target": "0", "task_type": "count", "metadata": {"word": "hittitics", "char": "l"}}
+{"input": "Reverse the word 'brack'.", "target": "kcarb", "task_type": "reverse", "metadata": {"word": "brack"}}
+{"input": "How many times does the letter 'l' appear in the word 'relic'?", "target": "1", "task_type": "count", "metadata": {"word": "relic", "char": "l"}}
+{"input": "Reverse the word 'poleaxing'.", "target": "gnixaelop", "task_type": "reverse", "metadata": {"word": "poleaxing"}}
+{"input": "How many times does the letter 'k' appear in the word 'unsoothed'?", "target": "0", "task_type": "count", "metadata": {"word": "unsoothed", "char": "k"}}
+{"input": "Reverse the word 'washery'.", "target": "yrehsaw", "task_type": "reverse", "metadata": {"word": "washery"}}
+{"input": "What is the 4th letter of the word 'pyroacid'?", "target": "o", "task_type": "index", "metadata": {"word": "pyroacid", "index": 3}}
+{"input": "Reverse the word 'pummels'.", "target": "slemmup", "task_type": "reverse", "metadata": {"word": "pummels"}}
+{"input": "How many times does the letter 'l' appear in the word 'awful'?", "target": "1", "task_type": "count", "metadata": {"word": "awful", "char": "l"}}
+{"input": "What is the 5th letter of the word 'volitient'?", "target": "t", "task_type": "index", "metadata": {"word": "volitient", "index": 4}}
+{"input": "Reverse the word 'purlines'.", "target": "senilrup", "task_type": "reverse", "metadata": {"word": "purlines"}}
+{"input": "What is the 1st letter of the word 'inphase'?", "target": "i", "task_type": "index", "metadata": {"word": "inphase", "index": 0}}
+{"input": "What is the 1st letter of the word 'causidical'?", "target": "c", "task_type": "index", "metadata": {"word": "causidical", "index": 0}}
+{"input": "Reverse the word 'anophele'.", "target": "elehpona", "task_type": "reverse", "metadata": {"word": "anophele"}}
+{"input": "What is the 4th letter of the word 'flash'?", "target": "s", "task_type": "index", "metadata": {"word": "flash", "index": 3}}
+{"input": "How many times does the letter 'g' appear in the word 'buckraming'?", "target": "1", "task_type": "count", "metadata": {"word": "buckraming", "char": "g"}}
+{"input": "What is the 7th letter of the word 'cartmaker'?", "target": "k", "task_type": "index", "metadata": {"word": "cartmaker", "index": 6}}
+{"input": "How many times does the letter 'e' appear in the word 'legendary'?", "target": "2", "task_type": "count", "metadata": {"word": "legendary", "char": "e"}}
+{"input": "How many times does the letter 'o' appear in the word 'patholysis'?", "target": "1", "task_type": "count", "metadata": {"word": "patholysis", "char": "o"}}
+{"input": "Reverse the word 'unstricken'.", "target": "nekcirtsnu", "task_type": "reverse", "metadata": {"word": "unstricken"}}
+{"input": "How many times does the letter 'n' appear in the word 'yoking'?", "target": "1", "task_type": "count", "metadata": {"word": "yoking", "char": "n"}}
+{"input": "What is the 4th letter of the word 'pliably'?", "target": "a", "task_type": "index", "metadata": {"word": "pliably", "index": 3}}
+{"input": "How many times does the letter 'n' appear in the word 'ethnol'?", "target": "1", "task_type": "count", "metadata": {"word": "ethnol", "char": "n"}}
+{"input": "Reverse the word 'demolishes'.", "target": "sehsilomed", "task_type": "reverse", "metadata": {"word": "demolishes"}}
+{"input": "What is the 8th letter of the word 'labiated'?", "target": "d", "task_type": "index", "metadata": {"word": "labiated", "index": 7}}
+{"input": "How many times does the letter 'd' appear in the word 'dysprosia'?", "target": "1", "task_type": "count", "metadata": {"word": "dysprosia", "char": "d"}}
+{"input": "Reverse the word 'revery'.", "target": "yrever", "task_type": "reverse", "metadata": {"word": "revery"}}
+{"input": "What is the 5th letter of the word 'healths'?", "target": "t", "task_type": "index", "metadata": {"word": "healths", "index": 4}}
+{"input": "What is the 6th letter of the word 'verbiles'?", "target": "l", "task_type": "index", "metadata": {"word": "verbiles", "index": 5}}
+{"input": "Reverse the word 'autoblast'.", "target": "tsalbotua", "task_type": "reverse", "metadata": {"word": "autoblast"}}
+{"input": "How many times does the letter 'b' appear in the word 'immeubles'?", "target": "1", "task_type": "count", "metadata": {"word": "immeubles", "char": "b"}}
+{"input": "Reverse the word 'tsiology'.", "target": "ygoloist", "task_type": "reverse", "metadata": {"word": "tsiology"}}
+{"input": "What is the 8th letter of the word 'thuggeries'?", "target": "i", "task_type": "index", "metadata": {"word": "thuggeries", "index": 7}}
+{"input": "What is the 4th letter of the word 'billhook'?", "target": "l", "task_type": "index", "metadata": {"word": "billhook", "index": 3}}
+{"input": "How many times does the letter 'a' appear in the word 'proppage'?", "target": "1", "task_type": "count", "metadata": {"word": "proppage", "char": "a"}}
+{"input": "Reverse the word 'arrestive'.", "target": "evitserra", "task_type": "reverse", "metadata": {"word": "arrestive"}}
+{"input": "Reverse the word 'stubornly'.", "target": "ylnrobuts", "task_type": "reverse", "metadata": {"word": "stubornly"}}
+{"input": "What is the 4th letter of the word 'gentisic'?", "target": "t", "task_type": "index", "metadata": {"word": "gentisic", "index": 3}}
+{"input": "What is the 4th letter of the word 'calipash'?", "target": "i", "task_type": "index", "metadata": {"word": "calipash", "index": 3}}
+{"input": "How many times does the letter 'r' appear in the word 'baldaquin'?", "target": "0", "task_type": "count", "metadata": {"word": "baldaquin", "char": "r"}}
+{"input": "How many times does the letter 'a' appear in the word 'daps'?", "target": "1", "task_type": "count", "metadata": {"word": "daps", "char": "a"}}
+{"input": "How many times does the letter 'g' appear in the word 'ganodonta'?", "target": "1", "task_type": "count", "metadata": {"word": "ganodonta", "char": "g"}}
+{"input": "What is the 5th letter of the word 'abseiling'?", "target": "i", "task_type": "index", "metadata": {"word": "abseiling", "index": 4}}
+{"input": "How many times does the letter 'e' appear in the word 'unbraved'?", "target": "1", "task_type": "count", "metadata": {"word": "unbraved", "char": "e"}}
+{"input": "How many times does the letter 's' appear in the word 'nonsuction'?", "target": "1", "task_type": "count", "metadata": {"word": "nonsuction", "char": "s"}}
+{"input": "How many times does the letter 'a' appear in the word 'bratty'?", "target": "1", "task_type": "count", "metadata": {"word": "bratty", "char": "a"}}
+{"input": "What is the 1st letter of the word 'captivate'?", "target": "c", "task_type": "index", "metadata": {"word": "captivate", "index": 0}}
+{"input": "How many times does the letter 'k' appear in the word 'hackees'?", "target": "1", "task_type": "count", "metadata": {"word": "hackees", "char": "k"}}
+{"input": "What is the 6th letter of the word 'peabrain'?", "target": "a", "task_type": "index", "metadata": {"word": "peabrain", "index": 5}}
+{"input": "How many times does the letter 'e' appear in the word 'agee'?", "target": "2", "task_type": "count", "metadata": {"word": "agee", "char": "e"}}
+{"input": "What is the 6th letter of the word 'calumba'?", "target": "b", "task_type": "index", "metadata": {"word": "calumba", "index": 5}}
+{"input": "How many times does the letter 's' appear in the word 'jackstays'?", "target": "2", "task_type": "count", "metadata": {"word": "jackstays", "char": "s"}}
+{"input": "What is the 4th letter of the word 'axilla'?", "target": "l", "task_type": "index", "metadata": {"word": "axilla", "index": 3}}
+{"input": "Reverse the word 'lapdogs'.", "target": "sgodpal", "task_type": "reverse", "metadata": {"word": "lapdogs"}}
+{"input": "How many times does the letter 't' appear in the word 'steelbow'?", "target": "1", "task_type": "count", "metadata": {"word": "steelbow", "char": "t"}}
+{"input": "Reverse the word 'brainstems'.", "target": "smetsniarb", "task_type": "reverse", "metadata": {"word": "brainstems"}}
+{"input": "Reverse the word 'leadstone'.", "target": "enotsdael", "task_type": "reverse", "metadata": {"word": "leadstone"}}
+{"input": "Reverse the word 'misbilled'.", "target": "dellibsim", "task_type": "reverse", "metadata": {"word": "misbilled"}}
+{"input": "What is the 1st letter of the word 'desperacy'?", "target": "d", "task_type": "index", "metadata": {"word": "desperacy", "index": 0}}
+{"input": "What is the 7th letter of the word 'serring'?", "target": "g", "task_type": "index", "metadata": {"word": "serring", "index": 6}}
+{"input": "Reverse the word 'vocally'.", "target": "yllacov", "task_type": "reverse", "metadata": {"word": "vocally"}}
+{"input": "How many times does the letter 'i' appear in the word 'unfaithful'?", "target": "1", "task_type": "count", "metadata": {"word": "unfaithful", "char": "i"}}
+{"input": "What is the 6th letter of the word 'lickers'?", "target": "r", "task_type": "index", "metadata": {"word": "lickers", "index": 5}}
+{"input": "Reverse the word 'amunam'.", "target": "manuma", "task_type": "reverse", "metadata": {"word": "amunam"}}
+{"input": "What is the 8th letter of the word 'autograph'?", "target": "p", "task_type": "index", "metadata": {"word": "autograph", "index": 7}}
+{"input": "How many times does the letter 'e' appear in the word 'truffes'?", "target": "1", "task_type": "count", "metadata": {"word": "truffes", "char": "e"}}
+{"input": "How many times does the letter 'i' appear in the word 'boxiest'?", "target": "1", "task_type": "count", "metadata": {"word": "boxiest", "char": "i"}}
+{"input": "How many times does the letter 'k' appear in the word 'barracouta'?", "target": "0", "task_type": "count", "metadata": {"word": "barracouta", "char": "k"}}
+{"input": "What is the 3rd letter of the word 'pinnaclet'?", "target": "n", "task_type": "index", "metadata": {"word": "pinnaclet", "index": 2}}
+{"input": "How many times does the letter 'k' appear in the word 'backframe'?", "target": "1", "task_type": "count", "metadata": {"word": "backframe", "char": "k"}}
+{"input": "How many times does the letter 'q' appear in the word 'hitches'?", "target": "0", "task_type": "count", "metadata": {"word": "hitches", "char": "q"}}
+{"input": "What is the 4th letter of the word 'feering'?", "target": "r", "task_type": "index", "metadata": {"word": "feering", "index": 3}}
+{"input": "How many times does the letter 'm' appear in the word 'mislikes'?", "target": "1", "task_type": "count", "metadata": {"word": "mislikes", "char": "m"}}
+{"input": "How many times does the letter 'e' appear in the word 'sucrier'?", "target": "1", "task_type": "count", "metadata": {"word": "sucrier", "char": "e"}}
+{"input": "What is the 9th letter of the word 'quadrumane'?", "target": "n", "task_type": "index", "metadata": {"word": "quadrumane", "index": 8}}
+{"input": "How many times does the letter 'n' appear in the word 'seedmen'?", "target": "1", "task_type": "count", "metadata": {"word": "seedmen", "char": "n"}}
+{"input": "Reverse the word 'lawzy'.", "target": "yzwal", "task_type": "reverse", "metadata": {"word": "lawzy"}}
+{"input": "How many times does the letter 'v' appear in the word 'unvaluable'?", "target": "1", "task_type": "count", "metadata": {"word": "unvaluable", "char": "v"}}
+{"input": "What is the 4th letter of the word 'tineina'?", "target": "e", "task_type": "index", "metadata": {"word": "tineina", "index": 3}}
+{"input": "How many times does the letter 'a' appear in the word 'impale'?", "target": "1", "task_type": "count", "metadata": {"word": "impale", "char": "a"}}
+{"input": "Reverse the word 'foredating'.", "target": "gnitaderof", "task_type": "reverse", "metadata": {"word": "foredating"}}
+{"input": "How many times does the letter 'i' appear in the word 'joyrides'?", "target": "1", "task_type": "count", "metadata": {"word": "joyrides", "char": "i"}}
+{"input": "What is the 3rd letter of the word 'hexahedron'?", "target": "x", "task_type": "index", "metadata": {"word": "hexahedron", "index": 2}}
+{"input": "Reverse the word 'rewords'.", "target": "sdrower", "task_type": "reverse", "metadata": {"word": "rewords"}}
+{"input": "Reverse the word 'wholesaled'.", "target": "delaselohw", "task_type": "reverse", "metadata": {"word": "wholesaled"}}
+{"input": "What is the 1st letter of the word 'madiga'?", "target": "m", "task_type": "index", "metadata": {"word": "madiga", "index": 0}}
+{"input": "How many times does the letter 'c' appear in the word 'bilberries'?", "target": "0", "task_type": "count", "metadata": {"word": "bilberries", "char": "c"}}
+{"input": "What is the 2nd letter of the word 'karyologic'?", "target": "a", "task_type": "index", "metadata": {"word": "karyologic", "index": 1}}
+{"input": "What is the 3rd letter of the word 'sipe'?", "target": "p", "task_type": "index", "metadata": {"word": "sipe", "index": 2}}
+{"input": "What is the 2nd letter of the word 'tebbet'?", "target": "e", "task_type": "index", "metadata": {"word": "tebbet", "index": 1}}
+{"input": "Reverse the word 'orbitolina'.", "target": "anilotibro", "task_type": "reverse", "metadata": {"word": "orbitolina"}}
+{"input": "How many times does the letter 'p' appear in the word 'auriscopy'?", "target": "1", "task_type": "count", "metadata": {"word": "auriscopy", "char": "p"}}
+{"input": "How many times does the letter 'b' appear in the word 'outboxing'?", "target": "1", "task_type": "count", "metadata": {"word": "outboxing", "char": "b"}}
+{"input": "What is the 6th letter of the word 'interdrink'?", "target": "d", "task_type": "index", "metadata": {"word": "interdrink", "index": 5}}
+{"input": "What is the 6th letter of the word 'unknot'?", "target": "t", "task_type": "index", "metadata": {"word": "unknot", "index": 5}}
+{"input": "How many times does the letter 'l' appear in the word 'sleever'?", "target": "1", "task_type": "count", "metadata": {"word": "sleever", "char": "l"}}
+{"input": "What is the 10th letter of the word 'extenuated'?", "target": "d", "task_type": "index", "metadata": {"word": "extenuated", "index": 9}}
+{"input": "What is the 6th letter of the word 'forecastle'?", "target": "a", "task_type": "index", "metadata": {"word": "forecastle", "index": 5}}
+{"input": "How many times does the letter 'm' appear in the word 'bonorum'?", "target": "1", "task_type": "count", "metadata": {"word": "bonorum", "char": "m"}}
+{"input": "What is the 8th letter of the word 'choriambs'?", "target": "b", "task_type": "index", "metadata": {"word": "choriambs", "index": 7}}
+{"input": "Reverse the word 'dhoon'.", "target": "noohd", "task_type": "reverse", "metadata": {"word": "dhoon"}}
+{"input": "What is the 1st letter of the word 'truer'?", "target": "t", "task_type": "index", "metadata": {"word": "truer", "index": 0}}
+{"input": "Reverse the word 'greaseball'.", "target": "llabesaerg", "task_type": "reverse", "metadata": {"word": "greaseball"}}
+{"input": "What is the 9th letter of the word 'triweekly'?", "target": "y", "task_type": "index", "metadata": {"word": "triweekly", "index": 8}}
+{"input": "How many times does the letter 't' appear in the word 'hearthrug'?", "target": "1", "task_type": "count", "metadata": {"word": "hearthrug", "char": "t"}}
+{"input": "What is the 4th letter of the word 'oxybromide'?", "target": "b", "task_type": "index", "metadata": {"word": "oxybromide", "index": 3}}
+{"input": "What is the 4th letter of the word 'tanrecs'?", "target": "r", "task_type": "index", "metadata": {"word": "tanrecs", "index": 3}}
+{"input": "What is the 9th letter of the word 'triturates'?", "target": "e", "task_type": "index", "metadata": {"word": "triturates", "index": 8}}
+{"input": "Reverse the word 'spiceries'.", "target": "seirecips", "task_type": "reverse", "metadata": {"word": "spiceries"}}
+{"input": "How many times does the letter 'x' appear in the word 'textuality'?", "target": "1", "task_type": "count", "metadata": {"word": "textuality", "char": "x"}}
+{"input": "Reverse the word 'pyoureter'.", "target": "reteruoyp", "task_type": "reverse", "metadata": {"word": "pyoureter"}}
+{"input": "What is the 6th letter of the word 'woodish'?", "target": "s", "task_type": "index", "metadata": {"word": "woodish", "index": 5}}
+{"input": "Reverse the word 'titanates'.", "target": "setanatit", "task_type": "reverse", "metadata": {"word": "titanates"}}
+{"input": "How many times does the letter 'o' appear in the word 'rohob'?", "target": "2", "task_type": "count", "metadata": {"word": "rohob", "char": "o"}}
+{"input": "What is the 5th letter of the word 'epimysia'?", "target": "y", "task_type": "index", "metadata": {"word": "epimysia", "index": 4}}
+{"input": "What is the 6th letter of the word 'whimpering'?", "target": "e", "task_type": "index", "metadata": {"word": "whimpering", "index": 5}}
+{"input": "Reverse the word 'gremials'.", "target": "slaimerg", "task_type": "reverse", "metadata": {"word": "gremials"}}
+{"input": "Reverse the word 'achondrite'.", "target": "etirdnohca", "task_type": "reverse", "metadata": {"word": "achondrite"}}
+{"input": "How many times does the letter 's' appear in the word 'constrain'?", "target": "1", "task_type": "count", "metadata": {"word": "constrain", "char": "s"}}
+{"input": "What is the 4th letter of the word 'raiment'?", "target": "m", "task_type": "index", "metadata": {"word": "raiment", "index": 3}}
+{"input": "How many times does the letter 'i' appear in the word 'balmily'?", "target": "1", "task_type": "count", "metadata": {"word": "balmily", "char": "i"}}
+{"input": "Reverse the word 'amphirhina'.", "target": "anihrihpma", "task_type": "reverse", "metadata": {"word": "amphirhina"}}
+{"input": "What is the 4th letter of the word 'billions'?", "target": "l", "task_type": "index", "metadata": {"word": "billions", "index": 3}}
+{"input": "Reverse the word 'hydrotomy'.", "target": "ymotordyh", "task_type": "reverse", "metadata": {"word": "hydrotomy"}}
+{"input": "How many times does the letter 'k' appear in the word 'yucker'?", "target": "1", "task_type": "count", "metadata": {"word": "yucker", "char": "k"}}
+{"input": "How many times does the letter 'h' appear in the word 'helmet'?", "target": "1", "task_type": "count", "metadata": {"word": "helmet", "char": "h"}}
+{"input": "How many times does the letter 't' appear in the word 'startlish'?", "target": "2", "task_type": "count", "metadata": {"word": "startlish", "char": "t"}}
+{"input": "Reverse the word 'beparody'.", "target": "ydorapeb", "task_type": "reverse", "metadata": {"word": "beparody"}}
+{"input": "What is the 1st letter of the word 'unsingable'?", "target": "u", "task_type": "index", "metadata": {"word": "unsingable", "index": 0}}
+{"input": "Reverse the word 'chromatic'.", "target": "citamorhc", "task_type": "reverse", "metadata": {"word": "chromatic"}}
+{"input": "Reverse the word 'cicatricle'.", "target": "elcirtacic", "task_type": "reverse", "metadata": {"word": "cicatricle"}}
+{"input": "What is the 1st letter of the word 'smut'?", "target": "s", "task_type": "index", "metadata": {"word": "smut", "index": 0}}
+{"input": "What is the 2nd letter of the word 'rejective'?", "target": "e", "task_type": "index", "metadata": {"word": "rejective", "index": 1}}
+{"input": "How many times does the letter 'e' appear in the word 'ephestian'?", "target": "2", "task_type": "count", "metadata": {"word": "ephestian", "char": "e"}}
+{"input": "How many times does the letter 't' appear in the word 'matfelon'?", "target": "1", "task_type": "count", "metadata": {"word": "matfelon", "char": "t"}}
+{"input": "What is the 2nd letter of the word 'epilogs'?", "target": "p", "task_type": "index", "metadata": {"word": "epilogs", "index": 1}}
+{"input": "How many times does the letter 'n' appear in the word 'snappy'?", "target": "1", "task_type": "count", "metadata": {"word": "snappy", "char": "n"}}
+{"input": "How many times does the letter 'j' appear in the word 'juxta'?", "target": "1", "task_type": "count", "metadata": {"word": "juxta", "char": "j"}}
+{"input": "How many times does the letter 'v' appear in the word 'mauvein'?", "target": "1", "task_type": "count", "metadata": {"word": "mauvein", "char": "v"}}
+{"input": "What is the 4th letter of the word 'aquotize'?", "target": "o", "task_type": "index", "metadata": {"word": "aquotize", "index": 3}}
+{"input": "What is the 5th letter of the word 'yephede'?", "target": "e", "task_type": "index", "metadata": {"word": "yephede", "index": 4}}
+{"input": "What is the 1st letter of the word 'assidual'?", "target": "a", "task_type": "index", "metadata": {"word": "assidual", "index": 0}}
+{"input": "How many times does the letter 'd' appear in the word 'dada'?", "target": "2", "task_type": "count", "metadata": {"word": "dada", "char": "d"}}
+{"input": "Reverse the word 'spicant'.", "target": "tnacips", "task_type": "reverse", "metadata": {"word": "spicant"}}
+{"input": "Reverse the word 'castory'.", "target": "yrotsac", "task_type": "reverse", "metadata": {"word": "castory"}}
+{"input": "Reverse the word 'spaik'.", "target": "kiaps", "task_type": "reverse", "metadata": {"word": "spaik"}}
+{"input": "Reverse the word 'edenize'.", "target": "ezinede", "task_type": "reverse", "metadata": {"word": "edenize"}}
+{"input": "Reverse the word 'fadmongery'.", "target": "yregnomdaf", "task_type": "reverse", "metadata": {"word": "fadmongery"}}
+{"input": "How many times does the letter 'i' appear in the word 'ganancial'?", "target": "1", "task_type": "count", "metadata": {"word": "ganancial", "char": "i"}}
+{"input": "How many times does the letter 'k' appear in the word 'skeltonics'?", "target": "1", "task_type": "count", "metadata": {"word": "skeltonics", "char": "k"}}
+{"input": "How many times does the letter 'n' appear in the word 'hircine'?", "target": "1", "task_type": "count", "metadata": {"word": "hircine", "char": "n"}}
+{"input": "Reverse the word 'millworks'.", "target": "skrowllim", "task_type": "reverse", "metadata": {"word": "millworks"}}
+{"input": "Reverse the word 'orthose'.", "target": "esohtro", "task_type": "reverse", "metadata": {"word": "orthose"}}
+{"input": "How many times does the letter 't' appear in the word 'topas'?", "target": "1", "task_type": "count", "metadata": {"word": "topas", "char": "t"}}
+{"input": "What is the 4th letter of the word 'barcan'?", "target": "c", "task_type": "index", "metadata": {"word": "barcan", "index": 3}}
+{"input": "Reverse the word 'undaunting'.", "target": "gnitnuadnu", "task_type": "reverse", "metadata": {"word": "undaunting"}}
+{"input": "What is the 1st letter of the word 'simpula'?", "target": "s", "task_type": "index", "metadata": {"word": "simpula", "index": 0}}
+{"input": "What is the 1st letter of the word 'kiel'?", "target": "k", "task_type": "index", "metadata": {"word": "kiel", "index": 0}}
+{"input": "How many times does the letter 'k' appear in the word 'lymantria'?", "target": "0", "task_type": "count", "metadata": {"word": "lymantria", "char": "k"}}
+{"input": "What is the 7th letter of the word 'paddlelike'?", "target": "l", "task_type": "index", "metadata": {"word": "paddlelike", "index": 6}}
+{"input": "Reverse the word 'ovula'.", "target": "aluvo", "task_type": "reverse", "metadata": {"word": "ovula"}}
+{"input": "Reverse the word 'ineducable'.", "target": "elbacudeni", "task_type": "reverse", "metadata": {"word": "ineducable"}}
+{"input": "What is the 6th letter of the word 'savage'?", "target": "e", "task_type": "index", "metadata": {"word": "savage", "index": 5}}
+{"input": "Reverse the word 'isochime'.", "target": "emihcosi", "task_type": "reverse", "metadata": {"word": "isochime"}}
+{"input": "Reverse the word 'faeroe'.", "target": "eoreaf", "task_type": "reverse", "metadata": {"word": "faeroe"}}
+{"input": "How many times does the letter 'u' appear in the word 'brusher'?", "target": "1", "task_type": "count", "metadata": {"word": "brusher", "char": "u"}}
+{"input": "Reverse the word 'coiffeuse'.", "target": "esueffioc", "task_type": "reverse", "metadata": {"word": "coiffeuse"}}
+{"input": "How many times does the letter 'o' appear in the word 'swim'?", "target": "0", "task_type": "count", "metadata": {"word": "swim", "char": "o"}}
+{"input": "Reverse the word 'tombing'.", "target": "gnibmot", "task_type": "reverse", "metadata": {"word": "tombing"}}
+{"input": "How many times does the letter 'c' appear in the word 'riemannian'?", "target": "0", "task_type": "count", "metadata": {"word": "riemannian", "char": "c"}}
+{"input": "Reverse the word 'kilograin'.", "target": "niargolik", "task_type": "reverse", "metadata": {"word": "kilograin"}}
+{"input": "Reverse the word 'tripunctal'.", "target": "latcnupirt", "task_type": "reverse", "metadata": {"word": "tripunctal"}}
+{"input": "How many times does the letter 's' appear in the word 'bostonese'?", "target": "2", "task_type": "count", "metadata": {"word": "bostonese", "char": "s"}}
+{"input": "How many times does the letter 'r' appear in the word 'improver'?", "target": "2", "task_type": "count", "metadata": {"word": "improver", "char": "r"}}
+{"input": "Reverse the word 'unhawked'.", "target": "dekwahnu", "task_type": "reverse", "metadata": {"word": "unhawked"}}
+{"input": "Reverse the word 'folderols'.", "target": "sloredlof", "task_type": "reverse", "metadata": {"word": "folderols"}}
+{"input": "How many times does the letter 'n' appear in the word 'sitatunga'?", "target": "1", "task_type": "count", "metadata": {"word": "sitatunga", "char": "n"}}
+{"input": "How many times does the letter 'p' appear in the word 'stepups'?", "target": "2", "task_type": "count", "metadata": {"word": "stepups", "char": "p"}}
+{"input": "What is the 2nd letter of the word 'premixer'?", "target": "r", "task_type": "index", "metadata": {"word": "premixer", "index": 1}}
+{"input": "Reverse the word 'nervus'.", "target": "suvren", "task_type": "reverse", "metadata": {"word": "nervus"}}
+{"input": "How many times does the letter 'o' appear in the word 'mofette'?", "target": "1", "task_type": "count", "metadata": {"word": "mofette", "char": "o"}}
+{"input": "What is the 6th letter of the word 'grendel'?", "target": "e", "task_type": "index", "metadata": {"word": "grendel", "index": 5}}
+{"input": "How many times does the letter 'o' appear in the word 'thargelion'?", "target": "1", "task_type": "count", "metadata": {"word": "thargelion", "char": "o"}}
+{"input": "How many times does the letter 'g' appear in the word 'disrange'?", "target": "1", "task_type": "count", "metadata": {"word": "disrange", "char": "g"}}
+{"input": "How many times does the letter 'r' appear in the word 'crosscheck'?", "target": "1", "task_type": "count", "metadata": {"word": "crosscheck", "char": "r"}}
+{"input": "How many times does the letter 'm' appear in the word 'somatical'?", "target": "1", "task_type": "count", "metadata": {"word": "somatical", "char": "m"}}
+{"input": "Reverse the word 'comported'.", "target": "detropmoc", "task_type": "reverse", "metadata": {"word": "comported"}}
+{"input": "How many times does the letter 'd' appear in the word 'squadron'?", "target": "1", "task_type": "count", "metadata": {"word": "squadron", "char": "d"}}
+{"input": "How many times does the letter 'c' appear in the word 'smutches'?", "target": "1", "task_type": "count", "metadata": {"word": "smutches", "char": "c"}}
+{"input": "How many times does the letter 'g' appear in the word 'largeour'?", "target": "1", "task_type": "count", "metadata": {"word": "largeour", "char": "g"}}
+{"input": "What is the 10th letter of the word 'prothallia'?", "target": "a", "task_type": "index", "metadata": {"word": "prothallia", "index": 9}}
+{"input": "How many times does the letter 'u' appear in the word 'fungibles'?", "target": "1", "task_type": "count", "metadata": {"word": "fungibles", "char": "u"}}
+{"input": "What is the 2nd letter of the word 'fouette'?", "target": "o", "task_type": "index", "metadata": {"word": "fouette", "index": 1}}
+{"input": "What is the 1st letter of the word 'knive'?", "target": "k", "task_type": "index", "metadata": {"word": "knive", "index": 0}}
+{"input": "Reverse the word 'losing'.", "target": "gnisol", "task_type": "reverse", "metadata": {"word": "losing"}}
+{"input": "Reverse the word 'krishna'.", "target": "anhsirk", "task_type": "reverse", "metadata": {"word": "krishna"}}
+{"input": "What is the 5th letter of the word 'preengage'?", "target": "n", "task_type": "index", "metadata": {"word": "preengage", "index": 4}}
+{"input": "What is the 5th letter of the word 'sunsquall'?", "target": "q", "task_type": "index", "metadata": {"word": "sunsquall", "index": 4}}
+{"input": "How many times does the letter 'e' appear in the word 'peitho'?", "target": "1", "task_type": "count", "metadata": {"word": "peitho", "char": "e"}}
+{"input": "Reverse the word 'baseboards'.", "target": "sdraobesab", "task_type": "reverse", "metadata": {"word": "baseboards"}}
+{"input": "How many times does the letter 'f' appear in the word 'foliiform'?", "target": "2", "task_type": "count", "metadata": {"word": "foliiform", "char": "f"}}
+{"input": "What is the 6th letter of the word 'atheromas'?", "target": "o", "task_type": "index", "metadata": {"word": "atheromas", "index": 5}}
+{"input": "What is the 5th letter of the word 'tollgates'?", "target": "g", "task_type": "index", "metadata": {"word": "tollgates", "index": 4}}
+{"input": "Reverse the word 'beachdrops'.", "target": "spordhcaeb", "task_type": "reverse", "metadata": {"word": "beachdrops"}}
+{"input": "What is the 2nd letter of the word 'pseudoacid'?", "target": "s", "task_type": "index", "metadata": {"word": "pseudoacid", "index": 1}}
+{"input": "What is the 7th letter of the word 'plecotus'?", "target": "u", "task_type": "index", "metadata": {"word": "plecotus", "index": 6}}
+{"input": "How many times does the letter 'd' appear in the word 'liquidize'?", "target": "1", "task_type": "count", "metadata": {"word": "liquidize", "char": "d"}}
+{"input": "Reverse the word 'sigatoka'.", "target": "akotagis", "task_type": "reverse", "metadata": {"word": "sigatoka"}}
+{"input": "How many times does the letter 'i' appear in the word 'vaccinal'?", "target": "1", "task_type": "count", "metadata": {"word": "vaccinal", "char": "i"}}
+{"input": "What is the 4th letter of the word 'quartering'?", "target": "r", "task_type": "index", "metadata": {"word": "quartering", "index": 3}}
+{"input": "How many times does the letter 'g' appear in the word 'frutage'?", "target": "1", "task_type": "count", "metadata": {"word": "frutage", "char": "g"}}
+{"input": "How many times does the letter 'o' appear in the word 'chicquer'?", "target": "0", "task_type": "count", "metadata": {"word": "chicquer", "char": "o"}}
+{"input": "How many times does the letter 'k' appear in the word 'bonneter'?", "target": "0", "task_type": "count", "metadata": {"word": "bonneter", "char": "k"}}
+{"input": "What is the 2nd letter of the word 'scytheman'?", "target": "c", "task_type": "index", "metadata": {"word": "scytheman", "index": 1}}
+{"input": "Reverse the word 'miseases'.", "target": "sesaesim", "task_type": "reverse", "metadata": {"word": "miseases"}}
+{"input": "Reverse the word 'pudgily'.", "target": "yligdup", "task_type": "reverse", "metadata": {"word": "pudgily"}}
+{"input": "What is the 1st letter of the word 'colcothar'?", "target": "c", "task_type": "index", "metadata": {"word": "colcothar", "index": 0}}
+{"input": "Reverse the word 'drogermen'.", "target": "nemregord", "task_type": "reverse", "metadata": {"word": "drogermen"}}
+{"input": "What is the 8th letter of the word 'sarcotheca'?", "target": "e", "task_type": "index", "metadata": {"word": "sarcotheca", "index": 7}}
+{"input": "Reverse the word 'kneeled'.", "target": "deleenk", "task_type": "reverse", "metadata": {"word": "kneeled"}}
+{"input": "What is the 9th letter of the word 'nabathaean'?", "target": "a", "task_type": "index", "metadata": {"word": "nabathaean", "index": 8}}
+{"input": "What is the 2nd letter of the word 'pyre'?", "target": "y", "task_type": "index", "metadata": {"word": "pyre", "index": 1}}
+{"input": "Reverse the word 'hareld'.", "target": "dlerah", "task_type": "reverse", "metadata": {"word": "hareld"}}
+{"input": "What is the 5th letter of the word 'heritors'?", "target": "t", "task_type": "index", "metadata": {"word": "heritors", "index": 4}}
+{"input": "What is the 7th letter of the word 'hoteldom'?", "target": "o", "task_type": "index", "metadata": {"word": "hoteldom", "index": 6}}
+{"input": "What is the 3rd letter of the word 'stable'?", "target": "a", "task_type": "index", "metadata": {"word": "stable", "index": 2}}
+{"input": "How many times does the letter 'p' appear in the word 'repowered'?", "target": "1", "task_type": "count", "metadata": {"word": "repowered", "char": "p"}}
+{"input": "Reverse the word 'pulsator'.", "target": "rotaslup", "task_type": "reverse", "metadata": {"word": "pulsator"}}
+{"input": "What is the 2nd letter of the word 'germanics'?", "target": "e", "task_type": "index", "metadata": {"word": "germanics", "index": 1}}
+{"input": "Reverse the word 'garroter'.", "target": "retorrag", "task_type": "reverse", "metadata": {"word": "garroter"}}
+{"input": "What is the 9th letter of the word 'bishopship'?", "target": "i", "task_type": "index", "metadata": {"word": "bishopship", "index": 8}}
+{"input": "How many times does the letter 'i' appear in the word 'replaning'?", "target": "1", "task_type": "count", "metadata": {"word": "replaning", "char": "i"}}
+{"input": "How many times does the letter 't' appear in the word 'semirare'?", "target": "0", "task_type": "count", "metadata": {"word": "semirare", "char": "t"}}
+{"input": "Reverse the word 'unjovially'.", "target": "yllaivojnu", "task_type": "reverse", "metadata": {"word": "unjovially"}}
+{"input": "How many times does the letter 'b' appear in the word 'chewbark'?", "target": "1", "task_type": "count", "metadata": {"word": "chewbark", "char": "b"}}
+{"input": "What is the 6th letter of the word 'wavemeter'?", "target": "e", "task_type": "index", "metadata": {"word": "wavemeter", "index": 5}}
+{"input": "What is the 6th letter of the word 'foldage'?", "target": "g", "task_type": "index", "metadata": {"word": "foldage", "index": 5}}
+{"input": "What is the 7th letter of the word 'ruffians'?", "target": "n", "task_type": "index", "metadata": {"word": "ruffians", "index": 6}}
+{"input": "Reverse the word 'candors'.", "target": "srodnac", "task_type": "reverse", "metadata": {"word": "candors"}}
+{"input": "What is the 2nd letter of the word 'perficient'?", "target": "e", "task_type": "index", "metadata": {"word": "perficient", "index": 1}}
+{"input": "What is the 7th letter of the word 'focalise'?", "target": "s", "task_type": "index", "metadata": {"word": "focalise", "index": 6}}
+{"input": "Reverse the word 'protragedy'.", "target": "ydegartorp", "task_type": "reverse", "metadata": {"word": "protragedy"}}
+{"input": "Reverse the word 'substation'.", "target": "noitatsbus", "task_type": "reverse", "metadata": {"word": "substation"}}
+{"input": "How many times does the letter 'v' appear in the word 'gangues'?", "target": "0", "task_type": "count", "metadata": {"word": "gangues", "char": "v"}}
+{"input": "Reverse the word 'sailors'.", "target": "srolias", "task_type": "reverse", "metadata": {"word": "sailors"}}
+{"input": "What is the 9th letter of the word 'tyrannism'?", "target": "m", "task_type": "index", "metadata": {"word": "tyrannism", "index": 8}}
+{"input": "What is the 7th letter of the word 'byproducts'?", "target": "u", "task_type": "index", "metadata": {"word": "byproducts", "index": 6}}
+{"input": "Reverse the word 'myxamoeba'.", "target": "abeomaxym", "task_type": "reverse", "metadata": {"word": "myxamoeba"}}
+{"input": "What is the 1st letter of the word 'hanapers'?", "target": "h", "task_type": "index", "metadata": {"word": "hanapers", "index": 0}}
+{"input": "What is the 5th letter of the word 'hangbirds'?", "target": "b", "task_type": "index", "metadata": {"word": "hangbirds", "index": 4}}
+{"input": "How many times does the letter 'k' appear in the word 'conjoining'?", "target": "0", "task_type": "count", "metadata": {"word": "conjoining", "char": "k"}}
+{"input": "Reverse the word 'speedups'.", "target": "spudeeps", "task_type": "reverse", "metadata": {"word": "speedups"}}
+{"input": "How many times does the letter 'r' appear in the word 'maturish'?", "target": "1", "task_type": "count", "metadata": {"word": "maturish", "char": "r"}}
+{"input": "Reverse the word 'chortler'.", "target": "reltrohc", "task_type": "reverse", "metadata": {"word": "chortler"}}
+{"input": "Reverse the word 'beamster'.", "target": "retsmaeb", "task_type": "reverse", "metadata": {"word": "beamster"}}
+{"input": "What is the 2nd letter of the word 'fenagled'?", "target": "e", "task_type": "index", "metadata": {"word": "fenagled", "index": 1}}
+{"input": "How many times does the letter 'u' appear in the word 'misura'?", "target": "1", "task_type": "count", "metadata": {"word": "misura", "char": "u"}}
+{"input": "What is the 9th letter of the word 'unslothful'?", "target": "u", "task_type": "index", "metadata": {"word": "unslothful", "index": 8}}
+{"input": "How many times does the letter 'g' appear in the word 'antanagoge'?", "target": "2", "task_type": "count", "metadata": {"word": "antanagoge", "char": "g"}}
+{"input": "How many times does the letter 'r' appear in the word 'capitulary'?", "target": "1", "task_type": "count", "metadata": {"word": "capitulary", "char": "r"}}
+{"input": "What is the 3rd letter of the word 'clamaroo'?", "target": "a", "task_type": "index", "metadata": {"word": "clamaroo", "index": 2}}
+{"input": "How many times does the letter 'o' appear in the word 'toke'?", "target": "1", "task_type": "count", "metadata": {"word": "toke", "char": "o"}}
+{"input": "Reverse the word 'segar'.", "target": "rages", "task_type": "reverse", "metadata": {"word": "segar"}}
+{"input": "How many times does the letter 's' appear in the word 'kinspeople'?", "target": "1", "task_type": "count", "metadata": {"word": "kinspeople", "char": "s"}}
+{"input": "How many times does the letter 'u' appear in the word 'remounting'?", "target": "1", "task_type": "count", "metadata": {"word": "remounting", "char": "u"}}
+{"input": "Reverse the word 'pyrrhonic'.", "target": "cinohrryp", "task_type": "reverse", "metadata": {"word": "pyrrhonic"}}
+{"input": "How many times does the letter 'e' appear in the word 'exfetation'?", "target": "2", "task_type": "count", "metadata": {"word": "exfetation", "char": "e"}}
+{"input": "What is the 9th letter of the word 'disgregate'?", "target": "t", "task_type": "index", "metadata": {"word": "disgregate", "index": 8}}
+{"input": "What is the 3rd letter of the word 'doatish'?", "target": "a", "task_type": "index", "metadata": {"word": "doatish", "index": 2}}
+{"input": "How many times does the letter 'm' appear in the word 'tarmac'?", "target": "1", "task_type": "count", "metadata": {"word": "tarmac", "char": "m"}}
+{"input": "Reverse the word 'heathy'.", "target": "yhtaeh", "task_type": "reverse", "metadata": {"word": "heathy"}}
+{"input": "Reverse the word 'repiqued'.", "target": "deuqiper", "task_type": "reverse", "metadata": {"word": "repiqued"}}
+{"input": "Reverse the word 'overmantel'.", "target": "letnamrevo", "task_type": "reverse", "metadata": {"word": "overmantel"}}
+{"input": "Reverse the word 'kohua'.", "target": "auhok", "task_type": "reverse", "metadata": {"word": "kohua"}}
+{"input": "Reverse the word 'linns'.", "target": "snnil", "task_type": "reverse", "metadata": {"word": "linns"}}
+{"input": "How many times does the letter 'd' appear in the word 'splendor'?", "target": "1", "task_type": "count", "metadata": {"word": "splendor", "char": "d"}}
+{"input": "How many times does the letter 'y' appear in the word 'miry'?", "target": "1", "task_type": "count", "metadata": {"word": "miry", "char": "y"}}
+{"input": "Reverse the word 'tertiarian'.", "target": "nairaitret", "task_type": "reverse", "metadata": {"word": "tertiarian"}}
+{"input": "What is the 3rd letter of the word 'cucullus'?", "target": "c", "task_type": "index", "metadata": {"word": "cucullus", "index": 2}}
+{"input": "What is the 3rd letter of the word 'unius'?", "target": "i", "task_type": "index", "metadata": {"word": "unius", "index": 2}}
+{"input": "How many times does the letter 's' appear in the word 'asbestoid'?", "target": "2", "task_type": "count", "metadata": {"word": "asbestoid", "char": "s"}}
+{"input": "What is the 1st letter of the word 'operate'?", "target": "o", "task_type": "index", "metadata": {"word": "operate", "index": 0}}
+{"input": "Reverse the word 'scants'.", "target": "stnacs", "task_type": "reverse", "metadata": {"word": "scants"}}
+{"input": "Reverse the word 'trolleymen'.", "target": "nemyellort", "task_type": "reverse", "metadata": {"word": "trolleymen"}}
+{"input": "What is the 7th letter of the word 'mormyre'?", "target": "e", "task_type": "index", "metadata": {"word": "mormyre", "index": 6}}
+{"input": "Reverse the word 'caladium'.", "target": "muidalac", "task_type": "reverse", "metadata": {"word": "caladium"}}
+{"input": "What is the 2nd letter of the word 'exhibiters'?", "target": "x", "task_type": "index", "metadata": {"word": "exhibiters", "index": 1}}
+{"input": "How many times does the letter 'h' appear in the word 'sourdough'?", "target": "1", "task_type": "count", "metadata": {"word": "sourdough", "char": "h"}}
+{"input": "How many times does the letter 'e' appear in the word 'villache'?", "target": "1", "task_type": "count", "metadata": {"word": "villache", "char": "e"}}
+{"input": "How many times does the letter 'o' appear in the word 'kingwood'?", "target": "2", "task_type": "count", "metadata": {"word": "kingwood", "char": "o"}}
+{"input": "What is the 4th letter of the word 'terrify'?", "target": "r", "task_type": "index", "metadata": {"word": "terrify", "index": 3}}
+{"input": "What is the 6th letter of the word 'unspliced'?", "target": "i", "task_type": "index", "metadata": {"word": "unspliced", "index": 5}}
+{"input": "What is the 1st letter of the word 'wormholed'?", "target": "w", "task_type": "index", "metadata": {"word": "wormholed", "index": 0}}
+{"input": "How many times does the letter 'n' appear in the word 'yokozunas'?", "target": "1", "task_type": "count", "metadata": {"word": "yokozunas", "char": "n"}}
+{"input": "What is the 7th letter of the word 'displays'?", "target": "y", "task_type": "index", "metadata": {"word": "displays", "index": 6}}
+{"input": "Reverse the word 'begulfs'.", "target": "sflugeb", "task_type": "reverse", "metadata": {"word": "begulfs"}}
+{"input": "What is the 4th letter of the word 'hiatuses'?", "target": "t", "task_type": "index", "metadata": {"word": "hiatuses", "index": 3}}
+{"input": "What is the 6th letter of the word 'amebiasis'?", "target": "a", "task_type": "index", "metadata": {"word": "amebiasis", "index": 5}}
+{"input": "How many times does the letter 't' appear in the word 'worthily'?", "target": "1", "task_type": "count", "metadata": {"word": "worthily", "char": "t"}}
+{"input": "What is the 3rd letter of the word 'subshrubs'?", "target": "b", "task_type": "index", "metadata": {"word": "subshrubs", "index": 2}}
+{"input": "How many times does the letter 's' appear in the word 'catalysis'?", "target": "2", "task_type": "count", "metadata": {"word": "catalysis", "char": "s"}}
+{"input": "Reverse the word 'lustrical'.", "target": "lacirtsul", "task_type": "reverse", "metadata": {"word": "lustrical"}}
+{"input": "How many times does the letter 'y' appear in the word 'rotavist'?", "target": "0", "task_type": "count", "metadata": {"word": "rotavist", "char": "y"}}
+{"input": "What is the 4th letter of the word 'sandak'?", "target": "d", "task_type": "index", "metadata": {"word": "sandak", "index": 3}}
+{"input": "What is the 5th letter of the word 'lapsing'?", "target": "i", "task_type": "index", "metadata": {"word": "lapsing", "index": 4}}
+{"input": "Reverse the word 'acerbating'.", "target": "gnitabreca", "task_type": "reverse", "metadata": {"word": "acerbating"}}
+{"input": "How many times does the letter 'n' appear in the word 'viner'?", "target": "1", "task_type": "count", "metadata": {"word": "viner", "char": "n"}}
+{"input": "What is the 7th letter of the word 'delicts'?", "target": "s", "task_type": "index", "metadata": {"word": "delicts", "index": 6}}
+{"input": "What is the 7th letter of the word 'chemoses'?", "target": "e", "task_type": "index", "metadata": {"word": "chemoses", "index": 6}}
+{"input": "How many times does the letter 'o' appear in the word 'breton'?", "target": "1", "task_type": "count", "metadata": {"word": "breton", "char": "o"}}
+{"input": "How many times does the letter 'k' appear in the word 'finiking'?", "target": "1", "task_type": "count", "metadata": {"word": "finiking", "char": "k"}}
+{"input": "What is the 6th letter of the word 'yucked'?", "target": "d", "task_type": "index", "metadata": {"word": "yucked", "index": 5}}
+{"input": "How many times does the letter 'r' appear in the word 'suggester'?", "target": "1", "task_type": "count", "metadata": {"word": "suggester", "char": "r"}}
+{"input": "What is the 4th letter of the word 'brede'?", "target": "d", "task_type": "index", "metadata": {"word": "brede", "index": 3}}
+{"input": "How many times does the letter 'p' appear in the word 'permitter'?", "target": "1", "task_type": "count", "metadata": {"word": "permitter", "char": "p"}}
+{"input": "Reverse the word 'moration'.", "target": "noitarom", "task_type": "reverse", "metadata": {"word": "moration"}}
+{"input": "Reverse the word 'paca'.", "target": "acap", "task_type": "reverse", "metadata": {"word": "paca"}}
+{"input": "Reverse the word 'donny'.", "target": "ynnod", "task_type": "reverse", "metadata": {"word": "donny"}}
+{"input": "What is the 3rd letter of the word 'scutellar'?", "target": "u", "task_type": "index", "metadata": {"word": "scutellar", "index": 2}}
+{"input": "What is the 4th letter of the word 'fangle'?", "target": "g", "task_type": "index", "metadata": {"word": "fangle", "index": 3}}
+{"input": "How many times does the letter 'b' appear in the word 'abjunct'?", "target": "1", "task_type": "count", "metadata": {"word": "abjunct", "char": "b"}}
+{"input": "Reverse the word 'overnormal'.", "target": "lamronrevo", "task_type": "reverse", "metadata": {"word": "overnormal"}}
+{"input": "What is the 2nd letter of the word 'irred'?", "target": "r", "task_type": "index", "metadata": {"word": "irred", "index": 1}}
+{"input": "How many times does the letter 'g' appear in the word 'rebuking'?", "target": "1", "task_type": "count", "metadata": {"word": "rebuking", "char": "g"}}
+{"input": "Reverse the word 'bailout'.", "target": "tuoliab", "task_type": "reverse", "metadata": {"word": "bailout"}}
+{"input": "Reverse the word 'narrower'.", "target": "reworran", "task_type": "reverse", "metadata": {"word": "narrower"}}
+{"input": "What is the 9th letter of the word 'nullifying'?", "target": "n", "task_type": "index", "metadata": {"word": "nullifying", "index": 8}}
+{"input": "Reverse the word 'strowing'.", "target": "gniworts", "task_type": "reverse", "metadata": {"word": "strowing"}}
+{"input": "Reverse the word 'mistrow'.", "target": "wortsim", "task_type": "reverse", "metadata": {"word": "mistrow"}}
+{"input": "How many times does the letter 'o' appear in the word 'oozoa'?", "target": "3", "task_type": "count", "metadata": {"word": "oozoa", "char": "o"}}
+{"input": "Reverse the word 'apotheosis'.", "target": "sisoehtopa", "task_type": "reverse", "metadata": {"word": "apotheosis"}}
+{"input": "What is the 4th letter of the word 'pretest'?", "target": "t", "task_type": "index", "metadata": {"word": "pretest", "index": 3}}
+{"input": "What is the 5th letter of the word 'heronsew'?", "target": "n", "task_type": "index", "metadata": {"word": "heronsew", "index": 4}}
+{"input": "What is the 1st letter of the word 'skiagraph'?", "target": "s", "task_type": "index", "metadata": {"word": "skiagraph", "index": 0}}
+{"input": "Reverse the word 'gurlet'.", "target": "telrug", "task_type": "reverse", "metadata": {"word": "gurlet"}}
+{"input": "How many times does the letter 'm' appear in the word 'subclimate'?", "target": "1", "task_type": "count", "metadata": {"word": "subclimate", "char": "m"}}
+{"input": "How many times does the letter 'l' appear in the word 'shieldtail'?", "target": "2", "task_type": "count", "metadata": {"word": "shieldtail", "char": "l"}}
+{"input": "How many times does the letter 'p' appear in the word 'sprawler'?", "target": "1", "task_type": "count", "metadata": {"word": "sprawler", "char": "p"}}
+{"input": "What is the 2nd letter of the word 'gemmer'?", "target": "e", "task_type": "index", "metadata": {"word": "gemmer", "index": 1}}
+{"input": "How many times does the letter 't' appear in the word 'applotment'?", "target": "2", "task_type": "count", "metadata": {"word": "applotment", "char": "t"}}
+{"input": "What is the 6th letter of the word 'tellina'?", "target": "n", "task_type": "index", "metadata": {"word": "tellina", "index": 5}}
+{"input": "How many times does the letter 'v' appear in the word 'combining'?", "target": "0", "task_type": "count", "metadata": {"word": "combining", "char": "v"}}
+{"input": "How many times does the letter 'p' appear in the word 'livraison'?", "target": "0", "task_type": "count", "metadata": {"word": "livraison", "char": "p"}}
+{"input": "Reverse the word 'prefelic'.", "target": "cileferp", "task_type": "reverse", "metadata": {"word": "prefelic"}}
+{"input": "Reverse the word 'contrasted'.", "target": "detsartnoc", "task_type": "reverse", "metadata": {"word": "contrasted"}}
+{"input": "What is the 2nd letter of the word 'tearoom'?", "target": "e", "task_type": "index", "metadata": {"word": "tearoom", "index": 1}}
+{"input": "What is the 8th letter of the word 'awarrant'?", "target": "t", "task_type": "index", "metadata": {"word": "awarrant", "index": 7}}
+{"input": "What is the 3rd letter of the word 'anoint'?", "target": "o", "task_type": "index", "metadata": {"word": "anoint", "index": 2}}
+{"input": "Reverse the word 'cupuliform'.", "target": "mrofilupuc", "task_type": "reverse", "metadata": {"word": "cupuliform"}}
+{"input": "How many times does the letter 'e' appear in the word 'appearer'?", "target": "2", "task_type": "count", "metadata": {"word": "appearer", "char": "e"}}
+{"input": "How many times does the letter 'q' appear in the word 'fortnights'?", "target": "0", "task_type": "count", "metadata": {"word": "fortnights", "char": "q"}}
+{"input": "What is the 9th letter of the word 'immiscible'?", "target": "l", "task_type": "index", "metadata": {"word": "immiscible", "index": 8}}
+{"input": "Reverse the word 'machinal'.", "target": "lanihcam", "task_type": "reverse", "metadata": {"word": "machinal"}}
+{"input": "How many times does the letter 'g' appear in the word 'earwigging'?", "target": "3", "task_type": "count", "metadata": {"word": "earwigging", "char": "g"}}
+{"input": "How many times does the letter 'w' appear in the word 'cowers'?", "target": "1", "task_type": "count", "metadata": {"word": "cowers", "char": "w"}}
+{"input": "What is the 6th letter of the word 'uneduced'?", "target": "c", "task_type": "index", "metadata": {"word": "uneduced", "index": 5}}
+{"input": "Reverse the word 'epimere'.", "target": "eremipe", "task_type": "reverse", "metadata": {"word": "epimere"}}
+{"input": "How many times does the letter 's' appear in the word 'cajoleries'?", "target": "1", "task_type": "count", "metadata": {"word": "cajoleries", "char": "s"}}
+{"input": "Reverse the word 'unwisdom'.", "target": "modsiwnu", "task_type": "reverse", "metadata": {"word": "unwisdom"}}
+{"input": "Reverse the word 'imposes'.", "target": "sesopmi", "task_type": "reverse", "metadata": {"word": "imposes"}}
+{"input": "Reverse the word 'syngeneic'.", "target": "cienegnys", "task_type": "reverse", "metadata": {"word": "syngeneic"}}
+{"input": "What is the 7th letter of the word 'knitting'?", "target": "n", "task_type": "index", "metadata": {"word": "knitting", "index": 6}}
+{"input": "How many times does the letter 'p' appear in the word 'gittite'?", "target": "0", "task_type": "count", "metadata": {"word": "gittite", "char": "p"}}
+{"input": "What is the 8th letter of the word 'rivethead'?", "target": "a", "task_type": "index", "metadata": {"word": "rivethead", "index": 7}}
+{"input": "How many times does the letter 'q' appear in the word 'heap'?", "target": "0", "task_type": "count", "metadata": {"word": "heap", "char": "q"}}
+{"input": "How many times does the letter 'x' appear in the word 'enfatico'?", "target": "0", "task_type": "count", "metadata": {"word": "enfatico", "char": "x"}}
+{"input": "How many times does the letter 'j' appear in the word 'jesters'?", "target": "1", "task_type": "count", "metadata": {"word": "jesters", "char": "j"}}
+{"input": "Reverse the word 'thistled'.", "target": "deltsiht", "task_type": "reverse", "metadata": {"word": "thistled"}}
+{"input": "Reverse the word 'connascent'.", "target": "tnecsannoc", "task_type": "reverse", "metadata": {"word": "connascent"}}
+{"input": "How many times does the letter 'a' appear in the word 'oatcake'?", "target": "2", "task_type": "count", "metadata": {"word": "oatcake", "char": "a"}}
+{"input": "How many times does the letter 'b' appear in the word 'beefheaded'?", "target": "1", "task_type": "count", "metadata": {"word": "beefheaded", "char": "b"}}
+{"input": "Reverse the word 'flinger'.", "target": "regnilf", "task_type": "reverse", "metadata": {"word": "flinger"}}
+{"input": "How many times does the letter 'k' appear in the word 'lakke'?", "target": "2", "task_type": "count", "metadata": {"word": "lakke", "char": "k"}}
+{"input": "How many times does the letter 'b' appear in the word 'club'?", "target": "1", "task_type": "count", "metadata": {"word": "club", "char": "b"}}
+{"input": "How many times does the letter 'n' appear in the word 'landage'?", "target": "1", "task_type": "count", "metadata": {"word": "landage", "char": "n"}}
+{"input": "Reverse the word 'pleasemen'.", "target": "nemesaelp", "task_type": "reverse", "metadata": {"word": "pleasemen"}}
+{"input": "How many times does the letter 'o' appear in the word 'ketoses'?", "target": "1", "task_type": "count", "metadata": {"word": "ketoses", "char": "o"}}
+{"input": "Reverse the word 'basson'.", "target": "nossab", "task_type": "reverse", "metadata": {"word": "basson"}}
+{"input": "How many times does the letter 'r' appear in the word 'refugia'?", "target": "1", "task_type": "count", "metadata": {"word": "refugia", "char": "r"}}
+{"input": "What is the 6th letter of the word 'monoid'?", "target": "d", "task_type": "index", "metadata": {"word": "monoid", "index": 5}}
+{"input": "Reverse the word 'reptiloid'.", "target": "diolitper", "task_type": "reverse", "metadata": {"word": "reptiloid"}}
+{"input": "What is the 1st letter of the word 'circuitman'?", "target": "c", "task_type": "index", "metadata": {"word": "circuitman", "index": 0}}
+{"input": "How many times does the letter 'v' appear in the word 'ceramics'?", "target": "0", "task_type": "count", "metadata": {"word": "ceramics", "char": "v"}}
+{"input": "What is the 8th letter of the word 'stipends'?", "target": "s", "task_type": "index", "metadata": {"word": "stipends", "index": 7}}
+{"input": "Reverse the word 'anglogaean'.", "target": "naeagolgna", "task_type": "reverse", "metadata": {"word": "anglogaean"}}
+{"input": "What is the 2nd letter of the word 'callidity'?", "target": "a", "task_type": "index", "metadata": {"word": "callidity", "index": 1}}
+{"input": "What is the 6th letter of the word 'disposer'?", "target": "s", "task_type": "index", "metadata": {"word": "disposer", "index": 5}}
+{"input": "Reverse the word 'handygrip'.", "target": "pirgydnah", "task_type": "reverse", "metadata": {"word": "handygrip"}}
+{"input": "What is the 5th letter of the word 'hollows'?", "target": "o", "task_type": "index", "metadata": {"word": "hollows", "index": 4}}
+{"input": "What is the 3rd letter of the word 'anapnoic'?", "target": "a", "task_type": "index", "metadata": {"word": "anapnoic", "index": 2}}
+{"input": "What is the 8th letter of the word 'reprieves'?", "target": "e", "task_type": "index", "metadata": {"word": "reprieves", "index": 7}}
+{"input": "What is the 6th letter of the word 'hemistater'?", "target": "t", "task_type": "index", "metadata": {"word": "hemistater", "index": 5}}
+{"input": "How many times does the letter 'l' appear in the word 'lacewomen'?", "target": "1", "task_type": "count", "metadata": {"word": "lacewomen", "char": "l"}}
+{"input": "How many times does the letter 'i' appear in the word 'neoarctic'?", "target": "1", "task_type": "count", "metadata": {"word": "neoarctic", "char": "i"}}
+{"input": "What is the 5th letter of the word 'purselike'?", "target": "e", "task_type": "index", "metadata": {"word": "purselike", "index": 4}}
+{"input": "Reverse the word 'ducktail'.", "target": "liatkcud", "task_type": "reverse", "metadata": {"word": "ducktail"}}
+{"input": "How many times does the letter 'o' appear in the word 'broidered'?", "target": "1", "task_type": "count", "metadata": {"word": "broidered", "char": "o"}}
+{"input": "How many times does the letter 'e' appear in the word 'mikey'?", "target": "1", "task_type": "count", "metadata": {"word": "mikey", "char": "e"}}
+{"input": "Reverse the word 'bullies'.", "target": "seillub", "task_type": "reverse", "metadata": {"word": "bullies"}}
+{"input": "What is the 5th letter of the word 'embraceor'?", "target": "a", "task_type": "index", "metadata": {"word": "embraceor", "index": 4}}
+{"input": "How many times does the letter 'n' appear in the word 'salonika'?", "target": "1", "task_type": "count", "metadata": {"word": "salonika", "char": "n"}}
+{"input": "How many times does the letter 'e' appear in the word 'exodoi'?", "target": "1", "task_type": "count", "metadata": {"word": "exodoi", "char": "e"}}
+{"input": "Reverse the word 'culdee'.", "target": "eedluc", "task_type": "reverse", "metadata": {"word": "culdee"}}
+{"input": "Reverse the word 'cachalots'.", "target": "stolahcac", "task_type": "reverse", "metadata": {"word": "cachalots"}}
+{"input": "How many times does the letter 'o' appear in the word 'cartoonist'?", "target": "2", "task_type": "count", "metadata": {"word": "cartoonist", "char": "o"}}
+{"input": "What is the 4th letter of the word 'colen'?", "target": "e", "task_type": "index", "metadata": {"word": "colen", "index": 3}}
+{"input": "How many times does the letter 'k' appear in the word 'bethorns'?", "target": "0", "task_type": "count", "metadata": {"word": "bethorns", "char": "k"}}
+{"input": "How many times does the letter 'r' appear in the word 'redemptine'?", "target": "1", "task_type": "count", "metadata": {"word": "redemptine", "char": "r"}}
+{"input": "Reverse the word 'offlook'.", "target": "koolffo", "task_type": "reverse", "metadata": {"word": "offlook"}}
+{"input": "What is the 5th letter of the word 'notative'?", "target": "t", "task_type": "index", "metadata": {"word": "notative", "index": 4}}
+{"input": "What is the 3rd letter of the word 'uplong'?", "target": "l", "task_type": "index", "metadata": {"word": "uplong", "index": 2}}
+{"input": "Reverse the word 'turpethin'.", "target": "nihteprut", "task_type": "reverse", "metadata": {"word": "turpethin"}}
+{"input": "Reverse the word 'cichlid'.", "target": "dilhcic", "task_type": "reverse", "metadata": {"word": "cichlid"}}
+{"input": "How many times does the letter 'r' appear in the word 'scaringly'?", "target": "1", "task_type": "count", "metadata": {"word": "scaringly", "char": "r"}}
+{"input": "How many times does the letter 'f' appear in the word 'suffusable'?", "target": "2", "task_type": "count", "metadata": {"word": "suffusable", "char": "f"}}
+{"input": "What is the 4th letter of the word 'butterbird'?", "target": "t", "task_type": "index", "metadata": {"word": "butterbird", "index": 3}}
+{"input": "What is the 3rd letter of the word 'subtlely'?", "target": "b", "task_type": "index", "metadata": {"word": "subtlely", "index": 2}}
+{"input": "Reverse the word 'dissidents'.", "target": "stnedissid", "task_type": "reverse", "metadata": {"word": "dissidents"}}
+{"input": "What is the 8th letter of the word 'submucosal'?", "target": "s", "task_type": "index", "metadata": {"word": "submucosal", "index": 7}}
+{"input": "How many times does the letter 't' appear in the word 'althing'?", "target": "1", "task_type": "count", "metadata": {"word": "althing", "char": "t"}}
+{"input": "What is the 8th letter of the word 'hegelian'?", "target": "n", "task_type": "index", "metadata": {"word": "hegelian", "index": 7}}
+{"input": "How many times does the letter 'e' appear in the word 'taenia'?", "target": "1", "task_type": "count", "metadata": {"word": "taenia", "char": "e"}}
+{"input": "Reverse the word 'pivoted'.", "target": "detovip", "task_type": "reverse", "metadata": {"word": "pivoted"}}
+{"input": "What is the 2nd letter of the word 'unsordid'?", "target": "n", "task_type": "index", "metadata": {"word": "unsordid", "index": 1}}
+{"input": "Reverse the word 'backhoes'.", "target": "seohkcab", "task_type": "reverse", "metadata": {"word": "backhoes"}}
+{"input": "How many times does the letter 't' appear in the word 'fluty'?", "target": "1", "task_type": "count", "metadata": {"word": "fluty", "char": "t"}}
+{"input": "How many times does the letter 'i' appear in the word 'narciss'?", "target": "1", "task_type": "count", "metadata": {"word": "narciss", "char": "i"}}
+{"input": "What is the 2nd letter of the word 'threonine'?", "target": "h", "task_type": "index", "metadata": {"word": "threonine", "index": 1}}
+{"input": "Reverse the word 'calcutta'.", "target": "attuclac", "task_type": "reverse", "metadata": {"word": "calcutta"}}
+{"input": "Reverse the word 'fradicin'.", "target": "nicidarf", "task_type": "reverse", "metadata": {"word": "fradicin"}}
+{"input": "Reverse the word 'prosodical'.", "target": "lacidosorp", "task_type": "reverse", "metadata": {"word": "prosodical"}}
+{"input": "What is the 8th letter of the word 'bascunan'?", "target": "n", "task_type": "index", "metadata": {"word": "bascunan", "index": 7}}
+{"input": "What is the 6th letter of the word 'locklet'?", "target": "e", "task_type": "index", "metadata": {"word": "locklet", "index": 5}}
+{"input": "Reverse the word 'motherwise'.", "target": "esiwrehtom", "task_type": "reverse", "metadata": {"word": "motherwise"}}
+{"input": "Reverse the word 'golder'.", "target": "redlog", "task_type": "reverse", "metadata": {"word": "golder"}}
+{"input": "How many times does the letter 'y' appear in the word 'canaling'?", "target": "0", "task_type": "count", "metadata": {"word": "canaling", "char": "y"}}
+{"input": "How many times does the letter 'l' appear in the word 'oleaster'?", "target": "1", "task_type": "count", "metadata": {"word": "oleaster", "char": "l"}}
+{"input": "Reverse the word 'spiked'.", "target": "dekips", "task_type": "reverse", "metadata": {"word": "spiked"}}
+{"input": "What is the 7th letter of the word 'canephora'?", "target": "o", "task_type": "index", "metadata": {"word": "canephora", "index": 6}}
+{"input": "What is the 1st letter of the word 'mirdha'?", "target": "m", "task_type": "index", "metadata": {"word": "mirdha", "index": 0}}
+{"input": "Reverse the word 'tokes'.", "target": "sekot", "task_type": "reverse", "metadata": {"word": "tokes"}}
+{"input": "How many times does the letter 'n' appear in the word 'cayenne'?", "target": "2", "task_type": "count", "metadata": {"word": "cayenne", "char": "n"}}
+{"input": "How many times does the letter 'l' appear in the word 'clima'?", "target": "1", "task_type": "count", "metadata": {"word": "clima", "char": "l"}}
+{"input": "Reverse the word 'goosehouse'.", "target": "esuohesoog", "task_type": "reverse", "metadata": {"word": "goosehouse"}}
+{"input": "How many times does the letter 'c' appear in the word 'mozarabic'?", "target": "1", "task_type": "count", "metadata": {"word": "mozarabic", "char": "c"}}
+{"input": "What is the 4th letter of the word 'dumbwaiter'?", "target": "b", "task_type": "index", "metadata": {"word": "dumbwaiter", "index": 3}}
+{"input": "What is the 9th letter of the word 'prespinal'?", "target": "l", "task_type": "index", "metadata": {"word": "prespinal", "index": 8}}
+{"input": "Reverse the word 'epoptist'.", "target": "tsitpope", "task_type": "reverse", "metadata": {"word": "epoptist"}}
+{"input": "How many times does the letter 'i' appear in the word 'calciner'?", "target": "1", "task_type": "count", "metadata": {"word": "calciner", "char": "i"}}
+{"input": "What is the 2nd letter of the word 'nightclub'?", "target": "i", "task_type": "index", "metadata": {"word": "nightclub", "index": 1}}
+{"input": "Reverse the word 'myosotis'.", "target": "sitosoym", "task_type": "reverse", "metadata": {"word": "myosotis"}}
+{"input": "What is the 3rd letter of the word 'proofful'?", "target": "o", "task_type": "index", "metadata": {"word": "proofful", "index": 2}}
+{"input": "How many times does the letter 'e' appear in the word 'pellard'?", "target": "1", "task_type": "count", "metadata": {"word": "pellard", "char": "e"}}
+{"input": "Reverse the word 'coggly'.", "target": "ylggoc", "task_type": "reverse", "metadata": {"word": "coggly"}}
+{"input": "How many times does the letter 'i' appear in the word 'rancheria'?", "target": "1", "task_type": "count", "metadata": {"word": "rancheria", "char": "i"}}
+{"input": "Reverse the word 'gingellies'.", "target": "seillegnig", "task_type": "reverse", "metadata": {"word": "gingellies"}}
+{"input": "Reverse the word 'trifloral'.", "target": "larolfirt", "task_type": "reverse", "metadata": {"word": "trifloral"}}
+{"input": "How many times does the letter 'w' appear in the word 'wierd'?", "target": "1", "task_type": "count", "metadata": {"word": "wierd", "char": "w"}}
+{"input": "What is the 1st letter of the word 'beginnings'?", "target": "b", "task_type": "index", "metadata": {"word": "beginnings", "index": 0}}
+{"input": "Reverse the word 'propionyl'.", "target": "lynoiporp", "task_type": "reverse", "metadata": {"word": "propionyl"}}
+{"input": "Reverse the word 'sportly'.", "target": "yltrops", "task_type": "reverse", "metadata": {"word": "sportly"}}
+{"input": "How many times does the letter 'm' appear in the word 'paimaneh'?", "target": "1", "task_type": "count", "metadata": {"word": "paimaneh", "char": "m"}}
+{"input": "How many times does the letter 'g' appear in the word 'sphargis'?", "target": "1", "task_type": "count", "metadata": {"word": "sphargis", "char": "g"}}
+{"input": "Reverse the word 'proctoral'.", "target": "larotcorp", "task_type": "reverse", "metadata": {"word": "proctoral"}}
+{"input": "How many times does the letter 'u' appear in the word 'amouli'?", "target": "1", "task_type": "count", "metadata": {"word": "amouli", "char": "u"}}
+{"input": "What is the 3rd letter of the word 'obarni'?", "target": "a", "task_type": "index", "metadata": {"word": "obarni", "index": 2}}
+{"input": "Reverse the word 'proreption'.", "target": "noitperorp", "task_type": "reverse", "metadata": {"word": "proreption"}}
+{"input": "How many times does the letter 'i' appear in the word 'first'?", "target": "1", "task_type": "count", "metadata": {"word": "first", "char": "i"}}
+{"input": "Reverse the word 'fetid'.", "target": "ditef", "task_type": "reverse", "metadata": {"word": "fetid"}}
+{"input": "What is the 2nd letter of the word 'legantine'?", "target": "e", "task_type": "index", "metadata": {"word": "legantine", "index": 1}}
+{"input": "What is the 1st letter of the word 'ribandlike'?", "target": "r", "task_type": "index", "metadata": {"word": "ribandlike", "index": 0}}
+{"input": "How many times does the letter 'n' appear in the word 'cydonia'?", "target": "1", "task_type": "count", "metadata": {"word": "cydonia", "char": "n"}}
+{"input": "How many times does the letter 'y' appear in the word 'liverberry'?", "target": "1", "task_type": "count", "metadata": {"word": "liverberry", "char": "y"}}
+{"input": "Reverse the word 'cervalet'.", "target": "telavrec", "task_type": "reverse", "metadata": {"word": "cervalet"}}
+{"input": "Reverse the word 'foredesk'.", "target": "ksederof", "task_type": "reverse", "metadata": {"word": "foredesk"}}
+{"input": "How many times does the letter 'n' appear in the word 'uncumbrous'?", "target": "1", "task_type": "count", "metadata": {"word": "uncumbrous", "char": "n"}}
+{"input": "Reverse the word 'impala'.", "target": "alapmi", "task_type": "reverse", "metadata": {"word": "impala"}}
+{"input": "How many times does the letter 'p' appear in the word 'capes'?", "target": "1", "task_type": "count", "metadata": {"word": "capes", "char": "p"}}
+{"input": "Reverse the word 'outbound'.", "target": "dnuobtuo", "task_type": "reverse", "metadata": {"word": "outbound"}}
+{"input": "Reverse the word 'bothridium'.", "target": "muidirhtob", "task_type": "reverse", "metadata": {"word": "bothridium"}}
+{"input": "Reverse the word 'fribblish'.", "target": "hsilbbirf", "task_type": "reverse", "metadata": {"word": "fribblish"}}
+{"input": "Reverse the word 'donatories'.", "target": "seirotanod", "task_type": "reverse", "metadata": {"word": "donatories"}}
+{"input": "How many times does the letter 'e' appear in the word 'logged'?", "target": "1", "task_type": "count", "metadata": {"word": "logged", "char": "e"}}
+{"input": "How many times does the letter 'm' appear in the word 'dromoi'?", "target": "1", "task_type": "count", "metadata": {"word": "dromoi", "char": "m"}}
+{"input": "What is the 7th letter of the word 'fakement'?", "target": "n", "task_type": "index", "metadata": {"word": "fakement", "index": 6}}
+{"input": "What is the 10th letter of the word 'undertakes'?", "target": "s", "task_type": "index", "metadata": {"word": "undertakes", "index": 9}}
+{"input": "How many times does the letter 'n' appear in the word 'isoheptane'?", "target": "1", "task_type": "count", "metadata": {"word": "isoheptane", "char": "n"}}
+{"input": "How many times does the letter 'e' appear in the word 'tellers'?", "target": "2", "task_type": "count", "metadata": {"word": "tellers", "char": "e"}}
+{"input": "What is the 3rd letter of the word 'seesaw'?", "target": "e", "task_type": "index", "metadata": {"word": "seesaw", "index": 2}}
+{"input": "Reverse the word 'counterlit'.", "target": "tilretnuoc", "task_type": "reverse", "metadata": {"word": "counterlit"}}
+{"input": "Reverse the word 'sourdoughs'.", "target": "shguodruos", "task_type": "reverse", "metadata": {"word": "sourdoughs"}}
+{"input": "How many times does the letter 'c' appear in the word 'cinnolin'?", "target": "1", "task_type": "count", "metadata": {"word": "cinnolin", "char": "c"}}
+{"input": "What is the 8th letter of the word 'logopedic'?", "target": "i", "task_type": "index", "metadata": {"word": "logopedic", "index": 7}}
+{"input": "What is the 3rd letter of the word 'unprop'?", "target": "p", "task_type": "index", "metadata": {"word": "unprop", "index": 2}}
+{"input": "Reverse the word 'microgram'.", "target": "margorcim", "task_type": "reverse", "metadata": {"word": "microgram"}}
+{"input": "What is the 2nd letter of the word 'aljamado'?", "target": "l", "task_type": "index", "metadata": {"word": "aljamado", "index": 1}}
+{"input": "What is the 4th letter of the word 'icky'?", "target": "y", "task_type": "index", "metadata": {"word": "icky", "index": 3}}
+{"input": "Reverse the word 'doketism'.", "target": "msitekod", "task_type": "reverse", "metadata": {"word": "doketism"}}
+{"input": "Reverse the word 'dekagramme'.", "target": "emmargaked", "task_type": "reverse", "metadata": {"word": "dekagramme"}}
+{"input": "How many times does the letter 'a' appear in the word 'parcellate'?", "target": "2", "task_type": "count", "metadata": {"word": "parcellate", "char": "a"}}
+{"input": "How many times does the letter 'e' appear in the word 'euplastic'?", "target": "1", "task_type": "count", "metadata": {"word": "euplastic", "char": "e"}}
+{"input": "What is the 9th letter of the word 'exoneretur'?", "target": "u", "task_type": "index", "metadata": {"word": "exoneretur", "index": 8}}
+{"input": "Reverse the word 'actinine'.", "target": "eninitca", "task_type": "reverse", "metadata": {"word": "actinine"}}
+{"input": "How many times does the letter 'r' appear in the word 'truddo'?", "target": "1", "task_type": "count", "metadata": {"word": "truddo", "char": "r"}}
+{"input": "What is the 5th letter of the word 'unserious'?", "target": "r", "task_type": "index", "metadata": {"word": "unserious", "index": 4}}
+{"input": "What is the 6th letter of the word 'serviteur'?", "target": "t", "task_type": "index", "metadata": {"word": "serviteur", "index": 5}}
+{"input": "What is the 7th letter of the word 'spaciously'?", "target": "u", "task_type": "index", "metadata": {"word": "spaciously", "index": 6}}
+{"input": "How many times does the letter 'h' appear in the word 'haut'?", "target": "1", "task_type": "count", "metadata": {"word": "haut", "char": "h"}}
+{"input": "Reverse the word 'overlives'.", "target": "sevilrevo", "task_type": "reverse", "metadata": {"word": "overlives"}}
+{"input": "How many times does the letter 't' appear in the word 'outbuilt'?", "target": "2", "task_type": "count", "metadata": {"word": "outbuilt", "char": "t"}}
+{"input": "Reverse the word 'fabledom'.", "target": "modelbaf", "task_type": "reverse", "metadata": {"word": "fabledom"}}
+{"input": "Reverse the word 'barramunda'.", "target": "adnumarrab", "task_type": "reverse", "metadata": {"word": "barramunda"}}
+{"input": "How many times does the letter 'e' appear in the word 'hornstone'?", "target": "1", "task_type": "count", "metadata": {"word": "hornstone", "char": "e"}}
+{"input": "How many times does the letter 'c' appear in the word 'officer'?", "target": "1", "task_type": "count", "metadata": {"word": "officer", "char": "c"}}
+{"input": "What is the 5th letter of the word 'rescuer'?", "target": "u", "task_type": "index", "metadata": {"word": "rescuer", "index": 4}}
+{"input": "Reverse the word 'bunkers'.", "target": "sreknub", "task_type": "reverse", "metadata": {"word": "bunkers"}}
+{"input": "What is the 2nd letter of the word 'canciones'?", "target": "a", "task_type": "index", "metadata": {"word": "canciones", "index": 1}}
+{"input": "Reverse the word 'ideoplasty'.", "target": "ytsalpoedi", "task_type": "reverse", "metadata": {"word": "ideoplasty"}}
+{"input": "How many times does the letter 'i' appear in the word 'heroics'?", "target": "1", "task_type": "count", "metadata": {"word": "heroics", "char": "i"}}
+{"input": "Reverse the word 'oryzenin'.", "target": "ninezyro", "task_type": "reverse", "metadata": {"word": "oryzenin"}}
+{"input": "How many times does the letter 'n' appear in the word 'hatting'?", "target": "1", "task_type": "count", "metadata": {"word": "hatting", "char": "n"}}
+{"input": "What is the 9th letter of the word 'phoniness'?", "target": "s", "task_type": "index", "metadata": {"word": "phoniness", "index": 8}}
+{"input": "Reverse the word 'incarnant'.", "target": "tnanracni", "task_type": "reverse", "metadata": {"word": "incarnant"}}
+{"input": "How many times does the letter 'm' appear in the word 'millionize'?", "target": "1", "task_type": "count", "metadata": {"word": "millionize", "char": "m"}}
+{"input": "How many times does the letter 't' appear in the word 'castaways'?", "target": "1", "task_type": "count", "metadata": {"word": "castaways", "char": "t"}}
+{"input": "Reverse the word 'mucocele'.", "target": "elecocum", "task_type": "reverse", "metadata": {"word": "mucocele"}}
+{"input": "Reverse the word 'lewth'.", "target": "htwel", "task_type": "reverse", "metadata": {"word": "lewth"}}
+{"input": "How many times does the letter 'e' appear in the word 'cheero'?", "target": "2", "task_type": "count", "metadata": {"word": "cheero", "char": "e"}}
+{"input": "What is the 3rd letter of the word 'causing'?", "target": "u", "task_type": "index", "metadata": {"word": "causing", "index": 2}}
+{"input": "What is the 5th letter of the word 'wraths'?", "target": "h", "task_type": "index", "metadata": {"word": "wraths", "index": 4}}
+{"input": "How many times does the letter 's' appear in the word 'fremdness'?", "target": "2", "task_type": "count", "metadata": {"word": "fremdness", "char": "s"}}
+{"input": "What is the 5th letter of the word 'signatural'?", "target": "a", "task_type": "index", "metadata": {"word": "signatural", "index": 4}}
+{"input": "Reverse the word 'pentosid'.", "target": "disotnep", "task_type": "reverse", "metadata": {"word": "pentosid"}}
+{"input": "How many times does the letter 'i' appear in the word 'giftlike'?", "target": "2", "task_type": "count", "metadata": {"word": "giftlike", "char": "i"}}
+{"input": "How many times does the letter 'e' appear in the word 'nibbled'?", "target": "1", "task_type": "count", "metadata": {"word": "nibbled", "char": "e"}}
+{"input": "How many times does the letter 'a' appear in the word 'filemark'?", "target": "1", "task_type": "count", "metadata": {"word": "filemark", "char": "a"}}
+{"input": "What is the 6th letter of the word 'hectogram'?", "target": "g", "task_type": "index", "metadata": {"word": "hectogram", "index": 5}}
+{"input": "What is the 2nd letter of the word 'reissuably'?", "target": "e", "task_type": "index", "metadata": {"word": "reissuably", "index": 1}}
+{"input": "What is the 10th letter of the word 'irradiates'?", "target": "s", "task_type": "index", "metadata": {"word": "irradiates", "index": 9}}
+{"input": "Reverse the word 'floreated'.", "target": "detaerolf", "task_type": "reverse", "metadata": {"word": "floreated"}}
+{"input": "Reverse the word 'superfice'.", "target": "ecifrepus", "task_type": "reverse", "metadata": {"word": "superfice"}}
+{"input": "Reverse the word 'varvel'.", "target": "levrav", "task_type": "reverse", "metadata": {"word": "varvel"}}
+{"input": "Reverse the word 'sepn'.", "target": "npes", "task_type": "reverse", "metadata": {"word": "sepn"}}
+{"input": "How many times does the letter 'm' appear in the word 'unimproved'?", "target": "1", "task_type": "count", "metadata": {"word": "unimproved", "char": "m"}}
+{"input": "Reverse the word 'peromela'.", "target": "alemorep", "task_type": "reverse", "metadata": {"word": "peromela"}}
+{"input": "How many times does the letter 'e' appear in the word 'maestoso'?", "target": "1", "task_type": "count", "metadata": {"word": "maestoso", "char": "e"}}
+{"input": "Reverse the word 'stooper'.", "target": "repoots", "task_type": "reverse", "metadata": {"word": "stooper"}}
+{"input": "Reverse the word 'stanly'.", "target": "ylnats", "task_type": "reverse", "metadata": {"word": "stanly"}}
+{"input": "Reverse the word 'palmette'.", "target": "ettemlap", "task_type": "reverse", "metadata": {"word": "palmette"}}
+{"input": "Reverse the word 'palazzo'.", "target": "ozzalap", "task_type": "reverse", "metadata": {"word": "palazzo"}}
+{"input": "What is the 1st letter of the word 'dyer'?", "target": "d", "task_type": "index", "metadata": {"word": "dyer", "index": 0}}
+{"input": "What is the 4th letter of the word 'pardieu'?", "target": "d", "task_type": "index", "metadata": {"word": "pardieu", "index": 3}}
+{"input": "What is the 9th letter of the word 'coenduring'?", "target": "n", "task_type": "index", "metadata": {"word": "coenduring", "index": 8}}
+{"input": "Reverse the word 'preadopt'.", "target": "tpodaerp", "task_type": "reverse", "metadata": {"word": "preadopt"}}
+{"input": "How many times does the letter 's' appear in the word 'segar'?", "target": "1", "task_type": "count", "metadata": {"word": "segar", "char": "s"}}
+{"input": "What is the 7th letter of the word 'chateus'?", "target": "s", "task_type": "index", "metadata": {"word": "chateus", "index": 6}}
+{"input": "What is the 4th letter of the word 'resentment'?", "target": "e", "task_type": "index", "metadata": {"word": "resentment", "index": 3}}
+{"input": "Reverse the word 'anadyomene'.", "target": "enemoydana", "task_type": "reverse", "metadata": {"word": "anadyomene"}}
+{"input": "How many times does the letter 'd' appear in the word 'overtopple'?", "target": "0", "task_type": "count", "metadata": {"word": "overtopple", "char": "d"}}
+{"input": "How many times does the letter 'o' appear in the word 'coverlet'?", "target": "1", "task_type": "count", "metadata": {"word": "coverlet", "char": "o"}}
+{"input": "What is the 2nd letter of the word 'isotach'?", "target": "s", "task_type": "index", "metadata": {"word": "isotach", "index": 1}}
+{"input": "How many times does the letter 'u' appear in the word 'intrusive'?", "target": "1", "task_type": "count", "metadata": {"word": "intrusive", "char": "u"}}
+{"input": "What is the 8th letter of the word 'minority'?", "target": "y", "task_type": "index", "metadata": {"word": "minority", "index": 7}}
+{"input": "Reverse the word 'unisons'.", "target": "snosinu", "task_type": "reverse", "metadata": {"word": "unisons"}}
+{"input": "How many times does the letter 'a' appear in the word 'tubercular'?", "target": "1", "task_type": "count", "metadata": {"word": "tubercular", "char": "a"}}
+{"input": "Reverse the word 'sandiest'.", "target": "tseidnas", "task_type": "reverse", "metadata": {"word": "sandiest"}}
+{"input": "Reverse the word 'catchy'.", "target": "yhctac", "task_type": "reverse", "metadata": {"word": "catchy"}}
+{"input": "How many times does the letter 'o' appear in the word 'moved'?", "target": "1", "task_type": "count", "metadata": {"word": "moved", "char": "o"}}
+{"input": "How many times does the letter 's' appear in the word 'readvising'?", "target": "1", "task_type": "count", "metadata": {"word": "readvising", "char": "s"}}
+{"input": "How many times does the letter 'o' appear in the word 'forestland'?", "target": "1", "task_type": "count", "metadata": {"word": "forestland", "char": "o"}}
+{"input": "How many times does the letter 'i' appear in the word 'wailful'?", "target": "1", "task_type": "count", "metadata": {"word": "wailful", "char": "i"}}
+{"input": "What is the 5th letter of the word 'guaiasanol'?", "target": "a", "task_type": "index", "metadata": {"word": "guaiasanol", "index": 4}}
+{"input": "Reverse the word 'pyro'.", "target": "oryp", "task_type": "reverse", "metadata": {"word": "pyro"}}
+{"input": "How many times does the letter 'm' appear in the word 'marvy'?", "target": "1", "task_type": "count", "metadata": {"word": "marvy", "char": "m"}}
+{"input": "What is the 5th letter of the word 'etamine'?", "target": "i", "task_type": "index", "metadata": {"word": "etamine", "index": 4}}
+{"input": "How many times does the letter 't' appear in the word 'ficklest'?", "target": "1", "task_type": "count", "metadata": {"word": "ficklest", "char": "t"}}
+{"input": "What is the 5th letter of the word 'spotting'?", "target": "t", "task_type": "index", "metadata": {"word": "spotting", "index": 4}}
+{"input": "How many times does the letter 'i' appear in the word 'sambaquis'?", "target": "1", "task_type": "count", "metadata": {"word": "sambaquis", "char": "i"}}
+{"input": "What is the 6th letter of the word 'megabuck'?", "target": "u", "task_type": "index", "metadata": {"word": "megabuck", "index": 5}}
+{"input": "What is the 3rd letter of the word 'mangey'?", "target": "n", "task_type": "index", "metadata": {"word": "mangey", "index": 2}}
+{"input": "How many times does the letter 'z' appear in the word 'otitis'?", "target": "0", "task_type": "count", "metadata": {"word": "otitis", "char": "z"}}
+{"input": "Reverse the word 'seizor'.", "target": "rozies", "task_type": "reverse", "metadata": {"word": "seizor"}}
+{"input": "What is the 5th letter of the word 'epiphyses'?", "target": "h", "task_type": "index", "metadata": {"word": "epiphyses", "index": 4}}
+{"input": "Reverse the word 'cabalas'.", "target": "salabac", "task_type": "reverse", "metadata": {"word": "cabalas"}}
+{"input": "Reverse the word 'owenia'.", "target": "ainewo", "task_type": "reverse", "metadata": {"word": "owenia"}}
+{"input": "Reverse the word 'renditions'.", "target": "snoitidner", "task_type": "reverse", "metadata": {"word": "renditions"}}
+{"input": "Reverse the word 'novobiocin'.", "target": "nicoibovon", "task_type": "reverse", "metadata": {"word": "novobiocin"}}
+{"input": "Reverse the word 'hypotonic'.", "target": "cinotopyh", "task_type": "reverse", "metadata": {"word": "hypotonic"}}
+{"input": "How many times does the letter 'l' appear in the word 'vaalite'?", "target": "1", "task_type": "count", "metadata": {"word": "vaalite", "char": "l"}}
+{"input": "What is the 3rd letter of the word 'squamose'?", "target": "u", "task_type": "index", "metadata": {"word": "squamose", "index": 2}}
+{"input": "How many times does the letter 'e' appear in the word 'falderol'?", "target": "1", "task_type": "count", "metadata": {"word": "falderol", "char": "e"}}
+{"input": "What is the 6th letter of the word 'bedeafen'?", "target": "f", "task_type": "index", "metadata": {"word": "bedeafen", "index": 5}}
+{"input": "How many times does the letter 'i' appear in the word 'wifes'?", "target": "1", "task_type": "count", "metadata": {"word": "wifes", "char": "i"}}
+{"input": "Reverse the word 'skiapodous'.", "target": "suodopaiks", "task_type": "reverse", "metadata": {"word": "skiapodous"}}
+{"input": "What is the 4th letter of the word 'manatine'?", "target": "a", "task_type": "index", "metadata": {"word": "manatine", "index": 3}}
+{"input": "Reverse the word 'curiality'.", "target": "ytilairuc", "task_type": "reverse", "metadata": {"word": "curiality"}}
+{"input": "Reverse the word 'tintamarre'.", "target": "erramatnit", "task_type": "reverse", "metadata": {"word": "tintamarre"}}
+{"input": "Reverse the word 'nonlegato'.", "target": "otagelnon", "task_type": "reverse", "metadata": {"word": "nonlegato"}}
+{"input": "How many times does the letter 'w' appear in the word 'envigor'?", "target": "0", "task_type": "count", "metadata": {"word": "envigor", "char": "w"}}
+{"input": "Reverse the word 'eosinlike'.", "target": "ekilnisoe", "task_type": "reverse", "metadata": {"word": "eosinlike"}}
+{"input": "How many times does the letter 'e' appear in the word 'castrated'?", "target": "1", "task_type": "count", "metadata": {"word": "castrated", "char": "e"}}
+{"input": "What is the 4th letter of the word 'patagonia'?", "target": "a", "task_type": "index", "metadata": {"word": "patagonia", "index": 3}}
+{"input": "Reverse the word 'doozy'.", "target": "yzood", "task_type": "reverse", "metadata": {"word": "doozy"}}
+{"input": "Reverse the word 'arrivals'.", "target": "slavirra", "task_type": "reverse", "metadata": {"word": "arrivals"}}
+{"input": "Reverse the word 'reexhibits'.", "target": "stibihxeer", "task_type": "reverse", "metadata": {"word": "reexhibits"}}
+{"input": "What is the 2nd letter of the word 'vila'?", "target": "i", "task_type": "index", "metadata": {"word": "vila", "index": 1}}
+{"input": "Reverse the word 'pristodus'.", "target": "sudotsirp", "task_type": "reverse", "metadata": {"word": "pristodus"}}
+{"input": "Reverse the word 'discloak'.", "target": "kaolcsid", "task_type": "reverse", "metadata": {"word": "discloak"}}
+{"input": "Reverse the word 'ascidiate'.", "target": "etaidicsa", "task_type": "reverse", "metadata": {"word": "ascidiate"}}
+{"input": "Reverse the word 'boarspear'.", "target": "raepsraob", "task_type": "reverse", "metadata": {"word": "boarspear"}}
+{"input": "Reverse the word 'invaded'.", "target": "dedavni", "task_type": "reverse", "metadata": {"word": "invaded"}}
+{"input": "How many times does the letter 'a' appear in the word 'gastight'?", "target": "1", "task_type": "count", "metadata": {"word": "gastight", "char": "a"}}
+{"input": "Reverse the word 'residental'.", "target": "latnediser", "task_type": "reverse", "metadata": {"word": "residental"}}
+{"input": "Reverse the word 'sporation'.", "target": "noitarops", "task_type": "reverse", "metadata": {"word": "sporation"}}
+{"input": "How many times does the letter 't' appear in the word 'cataclysms'?", "target": "1", "task_type": "count", "metadata": {"word": "cataclysms", "char": "t"}}
+{"input": "What is the 3rd letter of the word 'woodlander'?", "target": "o", "task_type": "index", "metadata": {"word": "woodlander", "index": 2}}
+{"input": "How many times does the letter 'n' appear in the word 'inhumanism'?", "target": "2", "task_type": "count", "metadata": {"word": "inhumanism", "char": "n"}}
+{"input": "What is the 4th letter of the word 'malaxing'?", "target": "a", "task_type": "index", "metadata": {"word": "malaxing", "index": 3}}
+{"input": "What is the 5th letter of the word 'snippetier'?", "target": "p", "task_type": "index", "metadata": {"word": "snippetier", "index": 4}}
+{"input": "Reverse the word 'fructure'.", "target": "erutcurf", "task_type": "reverse", "metadata": {"word": "fructure"}}
+{"input": "What is the 6th letter of the word 'exiture'?", "target": "r", "task_type": "index", "metadata": {"word": "exiture", "index": 5}}
+{"input": "What is the 2nd letter of the word 'auditual'?", "target": "u", "task_type": "index", "metadata": {"word": "auditual", "index": 1}}
+{"input": "How many times does the letter 's' appear in the word 'queasy'?", "target": "1", "task_type": "count", "metadata": {"word": "queasy", "char": "s"}}
+{"input": "What is the 6th letter of the word 'siemens'?", "target": "n", "task_type": "index", "metadata": {"word": "siemens", "index": 5}}
+{"input": "Reverse the word 'turbanlike'.", "target": "ekilnabrut", "task_type": "reverse", "metadata": {"word": "turbanlike"}}
+{"input": "Reverse the word 'zoysia'.", "target": "aisyoz", "task_type": "reverse", "metadata": {"word": "zoysia"}}
+{"input": "Reverse the word 'anoretic'.", "target": "citerona", "task_type": "reverse", "metadata": {"word": "anoretic"}}
+{"input": "Reverse the word 'wamble'.", "target": "elbmaw", "task_type": "reverse", "metadata": {"word": "wamble"}}
+{"input": "What is the 2nd letter of the word 'whils'?", "target": "h", "task_type": "index", "metadata": {"word": "whils", "index": 1}}
+{"input": "How many times does the letter 'f' appear in the word 'isodomous'?", "target": "0", "task_type": "count", "metadata": {"word": "isodomous", "char": "f"}}
+{"input": "How many times does the letter 'm' appear in the word 'zayins'?", "target": "0", "task_type": "count", "metadata": {"word": "zayins", "char": "m"}}
+{"input": "How many times does the letter 'u' appear in the word 'subamare'?", "target": "1", "task_type": "count", "metadata": {"word": "subamare", "char": "u"}}
+{"input": "Reverse the word 'uninnately'.", "target": "yletanninu", "task_type": "reverse", "metadata": {"word": "uninnately"}}
+{"input": "How many times does the letter 'w' appear in the word 'winninish'?", "target": "1", "task_type": "count", "metadata": {"word": "winninish", "char": "w"}}
+{"input": "What is the 3rd letter of the word 'addie'?", "target": "d", "task_type": "index", "metadata": {"word": "addie", "index": 2}}
+{"input": "What is the 2nd letter of the word 'overbribe'?", "target": "v", "task_type": "index", "metadata": {"word": "overbribe", "index": 1}}
+{"input": "How many times does the letter 'j' appear in the word 'womanising'?", "target": "0", "task_type": "count", "metadata": {"word": "womanising", "char": "j"}}
+{"input": "Reverse the word 'lemnad'.", "target": "danmel", "task_type": "reverse", "metadata": {"word": "lemnad"}}
+{"input": "Reverse the word 'prophesies'.", "target": "seisehporp", "task_type": "reverse", "metadata": {"word": "prophesies"}}
+{"input": "What is the 4th letter of the word 'nowt'?", "target": "t", "task_type": "index", "metadata": {"word": "nowt", "index": 3}}
+{"input": "What is the 2nd letter of the word 'unwhole'?", "target": "n", "task_type": "index", "metadata": {"word": "unwhole", "index": 1}}
+{"input": "What is the 9th letter of the word 'turncoats'?", "target": "s", "task_type": "index", "metadata": {"word": "turncoats", "index": 8}}
+{"input": "What is the 3rd letter of the word 'lookups'?", "target": "o", "task_type": "index", "metadata": {"word": "lookups", "index": 2}}
+{"input": "Reverse the word 'crannied'.", "target": "deinnarc", "task_type": "reverse", "metadata": {"word": "crannied"}}
+{"input": "How many times does the letter 't' appear in the word 'tarr'?", "target": "1", "task_type": "count", "metadata": {"word": "tarr", "char": "t"}}
+{"input": "What is the 4th letter of the word 'shavese'?", "target": "v", "task_type": "index", "metadata": {"word": "shavese", "index": 3}}
+{"input": "Reverse the word 'punkins'.", "target": "sniknup", "task_type": "reverse", "metadata": {"word": "punkins"}}
+{"input": "Reverse the word 'egrimony'.", "target": "ynomirge", "task_type": "reverse", "metadata": {"word": "egrimony"}}
+{"input": "How many times does the letter 'c' appear in the word 'scuttering'?", "target": "1", "task_type": "count", "metadata": {"word": "scuttering", "char": "c"}}
+{"input": "Reverse the word 'subpiston'.", "target": "notsipbus", "task_type": "reverse", "metadata": {"word": "subpiston"}}
+{"input": "How many times does the letter 'n' appear in the word 'feint'?", "target": "1", "task_type": "count", "metadata": {"word": "feint", "char": "n"}}
+{"input": "How many times does the letter 'i' appear in the word 'comically'?", "target": "1", "task_type": "count", "metadata": {"word": "comically", "char": "i"}}
+{"input": "What is the 4th letter of the word 'vallis'?", "target": "l", "task_type": "index", "metadata": {"word": "vallis", "index": 3}}
+{"input": "What is the 7th letter of the word 'timidness'?", "target": "e", "task_type": "index", "metadata": {"word": "timidness", "index": 6}}
+{"input": "What is the 6th letter of the word 'moralist'?", "target": "i", "task_type": "index", "metadata": {"word": "moralist", "index": 5}}
+{"input": "What is the 7th letter of the word 'besmudges'?", "target": "g", "task_type": "index", "metadata": {"word": "besmudges", "index": 6}}
+{"input": "Reverse the word 'reelecting'.", "target": "gnitceleer", "task_type": "reverse", "metadata": {"word": "reelecting"}}
+{"input": "How many times does the letter 'q' appear in the word 'biuniquely'?", "target": "1", "task_type": "count", "metadata": {"word": "biuniquely", "char": "q"}}
+{"input": "How many times does the letter 'a' appear in the word 'malaxis'?", "target": "2", "task_type": "count", "metadata": {"word": "malaxis", "char": "a"}}
+{"input": "Reverse the word 'acnodal'.", "target": "ladonca", "task_type": "reverse", "metadata": {"word": "acnodal"}}
+{"input": "What is the 4th letter of the word 'elvers'?", "target": "e", "task_type": "index", "metadata": {"word": "elvers", "index": 3}}
+{"input": "How many times does the letter 'i' appear in the word 'dispenser'?", "target": "1", "task_type": "count", "metadata": {"word": "dispenser", "char": "i"}}
+{"input": "How many times does the letter 'e' appear in the word 'garrets'?", "target": "1", "task_type": "count", "metadata": {"word": "garrets", "char": "e"}}
+{"input": "How many times does the letter 'e' appear in the word 'overween'?", "target": "3", "task_type": "count", "metadata": {"word": "overween", "char": "e"}}
+{"input": "What is the 4th letter of the word 'haymaker'?", "target": "m", "task_type": "index", "metadata": {"word": "haymaker", "index": 3}}
+{"input": "How many times does the letter 'r' appear in the word 'averrer'?", "target": "3", "task_type": "count", "metadata": {"word": "averrer", "char": "r"}}
+{"input": "Reverse the word 'flytail'.", "target": "liatylf", "task_type": "reverse", "metadata": {"word": "flytail"}}
+{"input": "Reverse the word 'cyprian'.", "target": "nairpyc", "task_type": "reverse", "metadata": {"word": "cyprian"}}
+{"input": "Reverse the word 'infinites'.", "target": "setinifni", "task_type": "reverse", "metadata": {"word": "infinites"}}
+{"input": "How many times does the letter 's' appear in the word 'revision'?", "target": "1", "task_type": "count", "metadata": {"word": "revision", "char": "s"}}
+{"input": "How many times does the letter 'r' appear in the word 'splurging'?", "target": "1", "task_type": "count", "metadata": {"word": "splurging", "char": "r"}}
+{"input": "Reverse the word 'processing'.", "target": "gnissecorp", "task_type": "reverse", "metadata": {"word": "processing"}}
+{"input": "Reverse the word 'waterhead'.", "target": "daehretaw", "task_type": "reverse", "metadata": {"word": "waterhead"}}
+{"input": "Reverse the word 'feints'.", "target": "stnief", "task_type": "reverse", "metadata": {"word": "feints"}}
+{"input": "How many times does the letter 't' appear in the word 'heartgrief'?", "target": "1", "task_type": "count", "metadata": {"word": "heartgrief", "char": "t"}}
+{"input": "Reverse the word 'caressing'.", "target": "gnisserac", "task_type": "reverse", "metadata": {"word": "caressing"}}
+{"input": "How many times does the letter 'u' appear in the word 'malodour'?", "target": "1", "task_type": "count", "metadata": {"word": "malodour", "char": "u"}}
+{"input": "What is the 6th letter of the word 'piggeries'?", "target": "r", "task_type": "index", "metadata": {"word": "piggeries", "index": 5}}
+{"input": "Reverse the word 'irefulness'.", "target": "ssenluferi", "task_type": "reverse", "metadata": {"word": "irefulness"}}
+{"input": "What is the 5th letter of the word 'safari'?", "target": "r", "task_type": "index", "metadata": {"word": "safari", "index": 4}}
+{"input": "How many times does the letter 'k' appear in the word 'walkaways'?", "target": "1", "task_type": "count", "metadata": {"word": "walkaways", "char": "k"}}
+{"input": "What is the 4th letter of the word 'swizzles'?", "target": "z", "task_type": "index", "metadata": {"word": "swizzles", "index": 3}}
+{"input": "What is the 2nd letter of the word 'sordid'?", "target": "o", "task_type": "index", "metadata": {"word": "sordid", "index": 1}}
+{"input": "How many times does the letter 'b' appear in the word 'rescramble'?", "target": "1", "task_type": "count", "metadata": {"word": "rescramble", "char": "b"}}
+{"input": "Reverse the word 'naphthyl'.", "target": "lyhthpan", "task_type": "reverse", "metadata": {"word": "naphthyl"}}
+{"input": "Reverse the word 'lamphole'.", "target": "elohpmal", "task_type": "reverse", "metadata": {"word": "lamphole"}}
+{"input": "What is the 6th letter of the word 'necremia'?", "target": "m", "task_type": "index", "metadata": {"word": "necremia", "index": 5}}
+{"input": "How many times does the letter 'd' appear in the word 'beboss'?", "target": "0", "task_type": "count", "metadata": {"word": "beboss", "char": "d"}}
+{"input": "Reverse the word 'avalent'.", "target": "tnelava", "task_type": "reverse", "metadata": {"word": "avalent"}}
+{"input": "What is the 9th letter of the word 'tipteerer'?", "target": "r", "task_type": "index", "metadata": {"word": "tipteerer", "index": 8}}
+{"input": "How many times does the letter 't' appear in the word 'vertible'?", "target": "1", "task_type": "count", "metadata": {"word": "vertible", "char": "t"}}
+{"input": "What is the 3rd letter of the word 'nonaligned'?", "target": "n", "task_type": "index", "metadata": {"word": "nonaligned", "index": 2}}
+{"input": "Reverse the word 'cliented'.", "target": "detneilc", "task_type": "reverse", "metadata": {"word": "cliented"}}
+{"input": "Reverse the word 'ganam'.", "target": "manag", "task_type": "reverse", "metadata": {"word": "ganam"}}
+{"input": "How many times does the letter 'l' appear in the word 'ulsterman'?", "target": "1", "task_type": "count", "metadata": {"word": "ulsterman", "char": "l"}}
+{"input": "Reverse the word 'rescinded'.", "target": "dednicser", "task_type": "reverse", "metadata": {"word": "rescinded"}}
+{"input": "How many times does the letter 'r' appear in the word 'dairyman'?", "target": "1", "task_type": "count", "metadata": {"word": "dairyman", "char": "r"}}
+{"input": "What is the 8th letter of the word 'bigotish'?", "target": "h", "task_type": "index", "metadata": {"word": "bigotish", "index": 7}}
+{"input": "What is the 1st letter of the word 'tarns'?", "target": "t", "task_type": "index", "metadata": {"word": "tarns", "index": 0}}
+{"input": "How many times does the letter 's' appear in the word 'lefts'?", "target": "1", "task_type": "count", "metadata": {"word": "lefts", "char": "s"}}
+{"input": "What is the 5th letter of the word 'levis'?", "target": "s", "task_type": "index", "metadata": {"word": "levis", "index": 4}}
+{"input": "Reverse the word 'atrial'.", "target": "lairta", "task_type": "reverse", "metadata": {"word": "atrial"}}
+{"input": "What is the 4th letter of the word 'ortygan'?", "target": "y", "task_type": "index", "metadata": {"word": "ortygan", "index": 3}}
+{"input": "What is the 7th letter of the word 'reheels'?", "target": "s", "task_type": "index", "metadata": {"word": "reheels", "index": 6}}
+{"input": "Reverse the word 'flourless'.", "target": "sselruolf", "task_type": "reverse", "metadata": {"word": "flourless"}}
+{"input": "Reverse the word 'semilor'.", "target": "rolimes", "task_type": "reverse", "metadata": {"word": "semilor"}}
+{"input": "How many times does the letter 'e' appear in the word 'aleutic'?", "target": "1", "task_type": "count", "metadata": {"word": "aleutic", "char": "e"}}
+{"input": "Reverse the word 'absolution'.", "target": "noitulosba", "task_type": "reverse", "metadata": {"word": "absolution"}}
+{"input": "Reverse the word 'sitatunga'.", "target": "agnutatis", "task_type": "reverse", "metadata": {"word": "sitatunga"}}
+{"input": "Reverse the word 'denierage'.", "target": "egareined", "task_type": "reverse", "metadata": {"word": "denierage"}}
+{"input": "How many times does the letter 'n' appear in the word 'palliyan'?", "target": "1", "task_type": "count", "metadata": {"word": "palliyan", "char": "n"}}
+{"input": "How many times does the letter 'd' appear in the word 'goldfinch'?", "target": "1", "task_type": "count", "metadata": {"word": "goldfinch", "char": "d"}}
+{"input": "Reverse the word 'australoid'.", "target": "diolartsua", "task_type": "reverse", "metadata": {"word": "australoid"}}
+{"input": "How many times does the letter 'p' appear in the word 'zebralike'?", "target": "0", "task_type": "count", "metadata": {"word": "zebralike", "char": "p"}}
+{"input": "Reverse the word 'anagram'.", "target": "margana", "task_type": "reverse", "metadata": {"word": "anagram"}}
+{"input": "How many times does the letter 's' appear in the word 'expounds'?", "target": "1", "task_type": "count", "metadata": {"word": "expounds", "char": "s"}}
+{"input": "How many times does the letter 'p' appear in the word 'speckles'?", "target": "1", "task_type": "count", "metadata": {"word": "speckles", "char": "p"}}
+{"input": "Reverse the word 'puceron'.", "target": "norecup", "task_type": "reverse", "metadata": {"word": "puceron"}}
+{"input": "How many times does the letter 'u' appear in the word 'izumi'?", "target": "1", "task_type": "count", "metadata": {"word": "izumi", "char": "u"}}
+{"input": "What is the 7th letter of the word 'lapponian'?", "target": "i", "task_type": "index", "metadata": {"word": "lapponian", "index": 6}}
+{"input": "What is the 1st letter of the word 'hydriad'?", "target": "h", "task_type": "index", "metadata": {"word": "hydriad", "index": 0}}
+{"input": "Reverse the word 'restlessly'.", "target": "ylsseltser", "task_type": "reverse", "metadata": {"word": "restlessly"}}
+{"input": "Reverse the word 'reaccented'.", "target": "detneccaer", "task_type": "reverse", "metadata": {"word": "reaccented"}}
+{"input": "What is the 9th letter of the word 'unlocalize'?", "target": "z", "task_type": "index", "metadata": {"word": "unlocalize", "index": 8}}
+{"input": "What is the 6th letter of the word 'carcassed'?", "target": "s", "task_type": "index", "metadata": {"word": "carcassed", "index": 5}}
+{"input": "Reverse the word 'bungarum'.", "target": "muragnub", "task_type": "reverse", "metadata": {"word": "bungarum"}}
+{"input": "How many times does the letter 'm' appear in the word 'concupy'?", "target": "0", "task_type": "count", "metadata": {"word": "concupy", "char": "m"}}
+{"input": "What is the 2nd letter of the word 'neglect'?", "target": "e", "task_type": "index", "metadata": {"word": "neglect", "index": 1}}
+{"input": "How many times does the letter 'a' appear in the word 'sethian'?", "target": "1", "task_type": "count", "metadata": {"word": "sethian", "char": "a"}}
+{"input": "What is the 1st letter of the word 'snock'?", "target": "s", "task_type": "index", "metadata": {"word": "snock", "index": 0}}
+{"input": "How many times does the letter 't' appear in the word 'fibrotic'?", "target": "1", "task_type": "count", "metadata": {"word": "fibrotic", "char": "t"}}
+{"input": "What is the 7th letter of the word 'nummulary'?", "target": "a", "task_type": "index", "metadata": {"word": "nummulary", "index": 6}}
+{"input": "What is the 7th letter of the word 'newsagent'?", "target": "e", "task_type": "index", "metadata": {"word": "newsagent", "index": 6}}
+{"input": "Reverse the word 'threshal'.", "target": "lahserht", "task_type": "reverse", "metadata": {"word": "threshal"}}
+{"input": "How many times does the letter 'i' appear in the word 'dimwits'?", "target": "2", "task_type": "count", "metadata": {"word": "dimwits", "char": "i"}}
+{"input": "Reverse the word 'choux'.", "target": "xuohc", "task_type": "reverse", "metadata": {"word": "choux"}}
+{"input": "How many times does the letter 'o' appear in the word 'ergophile'?", "target": "1", "task_type": "count", "metadata": {"word": "ergophile", "char": "o"}}
+{"input": "What is the 7th letter of the word 'anandrous'?", "target": "o", "task_type": "index", "metadata": {"word": "anandrous", "index": 6}}
+{"input": "What is the 1st letter of the word 'pleatless'?", "target": "p", "task_type": "index", "metadata": {"word": "pleatless", "index": 0}}
+{"input": "Reverse the word 'doylt'.", "target": "tlyod", "task_type": "reverse", "metadata": {"word": "doylt"}}
+{"input": "What is the 1st letter of the word 'dammish'?", "target": "d", "task_type": "index", "metadata": {"word": "dammish", "index": 0}}
+{"input": "How many times does the letter 'g' appear in the word 'bodega'?", "target": "1", "task_type": "count", "metadata": {"word": "bodega", "char": "g"}}
+{"input": "What is the 1st letter of the word 'perturbing'?", "target": "p", "task_type": "index", "metadata": {"word": "perturbing", "index": 0}}
+{"input": "How many times does the letter 'n' appear in the word 'downsome'?", "target": "1", "task_type": "count", "metadata": {"word": "downsome", "char": "n"}}
+{"input": "Reverse the word 'kloesse'.", "target": "esseolk", "task_type": "reverse", "metadata": {"word": "kloesse"}}
+{"input": "What is the 4th letter of the word 'dishwash'?", "target": "h", "task_type": "index", "metadata": {"word": "dishwash", "index": 3}}
+{"input": "Reverse the word 'smuggling'.", "target": "gnilggums", "task_type": "reverse", "metadata": {"word": "smuggling"}}
+{"input": "How many times does the letter 'r' appear in the word 'underread'?", "target": "2", "task_type": "count", "metadata": {"word": "underread", "char": "r"}}
+{"input": "How many times does the letter 'h' appear in the word 'misbuild'?", "target": "0", "task_type": "count", "metadata": {"word": "misbuild", "char": "h"}}
+{"input": "Reverse the word 'teratogen'.", "target": "negotaret", "task_type": "reverse", "metadata": {"word": "teratogen"}}
+{"input": "What is the 6th letter of the word 'waterworn'?", "target": "w", "task_type": "index", "metadata": {"word": "waterworn", "index": 5}}
+{"input": "Reverse the word 'palatably'.", "target": "ylbatalap", "task_type": "reverse", "metadata": {"word": "palatably"}}
+{"input": "Reverse the word 'pervaded'.", "target": "dedavrep", "task_type": "reverse", "metadata": {"word": "pervaded"}}
+{"input": "How many times does the letter 'n' appear in the word 'spurning'?", "target": "2", "task_type": "count", "metadata": {"word": "spurning", "char": "n"}}
+{"input": "Reverse the word 'disstate'.", "target": "etatssid", "task_type": "reverse", "metadata": {"word": "disstate"}}
+{"input": "Reverse the word 'firepink'.", "target": "kniperif", "task_type": "reverse", "metadata": {"word": "firepink"}}
+{"input": "How many times does the letter 'e' appear in the word 'unmumbled'?", "target": "1", "task_type": "count", "metadata": {"word": "unmumbled", "char": "e"}}
+{"input": "Reverse the word 'mumped'.", "target": "depmum", "task_type": "reverse", "metadata": {"word": "mumped"}}
+{"input": "Reverse the word 'designates'.", "target": "setangised", "task_type": "reverse", "metadata": {"word": "designates"}}
+{"input": "How many times does the letter 'v' appear in the word 'inventor'?", "target": "1", "task_type": "count", "metadata": {"word": "inventor", "char": "v"}}
+{"input": "What is the 5th letter of the word 'orderer'?", "target": "r", "task_type": "index", "metadata": {"word": "orderer", "index": 4}}
+{"input": "What is the 6th letter of the word 'unraspy'?", "target": "p", "task_type": "index", "metadata": {"word": "unraspy", "index": 5}}
+{"input": "How many times does the letter 'g' appear in the word 'wagger'?", "target": "2", "task_type": "count", "metadata": {"word": "wagger", "char": "g"}}
+{"input": "What is the 4th letter of the word 'oquassa'?", "target": "a", "task_type": "index", "metadata": {"word": "oquassa", "index": 3}}
+{"input": "Reverse the word 'archeus'.", "target": "suehcra", "task_type": "reverse", "metadata": {"word": "archeus"}}
+{"input": "Reverse the word 'goldbird'.", "target": "dribdlog", "task_type": "reverse", "metadata": {"word": "goldbird"}}
+{"input": "What is the 7th letter of the word 'protopine'?", "target": "i", "task_type": "index", "metadata": {"word": "protopine", "index": 6}}
+{"input": "Reverse the word 'stripiest'.", "target": "tseipirts", "task_type": "reverse", "metadata": {"word": "stripiest"}}
+{"input": "How many times does the letter 'i' appear in the word 'nagnail'?", "target": "1", "task_type": "count", "metadata": {"word": "nagnail", "char": "i"}}
+{"input": "What is the 3rd letter of the word 'inotropic'?", "target": "o", "task_type": "index", "metadata": {"word": "inotropic", "index": 2}}
+{"input": "How many times does the letter 'e' appear in the word 'filialness'?", "target": "1", "task_type": "count", "metadata": {"word": "filialness", "char": "e"}}
+{"input": "What is the 8th letter of the word 'nonfeebly'?", "target": "l", "task_type": "index", "metadata": {"word": "nonfeebly", "index": 7}}
+{"input": "What is the 4th letter of the word 'dollardom'?", "target": "l", "task_type": "index", "metadata": {"word": "dollardom", "index": 3}}
+{"input": "How many times does the letter 'e' appear in the word 'finbacks'?", "target": "0", "task_type": "count", "metadata": {"word": "finbacks", "char": "e"}}
+{"input": "How many times does the letter 'a' appear in the word 'talus'?", "target": "1", "task_type": "count", "metadata": {"word": "talus", "char": "a"}}
+{"input": "How many times does the letter 'u' appear in the word 'outdrank'?", "target": "1", "task_type": "count", "metadata": {"word": "outdrank", "char": "u"}}
+{"input": "How many times does the letter 'n' appear in the word 'organoiron'?", "target": "2", "task_type": "count", "metadata": {"word": "organoiron", "char": "n"}}
+{"input": "How many times does the letter 'r' appear in the word 'dormition'?", "target": "1", "task_type": "count", "metadata": {"word": "dormition", "char": "r"}}
+{"input": "What is the 1st letter of the word 'puler'?", "target": "p", "task_type": "index", "metadata": {"word": "puler", "index": 0}}
+{"input": "What is the 8th letter of the word 'whiskers'?", "target": "s", "task_type": "index", "metadata": {"word": "whiskers", "index": 7}}
+{"input": "How many times does the letter 'u' appear in the word 'truckling'?", "target": "1", "task_type": "count", "metadata": {"word": "truckling", "char": "u"}}
+{"input": "What is the 2nd letter of the word 'sennas'?", "target": "e", "task_type": "index", "metadata": {"word": "sennas", "index": 1}}
+{"input": "Reverse the word 'arthrodira'.", "target": "aridorhtra", "task_type": "reverse", "metadata": {"word": "arthrodira"}}
+{"input": "Reverse the word 'ennobling'.", "target": "gnilbonne", "task_type": "reverse", "metadata": {"word": "ennobling"}}
+{"input": "Reverse the word 'hylean'.", "target": "naelyh", "task_type": "reverse", "metadata": {"word": "hylean"}}
+{"input": "How many times does the letter 'a' appear in the word 'reinvade'?", "target": "1", "task_type": "count", "metadata": {"word": "reinvade", "char": "a"}}
+{"input": "Reverse the word 'unknotting'.", "target": "gnittonknu", "task_type": "reverse", "metadata": {"word": "unknotting"}}
+{"input": "How many times does the letter 'k' appear in the word 'barkary'?", "target": "1", "task_type": "count", "metadata": {"word": "barkary", "char": "k"}}
+{"input": "How many times does the letter 'y' appear in the word 'senatory'?", "target": "1", "task_type": "count", "metadata": {"word": "senatory", "char": "y"}}
+{"input": "How many times does the letter 'c' appear in the word 'mandelic'?", "target": "1", "task_type": "count", "metadata": {"word": "mandelic", "char": "c"}}
+{"input": "How many times does the letter 'a' appear in the word 'fixtures'?", "target": "0", "task_type": "count", "metadata": {"word": "fixtures", "char": "a"}}
+{"input": "Reverse the word 'decoded'.", "target": "dedoced", "task_type": "reverse", "metadata": {"word": "decoded"}}
+{"input": "How many times does the letter 'z' appear in the word 'zoolater'?", "target": "1", "task_type": "count", "metadata": {"word": "zoolater", "char": "z"}}
+{"input": "How many times does the letter 'u' appear in the word 'bulge'?", "target": "1", "task_type": "count", "metadata": {"word": "bulge", "char": "u"}}
+{"input": "What is the 4th letter of the word 'warkloom'?", "target": "k", "task_type": "index", "metadata": {"word": "warkloom", "index": 3}}

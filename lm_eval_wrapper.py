@@ -69,6 +69,8 @@ available_tasks = {
     "commonsenseqa": Task("commonsenseqa", "acc_norm,none", "accuracy"),
     "xquad": Task("xquad", "f1,none", "accuracy"),
     "spanish_bench": Task("spanish_bench", "acc_norm,none", "accuracy"),
+    # Synthetic spelling benchmark (count, index, reverse tasks)
+    "spelling_bee": Task("spelling_benchmark/spelling_bee.yaml", "exact_match,none", "accuracy"),
 }
 
 default_tasks = [
