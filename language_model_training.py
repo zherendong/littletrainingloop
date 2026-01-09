@@ -412,7 +412,7 @@ def train_language_model(
         )
         eval_datasets = [
             slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
-                config, split="validation"
+                config, split="validation", mix_strawberry=False
             ),
             strawberry_dataloader.create_strawberry_dataloader(
                 config,
