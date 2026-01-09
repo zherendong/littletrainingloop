@@ -73,7 +73,7 @@ def save_result(result: EvalResult, output_dir: Path) -> Path:
         # Include the task-specific results
         result_dict["results"] = result.results.get("results", {})
         result_dict["configs"] = result.results.get("configs", {})
-        # Don't include samples as they're very large
+        result_dict["samples"] = result.results.get("samples", {})
     else:
         result_dict["error"] = result.error
         result_dict["traceback"] = result.traceback
@@ -159,32 +159,36 @@ def evaluate_checkpoint(
         return results
 
     # Run each task independently
-    for task in tasks:
+    for task_name in tasks:
+        task = lm_eval_wrapper.get_task_details(task_name)
         print(f"\n  Task: {task}")
         print(f"  {'-'*40}")
 
         try:
             task_results = evaluate_single_task(
                 wrapper=wrapper,
-                task=task,
+                task=task.name,  # internal name might differ
                 num_fewshot=num_fewshot,
                 limit=limit,
             )
 
-            # Remove samples to reduce file size
+            # Reduce the number of samples to limit file size
             if "samples" in task_results:
-                del task_results["samples"]
+                try:
+                    task_results["samples"] = task_results["samples"][task.name][:100]
+                except KeyError as e:
+                    task_results["samples"] = f"Error: {e}"
 
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
-                task=task,
+                task=task_name,
                 success=True,
                 results=task_results,
             )
 
             # Print summary for this task
-            if "results" in task_results and task in task_results["results"]:
-                task_metrics = task_results["results"][task]
+            if "results" in task_results and task.name in task_results["results"]:
+                task_metrics = task_results["results"][task.name]
                 print(f"  Results for {task}:")
                 for metric_name, metric_value in task_metrics.items():
                     print(f"    {metric_name}: {metric_value}")

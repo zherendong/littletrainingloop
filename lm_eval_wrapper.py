@@ -34,26 +34,41 @@ available_tasks = {
     "arc_easy": Task("arc_easy", "acc_norm,none", "accuracy"),
     "arc_challenge": Task("arc_challenge", "acc_norm,none", "accuracy"),
     "humaneval": Task("humaneval", "pass@1,create_test", "pass@1"),
-    # interesting
+    # math benchmarks
     "gsm8k": Task("gsm8k", "exact_match,flexible-extract", "accuracy"),
     "hendrycks_math": Task("hendrycks_math", "exact_match,none", "accuracy"),
-    "mmlu": Task("mmlu", "acc,none", "accuracy"),  # TODO: is "none" right?
+    "mmlu": Task("mmlu", "acc,none", "accuracy"),
+    "mbpp": Task("mbpp", "pass_at_1,none", "accuracy"),
+    "mathqa": Task("mathqa", "acc_norm,none", "accuracy"),
     # other standard tasks
     "piqa": Task("piqa", "acc_norm,none", "accuracy"),
     "sciq": Task("sciq", "acc_norm,none", "accuracy"),
     "winogrande": Task("winogrande", "acc,none", "accuracy"),
     "triviaqa": Task("triviaqa", "exact_match,remove_whitespace", "accuracy"),
     "openbookqa": Task("openbookqa", "acc_norm,none", "accuracy"),
-    # unknown
+    "drop": Task("drop", "f1,none", "accuracy"),
+    "bbh": Task("bbh", "acc_norm,none", "accuracy"),
+    "naturalquestions": Task("nq_open", "exact_match,remove_whitespace", "accuracy"),
+    "agieval": Task("agieval", "acc_stderr,none", "accuracy"),
+    "race": Task("race", "acc_norm,none", "accuracy"),
+    # perplexity-based measurements
+    "pile": Task("pile", "perplexity,none", "perplexity"),
+    # chinese
+    # "cmmlu": Task("cmmlu", "acc_norm,none", "accuracy"),
+    "ceval-valid": Task("ceval-valid", "acc_norm,none", "accuracy"),
+    # multi lingual
+    "kmmlu": Task("kmmlu", "acc,none", "accuracy"),
+    # "french_bench": Task("french_bench", "acc_norm,none", "accuracy"),
+    # "japanese_leaderboard": Task("japanese_leaderboard", "acc_norm,none", "accuracy"),
+    # unused
     "lambada": Task("lambada", "acc_norm,none", "accuracy"),
-    "mathqa": Task("mathqa", "acc_norm,none", "accuracy"),
     "pubmedqa": Task("pubmedqa", "acc_norm,none", "accuracy"),
     "strategyqa": Task("strategyqa", "acc_norm,none", "accuracy"),
     "qasc": Task("qasc", "acc_norm,none", "accuracy"),
     "socialiqa": Task("socialiqa", "acc_norm,none", "accuracy"),
     "commonsenseqa": Task("commonsenseqa", "acc_norm,none", "accuracy"),
-    "drop": Task("drop", "f1,none", "accuracy"),
-    "ceval-valid": Task("ceval-valid", "acc_norm,none", "accuracy"),
+    "xquad": Task("xquad", "f1,none", "accuracy"),
+    "spanish_bench": Task("spanish_bench", "acc_norm,none", "accuracy"),
 }
 
 default_tasks = [
@@ -71,6 +86,15 @@ default_tasks = [
     "openbookqa",
     "drop",
     "ceval-valid",
+    "bbh",
+    "naturalquestions",
+    "mbpp",
+    "agieval",
+    "race",
+    "pile",
+    "xquad",
+    "kmmlu",
+    "spanish_bench",
 ]
 
 
