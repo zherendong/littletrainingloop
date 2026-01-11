@@ -1,14 +1,16 @@
 import dataclasses
 from typing import Iterable, Any
 
-from training_loop import (
+from training_basics import (
     TrainingConfig,
+    EvalConfig,
     DataProvider,
     TrainingState,
     Metrics,
     MetricItem,
-    train,
 )
+from training_loop import train
+import neptune_lib
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,9 +19,8 @@ import sklearn
 
 @dataclasses.dataclass(frozen=True)
 class IrisTrainingConfig:
-    input_size: int = 3
-    output_size: int = 1
-    num_samples: int = 50
+    input_size: int = 4  # Iris has 4 features
+    output_size: int = 3  # Iris has 3 classes
     learning_rate: float = 0.1
     seed: int = 42
 
@@ -27,6 +28,9 @@ class IrisTrainingConfig:
         default_factory=lambda: TrainingConfig(
             num_epochs=50,
         )
+    )
+    eval_config: EvalConfig = dataclasses.field(
+        default_factory=lambda: EvalConfig(every_n_steps=10)
     )
 
 
@@ -115,17 +119,52 @@ class IrisTrainingState(TrainingState[DataItem]):
         }
         return {name: MetricItem(value) for name, value in metrics.items()}
 
-    def eval(self, data: DataItem) -> Metrics:
-        predictions = self.model(data.inputs)
-        loss = self.criterion(predictions, data.targets)
-        metrics = {"loss": float(loss.detach().cpu().numpy())}
-        return {name: MetricItem(value) for name, value in metrics.items()}
+    def validation_loss(
+        self, eval_data: Iterable[DataItem], eval_steps: int
+    ) -> Metrics:
+        """Compute validation loss on the evaluation data."""
+        total_loss = 0.0
+        total_correct = 0
+        total_samples = 0
+        steps = 0
+        self.model.eval()
+        with torch.no_grad():
+            for data in eval_data:
+                if steps >= eval_steps:
+                    break
+                predictions = self.model(data.inputs)
+                loss = self.criterion(predictions, data.targets)
+                total_loss += float(loss.detach().cpu().numpy())
+                # Compute accuracy
+                pred_classes = predictions.argmax(dim=1)
+                total_correct += (pred_classes == data.targets).sum().item()
+                total_samples += data.targets.shape[0]
+                steps += 1
+        self.model.train()
+        avg_loss = total_loss / max(steps, 1)
+        accuracy = total_correct / max(total_samples, 1)
+        return {
+            "loss": MetricItem(avg_loss),
+            "accuracy": MetricItem(accuracy),
+        }
+
+    def evaluate(self) -> Metrics:
+        """Run evaluation harness (not implemented for Iris)."""
+        return {}
+
+    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
+        """Save checkpoint (not implemented for Iris demo)."""
+        pass
+
+    def num_non_embedding_parameters(self) -> int:
+        """Number of non-embedding parameters (same as total for this model)."""
+        return self.num_parameters()
 
 
 class IrisDataGenerator(DataProvider[DataItem]):
     """Data generator for Iris data"""
 
-    def __init__(self, config: TrainingConfig, is_train: bool = True):
+    def __init__(self, config: IrisTrainingConfig, is_train: bool = True):
         self.config = config
         iris = sklearn.datasets.load_iris()
         X = iris.data
@@ -150,12 +189,8 @@ class IrisDataGenerator(DataProvider[DataItem]):
         """Name of the dataset"""
         return f"Iris dataset ({self.config.seed=}, {self.is_train=})"
 
-    def save_checkpoint(self, path: str, run_id: str, step: int, epoch: int) -> None:
-        del path, step, epoch
-        pass
 
-
-def train_iris_model(config: TrainingConfig):
+def train_iris_model(config: IrisTrainingConfig):
     """Train an Iris model using configuration object"""
     # Create model
     with torch.random.fork_rng():
@@ -167,13 +202,15 @@ def train_iris_model(config: TrainingConfig):
     data_provider = IrisDataGenerator(config)
     eval_data_provider = IrisDataGenerator(config, is_train=False)
     # Train the model
-    losses = train(
+    train(
         state,
         data_provider,
-        config.training_config,
+        config=config.training_config,
+        eval_config=config.eval_config,
         eval_data_providers=(eval_data_provider,),
+        neptune_run=neptune_lib.NullNeptuneRun(),
     )
-    return losses
+    return
 
 
 if __name__ == "__main__":
@@ -181,11 +218,10 @@ if __name__ == "__main__":
         learning_rate=0.2,
         input_size=4,
         output_size=3,
-        num_samples=10,
         seed=42,
         training_config=TrainingConfig(
             num_epochs=50,
-            eval_every_n_steps=10,
         ),
+        eval_config=EvalConfig(every_n_steps=10),
     )
-    losses = train_iris_model(config)
+    train_iris_model(config)

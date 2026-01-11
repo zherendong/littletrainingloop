@@ -1,17 +1,36 @@
 import dataclasses
 from typing import Iterable, Any
 
-from training_loop import (
+from training_basics import (
     TrainingConfig,
+    EvalConfig,
     DataProvider,
     TrainingState,
     Metrics,
     MetricItem,
-    train,
 )
+from training_loop import train
+import neptune_lib
 import torch
 import torch.nn as nn
 import torch.optim as optim
+
+
+@dataclasses.dataclass(frozen=True)
+class LinearTrainingConfig:
+    """Configuration for linear model training"""
+
+    input_size: int = 10
+    output_size: int = 1
+    num_samples: int = 100
+    learning_rate: float = 0.01
+    seed: int = 42
+    training_config: TrainingConfig = dataclasses.field(
+        default_factory=lambda: TrainingConfig(num_epochs=10)
+    )
+    eval_config: EvalConfig = dataclasses.field(
+        default_factory=lambda: EvalConfig(every_n_steps=100)
+    )
 
 
 @dataclasses.dataclass
@@ -35,7 +54,7 @@ class LinearModel(nn.Module):
 class LinearModelTrainingState(TrainingState[DataItem]):
     """Training state for linear model"""
 
-    def __init__(self, model: LinearModel, config: TrainingConfig):
+    def __init__(self, model: LinearModel, config: LinearTrainingConfig):
         self.model = model
         self.config = config
         self.criterion = nn.MSELoss()
@@ -79,11 +98,11 @@ class LinearModelTrainingState(TrainingState[DataItem]):
 
 
 def generate_random_data(
-    config: TrainingConfig,
+    config: LinearTrainingConfig,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Generate random input-output pairs using configuration"""
     with torch.random.fork_rng():
-        torch.random.manual_seed(42)
+        torch.random.manual_seed(config.seed)
         X = torch.randn(config.num_samples, config.input_size)
         y = torch.randn(config.num_samples, config.output_size)
         true_weights = torch.randn(config.input_size, config.output_size)
@@ -94,7 +113,7 @@ def generate_random_data(
 class RandomLinearDataGenerator(DataProvider[DataItem]):
     """Data generator for random linear data"""
 
-    def __init__(self, config: TrainingConfig):
+    def __init__(self, config: LinearTrainingConfig):
         self.config = config
         self.X, self.y, self.true_weights, self.true_bias = generate_random_data(config)
 
@@ -111,7 +130,7 @@ class RandomLinearDataGenerator(DataProvider[DataItem]):
         return f"random_linear dataset with seed {self.config.seed}"
 
 
-def train_linear_model(config: TrainingConfig):
+def train_linear_model(config: LinearTrainingConfig):
     """Train a linear model using configuration object"""
     # Create model
     model = LinearModel(config.input_size, config.output_size)
@@ -120,5 +139,11 @@ def train_linear_model(config: TrainingConfig):
     # Create data generator
     data_provider = RandomLinearDataGenerator(config)
     # Train the model
-    losses = train(state, data_provider, config)
-    return losses
+    train(
+        state,
+        data_provider,
+        config=config.training_config,
+        eval_config=config.eval_config,
+        neptune_run=neptune_lib.NullNeptuneRun(),
+    )
+    return

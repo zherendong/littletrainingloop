@@ -42,6 +42,7 @@ def test_self_attention():
         head_dim=32,
         use_flash_attention=False,
         dtype=torch.bfloat16,
+        max_seq_len=512,
     )
     x = torch.randn(3, 10, 128, dtype=torch.bfloat16)
     y = attention(x)
