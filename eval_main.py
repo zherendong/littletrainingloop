@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import lm_eval
+from lm_eval.tasks import TaskManager
 import torch
 
 import checkpointing
@@ -97,6 +98,10 @@ def evaluate_single_task(
     start_time = datetime.datetime.now()
     print(f"  [lm_eval] Starting evaluation for task: {task} at time {start_time} with batch size {wrapper.batch_size}", flush=True)
 
+    # Create task manager with include_path for custom yaml tasks
+    # Include spelling_benchmark for the spelling_bee task
+    task_manager = TaskManager(include_path="spelling_benchmark")
+
     results = lm_eval.simple_evaluate(  # type: ignore
         model=wrapper,
         tasks=[task],
@@ -106,6 +111,7 @@ def evaluate_single_task(
         max_batch_size=wrapper.batch_size,
         cache_requests=True,
         confirm_run_unsafe_code=True,
+        task_manager=task_manager,
     )
     end_time = datetime.datetime.now()
     print(f"  [lm_eval] Completed evaluation for task: {task} at time {end_time} (diff = {end_time-start_time})", flush=True)
