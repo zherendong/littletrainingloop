@@ -225,6 +225,18 @@ def config_variants(
         )
     variants = eot_variants
 
+    # chinchilla_variants = []
+    # for config in variants:
+    #     chinchilla_variants.append(config)
+    #     chinchilla_variants.append(
+    #         replace(
+    #             config,
+    #             chinchilla_factor=10,
+    #             name=config.name + f"_cf10",
+    #         )
+    #     )
+    # variants = chinchilla_variants
+
     print(f"Generated {len(variants)} variants")
     return variants
 
@@ -239,17 +251,17 @@ def main(
         # "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
-        # "chinchilla-106m",
+        "chinchilla-106m",
         # "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
         # "chinchilla-196m",
         # "chinchilla-251m",
         # "chinchilla-306m",
-        # "chinchilla-425m",
+        "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
-        "chinchilla-816m",
+        # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
         # "chinchilla-2298m",

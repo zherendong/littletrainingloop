@@ -6,6 +6,7 @@ Language model training.
 # CUDA factory registration warnings that conflict with PyTorch)
 import sys
 
+# Suppress some errors that may stem from a hidden dependency on tensorflow.
 sys.modules["tensorflow"] = None
 
 from collections import defaultdict
