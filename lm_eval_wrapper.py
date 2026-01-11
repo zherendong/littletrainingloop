@@ -70,7 +70,8 @@ available_tasks = {
     "xquad": Task("xquad", "f1,none", "accuracy"),
     "spanish_bench": Task("spanish_bench", "acc_norm,none", "accuracy"),
     # Synthetic spelling benchmark (count, index, reverse tasks)
-    "spelling_bee": Task("spelling_benchmark/spelling_bee.yaml", "exact_match,none", "accuracy"),
+    # Note: requires TaskManager with include_path="spelling_benchmark" in eval_main.py
+    "spelling_bee": Task("spelling_bee", "exact_match,none", "accuracy"),
 }
 
 default_tasks = [
@@ -450,9 +451,11 @@ class LittleTrainingLoopWrapper(LM):
             List of generated text strings (continuations only, not including
             context).
         """
+        from tqdm import tqdm
+
         results = []
 
-        for request in requests:
+        for request in tqdm(requests, desc="Generating", unit="sample"):
             context, gen_kwargs = request.args
             until = gen_kwargs.get("until", [self.tok_decode([self.eot_token_id])])
             generated_text = self.infer(context, until)
