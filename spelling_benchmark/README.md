@@ -72,8 +72,14 @@ python eval_main.py \
 After running evaluation, analyze results with stratified metrics:
 
 ```bash
-# From lm-eval results (use --max_samples_log 0 during eval to save all samples)
-python -m spelling_benchmark.analyze_results --results_file lm_eval_results/ckpt_spelling_bee.jsonl
+# Single model analysis
+python -m spelling_benchmark.analyze_results \
+  --results_file lm_eval_results/baseline_spelling_bee.jsonl
+
+# Compare two models (side-by-side with deltas)
+python -m spelling_benchmark.analyze_results \
+  --results_file lm_eval_results/baseline_spelling_bee.jsonl \
+  --compare lm_eval_results/spelling_bee_spelling_bee.jsonl
 
 # Or run direct inference (useful if you didn't save all samples)
 python -m spelling_benchmark.analyze_results --checkpoint checkpoints/model.pt
@@ -85,6 +91,7 @@ Output includes:
 - Per-task accuracy (count, index, reverse)
 - Cross-tabulated task × token type accuracy
 - Sample error analysis
+- Key insights (for comparison mode)
 
 ### Run tests
 
