@@ -44,6 +44,11 @@ class TestCountTask:
         assert task["target"] == "3"
         assert "strawberry" in task["input"]
 
+    def test_metadata_has_token_info(self):
+        task = create_count_task("apple", force_char="a")
+        assert "is_single_token" in task["metadata"]
+        assert "num_tokens" in task["metadata"]
+
 
 class TestIndexTask:
     def test_first_letter(self):
