@@ -296,7 +296,7 @@ class LittleTrainingLoopWrapper(LM):
         target_is_greedy = is_greedy_per_token | ~keep_mask # set unwanted values to 1
         is_greedy = target_is_greedy.all(dim=-1)
 
-        return total_logprob, is_greedy
+        return list(zip(total_logprob.tolist(), is_greedy.tolist()))
 
     @torch.inference_mode()
     def loglikelihood_rolling(self, requests) -> List[float]:
@@ -385,7 +385,6 @@ class LittleTrainingLoopWrapper(LM):
         token_logprobs[:, 1:] = log_probs[:, :-1, :].gather(
             dim=-1, index=tokens[:, 1:].unsqueeze(-1) # ignore first token (not predicted)
         ).squeeze(-1)  # [batch, seq_len]
-
 
         # Are expected tokens generated when greedy sampling?
         greedy_tokens = logits.argmax(dim=-1) # [batch, seq_len]
