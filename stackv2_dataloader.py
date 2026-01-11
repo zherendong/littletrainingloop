@@ -75,7 +75,11 @@ def create_stackv2_dataloader(
             f"Tokenizer vocab size ({tokenizer.n_vocab}) is larger than the model vocab size ({config.vocab_size})"
         )
     tokenized_data_loader = language_model_dataloader.TokenizedDataLoader(
-        config, raw_data_loader, tokenizer, extract_stackv2
+        config,
+        raw_data_loader,
+        tokenizer,
+        extract_stackv2,
+        append_eot=config.separate_data_with_eot,
     )
     batched_data_loader = language_model_dataloader.BatchedDataLoader(
         config.batch_size if split == "train" else config.eval_config.batch_size,

@@ -213,18 +213,6 @@ def config_variants(
         )
     variants = long_variants
 
-    eot_variants = []
-    for config in variants:
-        # eot_variants.append(config)
-        eot_variants.append(
-            replace(
-                config,
-                separate_data_with_eot=True,
-                name=config.name + f"_eot",
-            )
-        )
-    variants = eot_variants
-
     # chinchilla_variants = []
     # for config in variants:
     #     chinchilla_variants.append(config)
