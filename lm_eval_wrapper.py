@@ -252,8 +252,6 @@ class LittleTrainingLoopWrapper(LM):
             - log_prob: log probability of generating the continuation
             - is_greedy: True if continuation is the greedy (argmax) prediction
         """
-        raise NotImplementedError("Using loglikelihood")
-
         tokenized_requests, context_lengths, full_text_lengths = [], [], []
         for request in requests:
             context, continuation = request.args
