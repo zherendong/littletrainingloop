@@ -1,16 +1,29 @@
-import argparse
 import json
 import random
 import urllib.request
 import os
+from pathlib import Path
 from typing import List, Dict, Any
 
 import language_model_dataloader
 
-# Full English word list (~370k words)
+# Local asset paths (preferred)
+ASSETS_DIR = Path(__file__).parent / "assets"
+COMMON_WORDS_FILE = ASSETS_DIR / "common_words.txt"
+FULL_WORDS_FILE = ASSETS_DIR / "full_words.txt"
+
+# Fallback URLs if local files don't exist
 WORD_LIST_URL = "https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt"
-# Common English words (~3000 most frequent)
 COMMON_WORDS_URL = "https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa.txt"
+
+# Module-level tokenizer (lazy-loaded)
+_tokenizer = None
+
+def _get_tokenizer():
+    global _tokenizer
+    if _tokenizer is None:
+        _tokenizer = language_model_dataloader.default_tokenizer()
+    return _tokenizer
 
 
 def get_ordinal(n: int) -> str:
@@ -22,7 +35,17 @@ def get_ordinal(n: int) -> str:
     return f"{n}{suffix}"
 
 
-def create_count_task(word: str, num_tokens: int, force_char: str = None) -> Dict[str, Any]:
+def _get_token_metadata(word: str) -> Dict[str, Any]:
+    """Returns tokenization metadata for a word."""
+    tokenizer = _get_tokenizer()
+    num_tokens = len(tokenizer.encode(word))
+    return {
+        "num_tokens": num_tokens,
+        "is_single_token": num_tokens == 1,
+    }
+
+
+def create_count_task(word: str, force_char: str = None) -> Dict[str, Any]:
     """Creates a 'Count the letter' task."""
     word_lower = word.lower()
     
@@ -43,13 +66,12 @@ def create_count_task(word: str, num_tokens: int, force_char: str = None) -> Dic
         "metadata": {
             "word": word_lower,
             "char": char,
-            "num_tokens": num_tokens,
-            "is_single_token": num_tokens == 1,
+            **_get_token_metadata(word_lower),
         }
     }
 
 
-def create_index_task(word: str, num_tokens: int, force_idx: int = None) -> Dict[str, Any]:
+def create_index_task(word: str, force_idx: int = None) -> Dict[str, Any]:
     """Creates a 'What is the N-th letter' task."""
     word_lower = word.lower()
     
@@ -66,13 +88,12 @@ def create_index_task(word: str, num_tokens: int, force_idx: int = None) -> Dict
         "metadata": {
             "word": word_lower,
             "index": idx,
-            "num_tokens": num_tokens,
-            "is_single_token": num_tokens == 1,
+            **_get_token_metadata(word_lower),
         }
     }
 
 
-def create_reverse_task(word: str, num_tokens: int) -> Dict[str, Any]:
+def create_reverse_task(word: str) -> Dict[str, Any]:
     """Creates a 'Reverse the word' task."""
     word_lower = word.lower()
     return {
@@ -81,21 +102,27 @@ def create_reverse_task(word: str, num_tokens: int) -> Dict[str, Any]:
         "task_type": "reverse",
         "metadata": {
             "word": word_lower,
-            "num_tokens": num_tokens,
-            "is_single_token": num_tokens == 1,
+            **_get_token_metadata(word_lower),
         }
     }
 
 
-def fetch_word_list(url: str, name: str) -> List[str]:
-    """Downloads and filters a word list (4-10 chars, alphabetic only)."""
-    print(f"Downloading {name} from {url}...")
-    try:
-        with urllib.request.urlopen(url) as response:
-            words = response.read().decode('utf-8').splitlines()
-    except Exception as e:
-        print(f"Error downloading {name}: {e}")
-        return []
+def load_word_list(local_path: Path, url: str, name: str) -> List[str]:
+    """Loads word list from local file or falls back to URL.
+    
+    Filters to 4-10 char alphabetic words.
+    """
+    if local_path.exists():
+        print(f"Loading {name} from {local_path}...")
+        words = local_path.read_text().splitlines()
+    else:
+        print(f"Downloading {name} from {url}...")
+        try:
+            with urllib.request.urlopen(url) as response:
+                words = response.read().decode('utf-8').splitlines()
+        except Exception as e:
+            print(f"Error downloading {name}: {e}")
+            return []
     # Filter: 4-10 chars, alphabetic only
     return [w.strip().lower() for w in words if w.isalpha() and 4 <= len(w) <= 10]
 
@@ -103,25 +130,24 @@ def fetch_word_list(url: str, name: str) -> List[str]:
 def fetch_words() -> tuple[List[str], List[str]]:
     """Fetches both common words and full word list.
     
+    Loads from local assets if available, otherwise downloads from URLs.
+    
     Returns:
-        Tuple of (common_words, full_words) where full_words excludes common_words.
+        Tuple of (common_words, other_words) where other_words excludes common_words.
     """
-    common_words = fetch_word_list(COMMON_WORDS_URL, "common words")
-    full_words = fetch_word_list(WORD_LIST_URL, "full word list")
+    common_words = load_word_list(COMMON_WORDS_FILE, COMMON_WORDS_URL, "common words")
+    full_words = load_word_list(FULL_WORDS_FILE, WORD_LIST_URL, "full word list")
     
     # Deduplicate: remove common words from full list
     common_set = set(common_words)
-    full_words_deduped = [w for w in full_words if w not in common_set]
+    other_words = [w for w in full_words if w not in common_set]
     
-    print(f"Loaded {len(common_words)} common words, {len(full_words_deduped)} other words (deduped)")
-    return common_words, full_words_deduped
+    print(f"Loaded {len(common_words)} common words, {len(other_words)} other words (deduped)")
+    return common_words, other_words
 
 
 def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
     random.seed(seed)
-    
-    # Load tokenizer from our repo
-    tokenizer = language_model_dataloader.default_tokenizer()
     
     common_words, other_words = fetch_words()
     
@@ -152,20 +178,18 @@ def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
         else:
             word = random.choice(other_words)
         
-        # Calculate token count using our tokenizer
-        num_tokens = len(tokenizer.encode(word))
+        if task_type == "count":
+            entry = create_count_task(word)
+        elif task_type == "index":
+            entry = create_index_task(word)
+        elif task_type == "reverse":
+            entry = create_reverse_task(word)
         
-        if num_tokens == 1:
+        # Count for statistics
+        if entry["metadata"]["is_single_token"]:
             single_token_count += 1
         else:
             multi_token_count += 1
-        
-        if task_type == "count":
-            entry = create_count_task(word, num_tokens)
-        elif task_type == "index":
-            entry = create_index_task(word, num_tokens)
-        elif task_type == "reverse":
-            entry = create_reverse_task(word, num_tokens)
             
         data.append(entry)
 
@@ -182,12 +206,3 @@ def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
     print(f"  Single-token words: {single_token_count} ({100*single_token_count/len(data):.1f}%)")
     print(f"  Multi-token words: {multi_token_count} ({100*multi_token_count/len(data):.1f}%)")
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=str, default="spelling_benchmark/spelling_bee.jsonl")
-    parser.add_argument("--samples", type=int, default=1000)
-    parser.add_argument("--seed", type=int, default=42)
-    args = parser.parse_args()
-
-    generate_dataset(args.output, args.samples, args.seed)
