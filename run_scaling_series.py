@@ -225,6 +225,17 @@ def config_variants(
     #     )
     # variants = chinchilla_variants
 
+    # stackv2_variants = []
+    # for config in variants:
+    #     stackv2_variants.append(
+    #         replace(
+    #             config,
+    #             dataset="stackv2",
+    #             name=config.name + f"_stackv2",
+    #         )
+    #     )
+    # variants = stackv2_variants
+
     print(f"Generated {len(variants)} variants")
     return variants
 
@@ -249,7 +260,7 @@ def main(
         "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
-        # "chinchilla-816m",
+        "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
         # "chinchilla-2298m",

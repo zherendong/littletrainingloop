@@ -66,9 +66,11 @@ def create_stackv2_dataloader(
     split: str = "train",
 ) -> language_model_dataloader.BatchedDataLoader:
     """Load Stack v2 dataset."""
-    raw_data_loader = language_model_dataloader.JSONLDataLoader(
-        config, "data/stackv2_long"
-    )
+    if split != "train":
+        print(
+            f"Stackv2: Split {split} requested. Only train split is available. Using train instead."
+        )
+    raw_data_loader = language_model_dataloader.JSONLDataLoader(config, path)
     tokenizer = language_model_dataloader.default_tokenizer()
     if tokenizer.n_vocab > config.vocab_size:
         raise ValueError(
