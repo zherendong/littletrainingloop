@@ -116,6 +116,7 @@ class GrowingMLP(nn.Module):
         nonlinearity: str = "swish",
         glu: bool = True,
         pairwise_cancelling_init: bool = True,
+        copy_most_active_init: bool = True,
     ):
         super().__init__()
         self.input_size = input_size
@@ -124,6 +125,7 @@ class GrowingMLP(nn.Module):
         self.nonlinearity = nonlinearity
         self.glu = glu
         self.pairwise_cancelling_init = pairwise_cancelling_init
+        self.copy_most_active_init = copy_most_active_init
         self.dtype = dtype
 
         # Initial blocks (each has its own norm)
@@ -151,9 +153,22 @@ class GrowingMLP(nn.Module):
 
     def add_block(self) -> Iterator[nn.Parameter]:
         """Add a new block and return its parameters (for optimizer)."""
+        last_block = self.blocks[-1]
         new_block = self._make_block()
         new_block.init_weights()
         self.blocks.append(new_block)
+
+        if self.copy_most_active_init:
+            # TODO: identify the most commonly activated keys and split them
+            # for old, new in zip(last_block.parameters(), new_block.parameters()):
+            #     new.data.copy_(old.data * 0.2)
+            print("Copying last block's weights")
+            # print on which devices these tensors are
+            new_block.linear_in.weight.data = (
+                0.5 * new_block.linear_in.weight.data
+                + 0.5 * last_block.linear_in.weight.data
+            )
+
         return new_block.parameters()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
