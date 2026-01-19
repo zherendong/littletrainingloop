@@ -39,7 +39,7 @@ class LanguageModelTrainingConfig:
     sequence_length: int = 512
     shuffle_buffer_size: int = 100
     model_config: Any = None
-    separate_data_with_eot: bool = False
+    separate_data_with_eot: bool = True
 
     adam_eps: float = 1e-7
     adam_betas: tuple[float, float] = (0.9, 0.995)
