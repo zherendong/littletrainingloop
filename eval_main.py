@@ -91,6 +91,7 @@ def evaluate_single_task(
     task: str,
     num_fewshot: int | None,
     limit: int | None,
+    max_samples_log: int | None = 100,
 ) -> dict:
     """Run evaluation for a single task using an already-loaded model wrapper."""
     start_time = datetime.datetime.now()
@@ -118,6 +119,7 @@ def evaluate_checkpoint(
     num_fewshot: int | None,
     limit: int | None,
     output_dir: Path = RESULTS_DIR,
+    max_samples_log: int | None = 100,
 ) -> list[EvalResult]:
     """
     Evaluate a single checkpoint on multiple tasks.
@@ -174,6 +176,17 @@ def evaluate_checkpoint(
                 limit=limit,
             )
 
+            # Reduce the number of samples to limit file size
+            if "samples" in task_results:
+                try:
+                    samples = task_results["samples"][task.name]
+                    if max_samples_log is not None:
+                        samples = samples[:max_samples_log]
+                    task_results["samples"] = samples
+                except KeyError as e:
+                    task_results["samples"] = f"Error: {e}"
+
+
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
                 task=task_name,
@@ -216,6 +229,7 @@ def run_all_evaluations(
     num_fewshot: int | None,
     limit: int | None,
     output_dir: Path = RESULTS_DIR,
+    max_samples_log: int | None = 100,
 ) -> list[EvalResult]:
     """
     Run evaluations for all (checkpoint, task) pairs.
@@ -240,6 +254,7 @@ def run_all_evaluations(
             num_fewshot=num_fewshot,
             limit=limit,
             output_dir=output_dir,
+            max_samples_log=max_samples_log,
         )
         all_results.extend(results)
 
@@ -318,6 +333,12 @@ if __name__ == "__main__":
         default="lm_eval_results",
         help="Directory to save results (default: lm_eval_results)",
     )
+    parser.add_argument(
+        "--max_samples_log",
+        type=int,
+        default=100,
+        help="Max samples to save per task (default: 100, use 0 for unlimited)",
+    )
 
     args = parser.parse_args()
 
@@ -335,6 +356,9 @@ if __name__ == "__main__":
         print(f"Available tasks: {list(lm_eval_wrapper.available_tasks.keys())}")
         exit(1)
 
+    # Convert 0 to None for unlimited samples
+    max_samples_log = args.max_samples_log if args.max_samples_log > 0 else None
+
     results = run_all_evaluations(
         checkpoint_paths=checkpoint_paths,
         tasks=args.tasks,
@@ -342,6 +366,7 @@ if __name__ == "__main__":
         num_fewshot=args.num_fewshot,
         limit=args.limit,
         output_dir=Path(args.output_dir),
+        max_samples_log=max_samples_log,
     )
 
     print_summary(results)
