@@ -481,7 +481,9 @@ def run(
         tags=neptune_tags,
     )
     try:
-        losses = train_language_model(config, neptune_run=neptune_run)
+        losses = train_language_model(
+            config, neptune_run=neptune_run, dataset=config.dataset
+        )
         print(f"Losses: {losses}")
     finally:
         neptune_run.stop()

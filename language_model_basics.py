@@ -40,6 +40,7 @@ class LanguageModelTrainingConfig:
     shuffle_buffer_size: int = 100
     model_config: Any = None
     separate_data_with_eot: bool = True
+    dataset: str = "slimpajama"
 
     adam_eps: float = 1e-7
     adam_betas: tuple[float, float] = (0.9, 0.995)
