@@ -219,7 +219,7 @@ class LittleTrainingLoopWrapper(LM):
             yield tuple(lst[i:i+batch_size] for lst in local_iterables)
 
     def pad_batch(self, tokens: List[torch.Tensor], pad_to_pow2: bool=True) -> torch.Tensor:
-        def next_power_of_2(x):  
+        def next_power_of_2(x):
             return 1 if x == 0 else 2**(x - 1).bit_length()
 
         max_len = 0
@@ -240,7 +240,7 @@ class LittleTrainingLoopWrapper(LM):
             padded_seqs[i, :length, ...] = seq
 
         return padded_seqs
-    
+
     @torch.inference_mode()
     def loglikelihood(self, requests) -> List[Tuple[float, bool]]:
         """
@@ -369,7 +369,7 @@ class LittleTrainingLoopWrapper(LM):
         self, tokens: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute log probabilities for target tokens.
 
-        Note:   Calling code is responsible for creating the batches 
+        Note:   Calling code is responsible for creating the batches
                 and for ignoring results associated with padding positions.
 
         Args:
@@ -390,7 +390,7 @@ class LittleTrainingLoopWrapper(LM):
         # Compute log probabilities
         log_probs = torch.nn.functional.log_softmax(logits, dim=-1) # [batch, seq_len, vocab]
 
-        # Extract logprobs for expected tokens - careful to align predictions and targets 
+        # Extract logprobs for expected tokens - careful to align predictions and targets
         batch_indices = torch.arange(batch_size, device=tokens.device).unsqueeze(1)
         position_indices = torch.arange(seq_len-1, device=tokens.device).unsqueeze(0) # ignore final prediction
         token_logprobs = torch.zeros_like(tokens, device=tokens.device, dtype=log_probs.dtype)
@@ -401,7 +401,7 @@ class LittleTrainingLoopWrapper(LM):
         # Are expected tokens generated when greedy sampling?
         greedy_tokens = logits.argmax(dim=-1) # [batch, seq_len]
         is_greedy = torch.ones_like(tokens, device=tokens.device)
-        is_greedy[:, 1:] = greedy_tokens[:, :-1] == tokens[:, 1:] 
+        is_greedy[:, 1:] = greedy_tokens[:, :-1] == tokens[:, 1:]
 
         return token_logprobs, is_greedy
 
