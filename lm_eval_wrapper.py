@@ -405,29 +405,22 @@ class LittleTrainingLoopWrapper(LM):
 
         return token_logprobs, is_greedy
 
-    def infer(self, context: List[str], until: list[str]):
+    def infer(self, context: str, until: list[str]):
         # Extract generation parameters
         # until = gen_kwargs.get("until", [self.tok_decode([self.eot_token_id])])
-        raise NotImplementedError("in infer")
-        assert context != "", "Context must not be empty"
-        context_ids = [torch.tensor(self.tok_encode(ctx), device=self.device) for ctx in context]
 
-        # batch the context sequences -- will need to start generating at the length of shortest sequence
-        # for longer sequences we will add in the additional context as the shorter sequence responses are generated.
-        # it's a weird hack to get around the model not currently accepting an attention mask.
-        context_lengths = [len(ctx_ids) for ctx_ids in context_ids]
-        min_length = min(context_lengths)
-        input_ids = torch.stack([ctx_ids[:min_length] for ctx_ids in context_ids])
-        batch_size, seq_len = input_ids.shape
+        assert context != "", "Context must not be empty"
+        context_ids = self.tok_encode(context)
+
+        # Convert to tensor
+        input_ids = torch.tensor([context_ids], device=self.device)
+        assert input_ids.shape == (1, len(context_ids))
 
         # Generate tokens autoregressively
-        generated_ids = [[] for _ in range(batch_size)]
-        generated_text = ['' for _ in range(batch_size)]
-        finished = [False] * batch_size
-        current_pos = min_length # current_pos is the position we are about to generate
+        generated_ids = []
 
         for _ in range(self.generate_until_max_length):
-            # Assert both model and input_ids are on GPU
+            # asser both model and input_ids are on GPU
             assert input_ids.device.type == "cuda"
             assert next(self.model.parameters()).device.type == "cuda"
 
@@ -435,55 +428,37 @@ class LittleTrainingLoopWrapper(LM):
             logits = self.model.forward(input_ids, use_optimized=False)
 
             # Take the last token's logits and get argmax (greedy decoding)
-            next_token_logits = logits[:, -1, :]
-            next_token_ids = next_token_logits.argmax(dim=-1) # [batch_size, 1]
+            next_token_logits = logits[0, -1, :]
+            next_token_id = next_token_logits.argmax().item()
 
             # Add to generated sequence
-            for i in range(batch_size):
-                # Only actually care about generated token if
-                # 1) we haven't already seen a stop sequence and
-                # 2) we're past the provided context for this sequence
-                if not finished[i] and context_lengths[i] <= current_pos:
-                    generated_ids[i].append(next_token_ids[i].item())
+            generated_ids.append(next_token_id)
 
-                    # Decode to check for stop sequences
-                    generated_text[i] = self.tok_decode(generated_ids[i])
+            # Decode to check for stop sequences
+            generated_text = self.tok_decode(generated_ids)
 
-                    # check for EOS token
-                    if next_token_ids[i] == self.eot_token_id:
-                        finished[i] = True
-
-                    # Check if we've hit a stop sequence
-                    for stop_seq in until:
-                        if stop_seq in generated_text[i]:
-                            # Trim the stop sequence from the output
-                            generated_text[i] = generated_text[i].split(stop_seq)[0]
-                            finished[i] = True
-
-            if all(finished):
+            # check for EOS token
+            if next_token_id == self.eot_token_id:
                 return generated_text
 
-            # Append next token to input for next iteration
-            # Need to check whether we want to use the generated token id or continue with provided context
-            next_tokens = torch.zeros((batch_size,), device=next_token_ids.device, dtype=next_token_ids.dtype)
-            for i in range(batch_size):
-                if context_lengths[i] <= current_pos:
-                    next_tokens[i] = next_token_ids[i]
-                else:
-                    next_tokens[i] = context_ids[i][current_pos]
+            # Check if we've hit a stop sequence
+            for stop_seq in until:
+                if stop_seq in generated_text:
+                    # Trim the stop sequence from the output
+                    generated_text = generated_text.split(stop_seq)[0]
+                    return generated_text
 
+            # Append next token to input for next iteration
             input_ids = torch.cat(
                 [
                     input_ids,
-                    next_tokens.unsqueeze(1),
+                    torch.tensor([[next_token_id]], device=self.device),
                 ],
                 dim=1,
             )
-
-            current_pos += 1
-
         else:
-            # Max tokens reached without hitting stop sequence for all batch items
+            # Max tokens reached without hitting stop sequence
+            generated_text = self.tok_decode(generated_ids)
             return generated_text
 
     @torch.inference_mode()
