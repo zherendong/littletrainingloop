@@ -283,8 +283,11 @@ class LittleTrainingLoopWrapper(LM):
             # Convert to tensors
             tokenized_requests.append(torch.tensor(full_seq))
 
+        from tqdm import tqdm
+
         all_logprobs, all_is_greedy = [], []
         batches = self.batch_iterator(tokenized_requests, context_lengths, full_text_lengths, batch_size=self.batch_size)
+        pbar = tqdm(total=len(requests), desc="Evaluating", unit="sample")
         for requests_batch, context_lengths_batch, full_lengths_batch in batches:
 
             # pad all sequences to maximum length
@@ -311,6 +314,9 @@ class LittleTrainingLoopWrapper(LM):
             target_is_greedy = is_greedy_per_token | ~keep_mask # set unwanted values to 1
             all_is_greedy.extend(target_is_greedy.all(dim=-1).tolist())
 
+            pbar.update(len(requests_batch))
+
+        pbar.close()
         return list(zip(all_logprobs, all_is_greedy))
 
     @torch.inference_mode()
