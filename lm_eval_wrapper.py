@@ -47,7 +47,7 @@ available_tasks = {
     "triviaqa": Task("triviaqa", "exact_match,remove_whitespace", "accuracy"),
     "openbookqa": Task("openbookqa", "acc_norm,none", "accuracy"),
     "drop": Task("drop", "f1,none", "accuracy"),
-    "bbh": Task("bbh", "acc_norm,none", "accuracy"),
+    "bbh": Task("bbh", "exact_match,get-answer", "accuracy"),
     "naturalquestions": Task("nq_open", "exact_match,remove_whitespace", "accuracy"),
     "agieval": Task("agieval", "acc_stderr,none", "accuracy"),
     "race": Task("race", "acc_norm,none", "accuracy"),
@@ -418,11 +418,22 @@ class LittleTrainingLoopWrapper(LM):
 
         # Generate tokens autoregressively
         generated_ids = []
+        had_to_trim = False
 
         for _ in range(self.generate_until_max_length):
             # asser both model and input_ids are on GPU
             assert input_ids.device.type == "cuda"
             assert next(self.model.parameters()).device.type == "cuda"
+
+            if input_ids.shape[1] >= self.config.sequence_length:
+                input_ids = input_ids[:, -self.config.sequence_length + 1 :]
+                assert input_ids.shape[1] == self.config.sequence_length - 1
+                if not had_to_trim:
+                    print(
+                        f"Warning: Had to trim input to fit into max sequence length. "
+                        f"Input length: {input_ids.shape[1]}; max length: {self.config.sequence_length}"
+                    )
+                had_to_trim = True
 
             # Get logits for next token
             logits = self.model.forward(input_ids, use_optimized=False)

@@ -148,10 +148,10 @@ def evaluate_checkpoint(
         tb = traceback.format_exc()
         print(f"ERROR loading checkpoint: {e}")
         print(tb)
-        for task in tasks:
+        for task_name in tasks:
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
-                task=task,
+                task=task_name,
                 success=False,
                 error=f"Checkpoint loading failed: {str(e)}",
                 traceback=tb,
@@ -174,13 +174,6 @@ def evaluate_checkpoint(
                 limit=limit,
             )
 
-            # Reduce the number of samples to limit file size
-            if "samples" in task_results:
-                try:
-                    task_results["samples"] = task_results["samples"][task.name][:100]
-                except KeyError as e:
-                    task_results["samples"] = f"Error: {e}"
-
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
                 task=task_name,
@@ -202,7 +195,7 @@ def evaluate_checkpoint(
 
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
-                task=task,
+                task=task.name,
                 success=False,
                 error=str(e),
                 traceback=tb,
