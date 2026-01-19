@@ -122,7 +122,7 @@ class LittleTrainingLoopWrapper(LM):
         model: language_model_basics.LanguageModel,
         config: language_model_basics.LanguageModelTrainingConfig,
         device: str = "cuda",
-        batch_size: int = 1,
+        batch_size: int = 256,
         generate_until_max_length: int | None = None,
     ):
         """

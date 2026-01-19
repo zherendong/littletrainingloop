@@ -24,6 +24,8 @@ import torch
 import checkpointing
 import lm_eval_wrapper
 
+import datetime
+
 device = "cuda"
 torch.set_default_device(device)
 
@@ -91,7 +93,8 @@ def evaluate_single_task(
     limit: int | None,
 ) -> dict:
     """Run evaluation for a single task using an already-loaded model wrapper."""
-    print(f"  [lm_eval] Starting evaluation for task: {task}", flush=True)
+    start_time = datetime.datetime.now()
+    print(f"  [lm_eval] Starting evaluation for task: {task} at time {start_time} with batch size {wrapper.batch_size}", flush=True)
 
     results = lm_eval.simple_evaluate(  # type: ignore
         model=wrapper,
@@ -103,8 +106,8 @@ def evaluate_single_task(
         cache_requests=True,
         confirm_run_unsafe_code=True,
     )
-
-    print(f"  [lm_eval] Completed evaluation for task: {task}", flush=True)
+    end_time = datetime.datetime.now()
+    print(f"  [lm_eval] Completed evaluation for task: {task} at time {end_time} (diff = {end_time-start_time})", flush=True)
     return results
 
 
@@ -137,7 +140,6 @@ def evaluate_checkpoint(
             model=checkpoint.model,
             config=checkpoint.config,
             device=device,
-            batch_size=checkpoint.config.eval_config.batch_size,
             generate_until_max_length=generate_until_max_length,
         )
         print(f"Checkpoint loaded successfully.")
