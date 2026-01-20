@@ -6,12 +6,18 @@ output_type: generate_until
 training_split: null
 validation_split: null
 test_split: train
-doc_to_text: "{{input}}"
+doc_to_text: "{% if task_type == 'count' %}The number of times the letter A occurs in banana is 3\nThe number of times the letter E occurs in elephant is 2\nThe number of times the letter O occurs in book is 2\n{{input}}{% elif task_type == 'index' %}Q: What is the first letter of the word 'apple'?\nA:a\n\nQ: What is the third letter of the word 'banana'?\nA:n\n\nQ: What is the second letter of the word 'cat'?\nA:a\n\n{{input}}\nA:{% elif task_type == 'reverse' %}Q: What is the word 'cat' spelled backwards?\nA:tac\n\nQ: What is the word 'dog' spelled backwards?\nA:god\n\nQ: What is the word 'hello' spelled backwards?\nA:olleh\n\n{{input}}\nA:{% endif %}"
 doc_to_target: "{{target}}"
+filter_list:
+  - name: whitespace_filter
+    filter:
+      - function: remove_whitespace
 metric_list:
   - metric: exact_match
     aggregation: mean
     higher_is_better: true
+    ignore_case: true
+    ignore_punctuation: false
 generation_kwargs:
   until:
     - "\n"

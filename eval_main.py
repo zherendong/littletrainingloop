@@ -109,7 +109,7 @@ def evaluate_single_task(
         num_fewshot=num_fewshot,
         device=wrapper.device,
         max_batch_size=wrapper.batch_size,
-        cache_requests=True,
+        cache_requests=False,
         confirm_run_unsafe_code=True,
         task_manager=task_manager,
     )

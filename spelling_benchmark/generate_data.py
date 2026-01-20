@@ -27,12 +27,29 @@ def _get_tokenizer():
 
 
 def get_ordinal(n: int) -> str:
-    """Returns ordinal string (1st, 2nd, 3rd) for a given integer."""
-    if 11 <= (n % 100) <= 13:
-        suffix = 'th'
-    else:
-        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
-    return f"{n}{suffix}"
+    """Returns ordinal string (first, second, third) for a given integer."""
+    ordinals = [
+        "first", "second", "third", "fourth", "fifth",
+        "sixth", "seventh", "eighth", "ninth", "tenth",
+        "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth",
+        "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth"
+    ]
+    if 1 <= n <= 20:
+        return ordinals[n - 1]
+    # Fallback for numbers > 20 (shouldn't happen with max word length 10)
+    return f"{n}th"
+
+
+def number_to_text(n: int) -> str:
+    """Returns text representation of a number (zero, one, two, etc.)."""
+    numbers = [
+        "zero", "one", "two", "three", "four",
+        "five", "six", "seven", "eight", "nine", "ten"
+    ]
+    if 0 <= n <= 10:
+        return numbers[n]
+    # Fallback for numbers > 10 (unlikely for letter counts)
+    return str(n)
 
 
 def _get_token_metadata(word: str) -> Dict[str, Any]:
@@ -46,21 +63,25 @@ def _get_token_metadata(word: str) -> Dict[str, Any]:
 
 
 def create_count_task(word: str, force_char: str = None) -> Dict[str, Any]:
-    """Creates a 'Count the letter' task."""
+    """Creates a 'Count the letter' task.
+
+    Uses training format: "The number of times the letter X occurs in word is "
+    """
     word_lower = word.lower()
-    
+
     # 80% chance to pick a char in the word, 20% random char (unless forced)
     if force_char:
-        char = force_char
+        char = force_char.upper()  # Training uses uppercase letter
     else:
         if random.random() < 0.8:
-            char = random.choice(list(set(word_lower))) 
+            char = random.choice(list(set(word_lower))).upper()
         else:
-            char = random.choice("abcdefghijklmnopqrstuvwxyz")
-            
-    count = word_lower.count(char)
+            char = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+    count = word_lower.count(char.lower())
+    # Match training format exactly: "The number of times the letter X occurs in word is "
     return {
-        "input": f"How many times does the letter '{char}' appear in the word '{word_lower}'?",
+        "input": f"The number of times the letter {char} occurs in {word_lower} is ",
         "target": str(count),
         "task_type": "count",
         "metadata": {
@@ -74,15 +95,15 @@ def create_count_task(word: str, force_char: str = None) -> Dict[str, Any]:
 def create_index_task(word: str, force_idx: int = None) -> Dict[str, Any]:
     """Creates a 'What is the N-th letter' task."""
     word_lower = word.lower()
-    
+
     if force_idx is not None:
         idx = force_idx
     else:
         idx = random.randint(0, len(word_lower) - 1)
-        
+
     ordinal = get_ordinal(idx + 1)
     return {
-        "input": f"What is the {ordinal} letter of the word '{word_lower}'?",
+        "input": f"Q: What is the {ordinal} letter of the word '{word_lower}'?",
         "target": word_lower[idx],
         "task_type": "index",
         "metadata": {
@@ -94,10 +115,10 @@ def create_index_task(word: str, force_idx: int = None) -> Dict[str, Any]:
 
 
 def create_reverse_task(word: str) -> Dict[str, Any]:
-    """Creates a 'Reverse the word' task."""
+    """Creates a 'Spell the word backwards' task."""
     word_lower = word.lower()
     return {
-        "input": f"Reverse the word '{word_lower}'.",
+        "input": f"Q: What is the word '{word_lower}' spelled backwards?",
         "target": word_lower[::-1],
         "task_type": "reverse",
         "metadata": {
