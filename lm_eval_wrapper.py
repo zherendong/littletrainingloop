@@ -294,10 +294,10 @@ class LittleTrainingLoopWrapper(LM):
             assert logprobs.shape == padded_requests.shape
             _, seq_len = logprobs.shape
 
-            # Mask to identify continuation tokens
-            start_target = torch.tensor(context_lengths_batch).unsqueeze(1) # [batch_size, 1]
-            end_target = torch.tensor(full_lengths_batch).unsqueeze(1) # [batch_size, 1]
-            seq_indices = torch.arange(seq_len).unsqueeze(0) # [1, seq_len]
+            # Mask to identify continuation tokens (on same device as logprobs)
+            start_target = torch.tensor(context_lengths_batch, device=self.device).unsqueeze(1) # [batch_size, 1]
+            end_target = torch.tensor(full_lengths_batch, device=self.device).unsqueeze(1) # [batch_size, 1]
+            seq_indices = torch.arange(seq_len, device=self.device).unsqueeze(0) # [1, seq_len]
             keep_mask = (seq_indices >= start_target) & (seq_indices < end_target) # [batch_size, seq_len]
 
             # Sum logprobs across continuation tokens only
@@ -379,6 +379,8 @@ class LittleTrainingLoopWrapper(LM):
         Returns:
             Log probabilities for each target token, shape [batch_size, max_seq_len]
         """
+        # Move tokens to the correct device
+        tokens = tokens.to(self.device)
         batch_size, seq_len = tokens.shape
 
         # Get logits

@@ -52,7 +52,9 @@ class SpellingBeeEmbedding(nn.Module):
         self.spelling_type = spelling_type
         self.rotary_base = rotary_base
 
-        self.vocab_character_table = self._vocab_character_table(vocab_bytes)
+        # Register as buffer so it moves with the model to the correct device
+        # Use persistent=False since it can be reconstructed and wasn't in old checkpoints
+        self.register_buffer('vocab_character_table', self._vocab_character_table(vocab_bytes), persistent=False)
 
         if separate_token_embedding:
             self.token_embedding = nn.Embedding(
