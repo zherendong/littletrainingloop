@@ -62,24 +62,26 @@ def _get_token_metadata(word: str) -> Dict[str, Any]:
     }
 
 
-def create_count_task(word: str, force_char: str = None) -> Dict[str, Any]:
+def create_count_task(word: str, force_char: str = None, use_lowercase: bool = False) -> Dict[str, Any]:
     """Creates a 'Count the letter' task.
 
-    Uses training format: "The number of times the letter X occurs in word is "
+    Format: "The number of times the letter X occurs in word is "
+    (matches training format from strawberry_dataloader.py)
     """
     word_lower = word.lower()
 
     # 80% chance to pick a char in the word, 20% random char (unless forced)
     if force_char:
-        char = force_char.upper()  # Training uses uppercase letter
+        char = force_char.lower() if use_lowercase else force_char.upper()
     else:
         if random.random() < 0.8:
-            char = random.choice(list(set(word_lower))).upper()
+            char = random.choice(sorted(set(word_lower)))
         else:
-            char = random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+            char = random.choice("abcdefghijklmnopqrstuvwxyz")
+        if not use_lowercase:
+            char = char.upper()
 
     count = word_lower.count(char.lower())
-    # Match training format exactly: "The number of times the letter X occurs in word is "
     return {
         "input": f"The number of times the letter {char} occurs in {word_lower} is ",
         "target": str(count),
@@ -114,11 +116,24 @@ def create_index_task(word: str, force_idx: int = None) -> Dict[str, Any]:
     }
 
 
-def create_reverse_task(word: str) -> Dict[str, Any]:
-    """Creates a 'Spell the word backwards' task."""
+def is_palindrome(word: str) -> bool:
+    """Check if a word is a palindrome."""
+    return word == word[::-1]
+
+
+def create_reverse_task(word: str) -> Dict[str, Any] | None:
+    """Creates a 'Spell the word backwards' task.
+
+    Format: "cat reversed is "
+    Target: "tac"
+
+    Returns None if word is a palindrome (to avoid trivial cases).
+    """
     word_lower = word.lower()
+    if is_palindrome(word_lower):
+        return None
     return {
-        "input": f"Q: What is the word '{word_lower}' spelled backwards?",
+        "input": f"{word_lower} reversed is ",
         "target": word_lower[::-1],
         "task_type": "reverse",
         "metadata": {
@@ -167,11 +182,27 @@ def fetch_words() -> tuple[List[str], List[str]]:
     return common_words, other_words
 
 
-def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
+def generate_dataset(
+    output_path: str,
+    num_samples: int = 1000,
+    seed: int = 42,
+    use_lowercase: bool = False,
+    reverse_samples: int | None = None,
+):
+    """Generate spelling benchmark dataset.
+
+    Args:
+        output_path: Path to write JSONL output.
+        num_samples: Total number of samples to generate.
+        seed: Random seed for reproducibility.
+        use_lowercase: Use lowercase letters in count task.
+        reverse_samples: Fixed number of reverse samples. If None, split evenly (1/3).
+            Remaining samples are split evenly between count and index.
+    """
     random.seed(seed)
-    
+
     common_words, other_words = fetch_words()
-    
+
     if not common_words or not other_words:
         print("Error: Could not load word lists")
         return
@@ -179,9 +210,18 @@ def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
     data = []
 
     # Stratified Sampling: exact quotas for task types
-    count_samples = num_samples // 3
-    index_samples = num_samples // 3
-    reverse_samples = num_samples - count_samples - index_samples  # Catch remainder
+    if reverse_samples is None:
+        # Default: split evenly into thirds
+        count_samples = num_samples // 3
+        index_samples = num_samples // 3
+        reverse_samples = num_samples - count_samples - index_samples
+    else:
+        # Custom: fixed reverse samples, rest split evenly between count/index
+        remaining = num_samples - reverse_samples
+        count_samples = remaining // 2
+        index_samples = remaining - count_samples
+
+    print(f"Task distribution: count={count_samples}, index={index_samples}, reverse={reverse_samples}")
 
     # Create task list
     tasks = (['count'] * count_samples) + \
@@ -193,25 +233,28 @@ def generate_dataset(output_path: str, num_samples: int = 1000, seed: int = 42):
     multi_token_count = 0
     
     for task_type in tasks:
-        # 50% common words, 50% other words
-        if random.random() < 0.5:
-            word = random.choice(common_words)
-        else:
-            word = random.choice(other_words)
-        
-        if task_type == "count":
-            entry = create_count_task(word)
-        elif task_type == "index":
-            entry = create_index_task(word)
-        elif task_type == "reverse":
-            entry = create_reverse_task(word)
-        
+        entry = None
+        while entry is None:
+            # 50% common words, 50% other words
+            if random.random() < 0.5:
+                word = random.choice(common_words)
+            else:
+                word = random.choice(other_words)
+
+            if task_type == "count":
+                entry = create_count_task(word, use_lowercase=use_lowercase)
+            elif task_type == "index":
+                entry = create_index_task(word)
+            elif task_type == "reverse":
+                # Returns None for palindromes, retry with different word
+                entry = create_reverse_task(word)
+
         # Count for statistics
         if entry["metadata"]["is_single_token"]:
             single_token_count += 1
         else:
             multi_token_count += 1
-            
+
         data.append(entry)
 
     # Safe directory creation

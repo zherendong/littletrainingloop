@@ -54,21 +54,26 @@ class TestCountTask:
     def test_simple_count(self):
         task = create_count_task("apple", force_char="p")
         assert task["target"] == "2"
-        assert "apple" in task["input"]
-        # Training format: "The number of times the letter X occurs in word is "
-        assert task["input"].startswith("The number of times")
-        assert task["input"].endswith(" is ")
+        # Format: "The number of times the letter X occurs in word is " (matches training)
+        assert task["input"] == "The number of times the letter P occurs in apple is "
 
     def test_zero_count(self):
         task = create_count_task("apple", force_char="z")
         assert task["target"] == "0"
 
-    def test_case_insensitivity(self):
-        """Word should be lowercased, letter should be uppercase."""
+    def test_uppercase_letter(self):
+        """Letter should be uppercase by default."""
         task = create_count_task("Strawberry", force_char="r")
         assert task["target"] == "3"
         assert "strawberry" in task["input"]
-        assert "letter R" in task["input"]  # Uppercase letter
+        assert " R " in task["input"]  # Uppercase letter
+
+    def test_lowercase_letter(self):
+        """Letter should be lowercase when use_lowercase=True."""
+        task = create_count_task("Strawberry", force_char="r", use_lowercase=True)
+        assert task["target"] == "3"
+        assert "strawberry" in task["input"]
+        assert " r " in task["input"]  # Lowercase letter
 
     def test_metadata_has_token_info(self):
         task = create_count_task("apple", force_char="a")
@@ -92,14 +97,16 @@ class TestIndexTask:
 class TestReverseTask:
     def test_reverse_stressed(self):
         task = create_reverse_task("stressed")
-        assert task["target"] == "desserts"
-        assert task["input"].startswith("Q:")
-        assert "spelled backwards" in task["input"]
+        assert task["target"] == "d-e-s-s-e-r-t-s"
+        # Format: "s-t-r-e-s-s-e-d reversed is"
+        assert task["input"] == "s-t-r-e-s-s-e-d reversed is"
 
-    def test_reverse_palindrome(self):
+    def test_reverse_palindrome_returns_none(self):
+        """Palindromes should return None to avoid trivial cases."""
         task = create_reverse_task("racecar")
-        assert task["target"] == "racecar"
+        assert task is None
 
     def test_reverse_case_normalization(self):
         task = create_reverse_task("Hello")
-        assert task["target"] == "olleh"  # lowercase
+        assert task["target"] == "o-l-l-e-h"  # lowercase, hyphenated
+        assert task["input"] == "h-e-l-l-o reversed is"

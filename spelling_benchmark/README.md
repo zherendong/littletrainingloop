@@ -1,6 +1,6 @@
 # Spelling Benchmark
 
-A synthetic benchmark to evaluate character-level understanding in language models.
+A synthetic benchmark to evaluate character-level understanding in language models, designed to test whether spelling bee embeddings improve character-level reasoning.
 
 ## Motivation
 
@@ -8,90 +8,135 @@ The "Strawberry Problem": LLMs often fail at simple spelling tasks like "How man
 
 ## Task Types
 
-The benchmark includes three task types, evenly distributed (333/333/334):
+The benchmark includes three task types with few-shot prompting:
 
-| Task | Example Input | Expected Output |
-|------|---------------|-----------------|
-| **Count** | How many times does the letter 'r' appear in the word 'strawberry'? | 3 |
-| **Index** | What is the 3rd letter of the word 'python'? | t |
-| **Reverse** | Reverse the word 'stressed'. | desserts |
+| Task | Format | Example |
+|------|--------|---------|
+| **Count** | `The number of times the letter A occurs in banana is ` | `3` |
+| **Index** | `Q: What is the third letter of the word 'banana'? A:` | `n` |
+| **Reverse** | `cat reversed is ` | `tac` |
 
-## Tokenization Metadata
+### Default Distribution (n=5000)
 
-Each sample includes metadata to analyze performance by tokenization:
+- **Count**: 2,450 samples (49%)
+- **Index**: 2,450 samples (49%)
+- **Reverse**: 100 samples (2%) - reduced due to 0% accuracy on both models
+
+## Few-Shot Examples
+
+Each task type uses 3 few-shot examples:
+
+**Count:**
+```
+The number of times the letter A occurs in banana is 3
+The number of times the letter E occurs in elephant is 2
+The number of times the letter O occurs in book is 2
+```
+
+**Index:**
+```
+Q: What is the first letter of the word 'apple'? A:a
+Q: What is the third letter of the word 'banana'? A:n
+Q: What is the second letter of the word 'cat'? A:a
+```
+
+**Reverse:**
+```
+cat reversed is tac
+dog reversed is god
+hello reversed is olleh
+```
+
+## Results
+
+Evaluated on the 816m parameter models (764m non-embedding parameters):
+
+| Task | Baseline | +Spelling Bee | Delta |
+|------|----------|---------------|-------|
+| Count | 12.6% | 27.4% | **+14.8%** |
+| Index | 10.3% | 16.2% | **+5.9%** |
+| Reverse | 0.0% | 0.0% | +0.0% |
+| **Overall** | **11.2%** | **21.4%** | **+10.2%** |
+
+**Key findings:**
+- Spelling bee embeddings nearly double overall accuracy
+- Count task shows largest improvement (+14.8%)
+- Reverse task: 0% for both models (outputs forward spelling instead)
+
+## Dataset Construction
+
+### Word Sources
+Words are sampled 50/50 from:
+1. **Common words**: [Google 10,000 English](https://github.com/first20hours/google-10000-english) (filtered to 4-10 chars)
+2. **Rare words**: [dwyl/english-words](https://github.com/dwyl/english-words) (~238k words, deduped)
+
+Local copies are stored in `assets/` for reproducibility.
+
+### Tokenization Metadata
+
+Each sample includes metadata for analysis:
 
 ```json
 {
-  "input": "How many times does the letter 'r' appear in the word 'strawberry'?",
+  "input": "The number of times the letter R occurs in strawberry is ",
   "target": "3",
   "task_type": "count",
   "metadata": {
     "word": "strawberry",
-    "char": "r",
+    "char": "R",
     "num_tokens": 3,
     "is_single_token": false
   }
 }
 ```
 
-This enables reporting **Single-Token Accuracy** vs **Multi-Token Accuracy** separately:
-- **Single-token words** (e.g., "apple" = 1 token): Tests if the model can decompose atomic tokens into letters
-- **Multi-token words** (e.g., "strawberry" = 3 tokens): Tests cross-boundary letter tracking
-
-## Word Sources
-
-Words are sampled 50/50 from:
-1. **Common words**: [Google 10,000 English](https://github.com/first20hours/google-10000-english) (filtered to 4-10 chars)
-2. **Rare words**: [dwyl/english-words](https://github.com/dwyl/english-words) (~370k words, deduped)
-
-Local copies are stored in `assets/` for reproducibility.
+### Filtering
+- Palindromes are excluded from the reverse task to prevent trivial solutions
+- Words filtered to 4-10 characters
 
 ## Usage
 
 ### Generate the benchmark
 
-```bash
-# Generate 1000 samples (default)
-python generate_spelling_benchmark.py
+```python
+from spelling_benchmark.generate_data import generate_dataset
 
-# Custom options
-python generate_spelling_benchmark.py --samples 2000 --seed 123 --output path/to/output.jsonl
+# Generate 5000 samples with custom reverse count
+generate_dataset(
+    output_path='spelling_benchmark/spelling_bee.jsonl',
+    num_samples=5000,
+    seed=42,
+    reverse_samples=100  # Fixed number of reverse samples
+)
 ```
 
 ### Run evaluation with lm-eval
 
 ```bash
 python eval_main.py \
-  --checkpoint_paths checkpoints/your_model.pt \
+  --checkpoint_paths checkpoints/baseline.pt checkpoints/spelling_bee.pt \
   --tasks spelling_bee \
-  --max_samples_log 0  # save all samples for analysis (default: 100)
+  --max_samples_log 0  # Save all samples for per-task analysis
 ```
 
-### Analyze results
+### Analyze per-task results
 
-After running evaluation, analyze results with stratified metrics:
+```python
+import json
 
-```bash
-# Single model analysis
-python -m spelling_benchmark.analyze_results \
-  --results_file lm_eval_results/baseline_spelling_bee.jsonl
+with open('lm_eval_results/model_spelling_bee.jsonl') as f:
+    data = json.load(f)
 
-# Compare two models (side-by-side with deltas)
-python -m spelling_benchmark.analyze_results \
-  --results_file lm_eval_results/baseline_spelling_bee.jsonl \
-  --compare lm_eval_results/spelling_bee_spelling_bee.jsonl
+counts = {'count': [0, 0], 'index': [0, 0], 'reverse': [0, 0]}
+for sample in data['samples']:
+    task_type = sample['doc']['task_type']
+    counts[task_type][1] += 1
+    if sample.get('exact_match', 0) == 1.0:
+        counts[task_type][0] += 1
 
-# Or run direct inference (useful if you didn't save all samples)
-python -m spelling_benchmark.analyze_results --checkpoint checkpoints/model.pt
+for task, (correct, total) in counts.items():
+    print(f"{task}: {correct}/{total} ({100*correct/total:.1f}%)")
 ```
-
-Output includes:
-- Overall accuracy
-- Single-token vs multi-token accuracy
-- Per-task accuracy (count, index, reverse)
-- Cross-tabulated task × token type accuracy
-- Sample error analysis
-- Key insights (for comparison mode)
 
 ### Run tests
 
@@ -103,23 +148,11 @@ pytest spelling_benchmark/spelling_benchmark_test.py
 
 ```
 spelling_benchmark/
-├── generate_data.py          # Core generation logic (library module)
-├── analyze_results.py        # Post-evaluation analysis with stratified metrics
+├── generate_data.py           # Core generation logic
 ├── spelling_benchmark_test.py # Unit tests
-├── spelling_bee.yaml         # lm-evaluation-harness config
-├── spelling_bee.jsonl        # Generated benchmark (1000 samples)
+├── spelling_bee.yaml          # lm-evaluation-harness config
+├── spelling_bee.jsonl         # Generated benchmark (5000 samples)
 └── assets/
-    ├── common_words.txt      # Google 10k most common words
-    └── full_words.txt        # Full English word list
-
-# In project root:
-generate_spelling_benchmark.py  # Runner script
+    ├── common_words.txt       # Google 10k most common words
+    └── full_words.txt         # Full English word list
 ```
-
-## Typical Results
-
-With the default tokenizer (tiktoken cl100k_base):
-- ~22% of samples use single-token words
-- ~78% of samples use multi-token words
-
-This distribution reflects natural English word length vs tokenizer vocabulary.

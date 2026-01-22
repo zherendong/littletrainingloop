@@ -92,15 +92,11 @@ def evaluate_single_task(
     task: str,
     num_fewshot: int | None,
     limit: int | None,
-    max_samples_log: int | None = 100,
+    task_manager: TaskManager | None = None,
 ) -> dict:
     """Run evaluation for a single task using an already-loaded model wrapper."""
     start_time = datetime.datetime.now()
     print(f"  [lm_eval] Starting evaluation for task: {task} at time {start_time} with batch size {wrapper.batch_size}", flush=True)
-
-    # Create task manager with include_path for custom yaml tasks
-    # Include spelling_benchmark for the spelling_bee task
-    task_manager = TaskManager(include_path="spelling_benchmark")
 
     results = lm_eval.simple_evaluate(  # type: ignore
         model=wrapper,
@@ -126,14 +122,21 @@ def evaluate_checkpoint(
     limit: int | None,
     output_dir: Path = RESULTS_DIR,
     max_samples_log: int | None = 100,
+    task_include_path: str | None = "spelling_benchmark",
 ) -> list[EvalResult]:
     """
     Evaluate a single checkpoint on multiple tasks.
 
     Loads the checkpoint once, then runs each task independently with error handling.
+
+    Args:
+        task_include_path: Path to include for custom YAML task definitions.
     """
     results: list[EvalResult] = []
     checkpoint_str = str(checkpoint_path)
+
+    # Create task manager once for all tasks (allows custom YAML tasks)
+    task_manager = TaskManager(include_path=task_include_path) if task_include_path else None
 
     print(f"\n{'='*60}")
     print(f"Loading checkpoint: {checkpoint_path}")
@@ -180,18 +183,18 @@ def evaluate_checkpoint(
                 task=task.name,  # internal name might differ
                 num_fewshot=num_fewshot,
                 limit=limit,
+                task_manager=task_manager,
             )
 
             # Reduce the number of samples to limit file size
-            if "samples" in task_results:
-                try:
-                    samples = task_results["samples"][task.name]
-                    if max_samples_log is not None:
-                        samples = samples[:max_samples_log]
-                    task_results["samples"] = samples
-                except KeyError as e:
-                    task_results["samples"] = f"Error: {e}"
-
+            if "samples" in task_results and task.name in task_results["samples"]:
+                samples = task_results["samples"][task.name]
+                if max_samples_log is not None:
+                    samples = samples[:max_samples_log]
+                task_results["samples"] = samples
+            elif "samples" in task_results:
+                # Samples exist but task name not found - keep original structure
+                print(f"  Warning: Could not find samples for task '{task.name}', keeping original")
 
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
