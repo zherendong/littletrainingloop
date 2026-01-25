@@ -79,6 +79,14 @@ pytest -v  # run all tests
 - Docstrings for public functions
 - No TensorFlow imports (blocked at module level)
 
+### File Naming
+Never create generic "utility" files like `utils.py`, `helpers.py`, or `common.py`. Instead, name files after what they actually do:
+- `embedder.py` instead of `utils.py` (for embedding functionality)
+- `sampling.py` instead of `helpers.py` (for data sampling)
+- `topk.py` instead of `search_utils.py` (for top-k search)
+
+This makes it clear what each file contains and avoids dumping unrelated functionality into catch-all files.
+
 ### Import Convention
 Prefer importing the module, not individual classes/functions:
 
@@ -96,6 +104,26 @@ model = TransformerModel(config)
 ```
 
 This makes it clear where classes and functions come from and avoids namespace pollution.
+
+### Top-level Imports Only
+All imports should be at the top of the file. Avoid inline/lazy imports inside functions or methods:
+
+```python
+# Preferred - at top of file
+import hashlib
+import os
+
+def my_function():
+    fingerprint = hashlib.sha256(data).hexdigest()
+
+# Avoid - inside function
+def my_function():
+    import hashlib  # Don't do this
+    import os
+    fingerprint = hashlib.sha256(data).hexdigest()
+```
+
+This makes dependencies explicit and avoids hidden import costs during execution.
 
 ## Dependencies
 
@@ -130,3 +158,9 @@ python eval_main.py --checkpoint_path <path>
 ### Creating Experiment Variants
 In `run_scaling_series.py`, modify `config_variants()` to generate experiment sweeps.
 
+
+## Experiments
+Experiments are in `experiments/` and have their own claude.md and/or spec.md files. Before we touch the main codebase with changes we should try out the changes in the experiments directory. This is meant to
+- reduce the explosion of options in the main codebase, thereby maintaining a high throughput of experiments,
+- provide a way to refine the plan before we implement it, and
+- encourage finding minimal and fast implementations for ideas before we scale them up.
