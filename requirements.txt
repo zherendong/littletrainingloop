@@ -17,3 +17,4 @@ torchaudio
 neptune-client
 lm_eval
 flash-attn
+sentence_transformers
