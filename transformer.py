@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchtune
 import math
+from typing import Iterator
 
 import attention
 import cross_entropy
@@ -76,6 +77,14 @@ class TransformerConfig:
     zheren_init: bool = True
     depth_init: bool = False
     pairwise_cancelling_init: bool = False
+
+    # Growing MLP options
+    growing_mlp: bool = False
+    growing_mlp_block_size: int | None = None  # None = use mlp_inner_size
+    growing_mlp_initial_blocks: int = 1
+    growing_mlp_output_scale_on_add: bool = True
+    add_block_at_steps: tuple[int, ...] = ()
+    block_schedule_lengths: tuple[int, ...] = ()
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -260,6 +269,185 @@ class Segmented(nn.Module):
             x[:, :, i, :] = self.layernorms[i](x[:, :, i, :])
 
         return x.view(*orig_shape)
+
+class GrowingMLP(nn.Module):
+    """MLP that can grow by adding new blocks during training.
+
+    Each block has its own norm layer and contributes additively to output.
+    """
+
+    def __init__(
+        self,
+        *,
+        dtype: torch.dtype,
+        input_size: int,
+        output_size: int | None = None,
+        block_size: int = 512,
+        initial_blocks: int = 1,
+        nonlinearity: str = "swish",
+        glu: bool = True,
+        pairwise_cancelling_init: bool = True,
+        output_scale_on_add: bool = True,
+        add_block_at_steps: tuple[int, ...] = (),
+        block_schedule_lengths: tuple[int, ...] = (),
+    ):
+        """MLP that can grow by adding new blocks during training.
+
+        Each block is an independent MLP slice with its own norm layer, projecting
+        input_size -> block_size -> output_size. Blocks contribute additively to
+        the output, so the total capacity is num_blocks * block_size.
+
+        Args:
+            dtype: Data type for linear layer weights.
+            input_size: Dimension of input embeddings.
+            output_size: Dimension of output. Defaults to input_size if None.
+            block_size: Hidden dimension per block (number of key-value pairs).
+            initial_blocks: Number of blocks to start with.
+            nonlinearity: Activation function ("swish", "relu", or "gelu").
+            glu: Whether to use gated linear units.
+            pairwise_cancelling_init: If True, initialize weights so each block
+                outputs zero at init (pairs of neurons cancel out).
+            output_scale_on_add: If True, scale down all output projections when
+                adding a block so total output magnitude stays similar.
+            add_at_steps: Training steps at which to add new blocks. The MLP
+                checks should_add_block(step) each step.
+            block_schedule_lengths: LR schedule length for each new block. First entry
+                is used for the first added block, second for the second, etc.
+        """
+
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size or input_size
+        self.block_size = block_size
+        self.nonlinearity = nonlinearity
+        self.glu = glu
+        self.pairwise_cancelling_init = pairwise_cancelling_init
+        self.output_scale_on_add = output_scale_on_add
+        self.dtype = dtype
+
+        self.blocks = nn.ModuleList()
+        for _ in range(initial_blocks):
+            self.blocks.append(self._make_block())
+
+        self.add_block_at_steps = add_block_at_steps
+        self.block_schedule_lengths = block_schedule_lengths
+        self._next_block_idx = 0
+    
+    def should_add_block(self, step: int) -> bool:
+        """Check if we should add a block at this step.
+        
+        A step appearing N times in add_block_at_steps means add N blocks at that step.
+        """
+        times_to_add = self.add_block_at_steps.count(step)
+        return times_to_add > 0
+
+    def num_blocks_to_add(self, step: int) -> int:
+        """How many blocks to add at this step."""
+        return self.add_block_at_steps.count(step)
+
+    def get_next_block_schedule_length(self) -> int:
+        """Get schedule length for the next block to be added."""
+        # if self._next_schedule_idx >= len(self.schedule_steps):
+        #     print(f"Warning: No more schedule_steps defined, using 1000")
+        #     return 1000
+        steps = self.block_schedule_lengths[self._next_block_idx]
+        self._next_block_idx += 1
+        return steps
+
+    def _make_block(self) -> nn.Module:
+        """Create a new block."""
+        block = nn.ModuleDict({
+            "norm": fp32norm.FP32LayerNorm(self.input_size),
+            "linear_in": nn.Linear(self.input_size, self.block_size, bias=False, dtype=self.dtype),
+            "linear_out": nn.Linear(self.block_size, self.output_size, bias=False, dtype=self.dtype),
+        })
+        
+        if self.glu:
+            block["linear_glu"] = nn.Linear(self.input_size, self.block_size, bias=False, dtype=self.dtype)
+        
+        # Nonlinearity
+        if self.nonlinearity == "relu":
+            block["nonlinear_fn"] = nn.ReLU()
+        elif self.nonlinearity == "gelu":
+            block["nonlinear_fn"] = nn.GELU()
+        elif self.nonlinearity == "swish":
+            block["nonlinear_fn"] = nn.SiLU()
+        else:
+            raise NotImplementedError(f"Unknown nonlinearity: {self.nonlinearity}")
+        
+        return block
+
+    def _init_block(self, block: nn.ModuleDict):
+        """Initialize a single block's weights."""
+        block["norm"].init_weights()
+        initialization.init_linear(
+            block["linear_in"],
+            activation=self.nonlinearity,
+            pairwise_mode="equal" if self.pairwise_cancelling_init else None,
+        )
+        if self.glu:
+            initialization.init_linear(
+                block["linear_glu"],
+                activation="linear",
+                pairwise_mode="equal" if self.pairwise_cancelling_init else None,
+            )
+        initialization.init_linear(
+            block["linear_out"],
+            pairwise_mode="opposing" if self.pairwise_cancelling_init else None,
+        )
+
+    def init_weights(self):
+        """Initialize all blocks."""
+        for block in self.blocks:
+            self._init_block(block)
+
+    def add_block(self) -> Iterator[nn.Parameter]:
+        """Add a new block and return its parameters for the optimizer."""
+        device = self.blocks[-1]["linear_in"].weight.device
+        
+        new_block = self._make_block()
+        new_block.to(device)
+        self._init_block(new_block)
+        
+        if self.output_scale_on_add:
+            # Scale down all output projections so total output magnitude stays similar
+            n_blocks = len(self.blocks) + 1
+            scale_old = (n_blocks - 1) / n_blocks
+            scale_new = 1 / n_blocks
+            
+            for block in self.blocks:
+                block["linear_out"].weight.data *= scale_old
+            new_block["linear_out"].weight.data *= scale_new
+        
+        self.blocks.append(new_block)
+        return new_block.parameters()
+
+    def _forward_block(self, block: nn.ModuleDict, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through a single block."""
+        x_norm = block["norm"](x)
+        if self.glu:
+            keys = block["linear_in"](x_norm)
+            gates = block["linear_glu"](x_norm)
+            activations = block["nonlinear_fn"](keys) * gates
+        else:
+            keys = block["linear_in"](x_norm)
+            activations = block["nonlinear_fn"](keys)
+        return block["linear_out"](activations)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through all blocks."""
+        output = self._forward_block(self.blocks[0], x)
+        for block in self.blocks[1:]:
+            output = output + self._forward_block(block, x)
+        return output
+
+    @property
+    def num_blocks(self) -> int:
+        return len(self.blocks)
+
+    @property  
+    def total_inner_size(self) -> int:
+        return self.num_blocks * self.block_size
 
 
 class MLP(nn.Module):
@@ -465,15 +653,30 @@ class TransformerBlock(nn.Module):
         self.block_idx = block_idx
         self.config = config
 
-        self.mlp = MLP(
-            dtype=params_dtype,
-            input_size=config.embedding_size,
-            nonlinearity=config.nonlinearity,
-            segmented_norm=config.segmented_norm,
-            glu=config.glu,
-            inner_size_multiple_of=config.inner_size_multiple_of,
-            pairwise_cancelling_init=config.pairwise_cancelling_init,
-        )
+        if config.growing_mlp:
+            block_size = config.growing_mlp_block_size #or config.mlp_inner_size
+            self.mlp = GrowingMLP(
+                dtype=params_dtype,
+                input_size=config.embedding_size,
+                block_size=block_size,
+                initial_blocks=config.growing_mlp_initial_blocks,
+                nonlinearity=config.nonlinearity,
+                glu=config.glu,
+                pairwise_cancelling_init=config.pairwise_cancelling_init,
+                output_scale_on_add=config.growing_mlp_output_scale_on_add,
+                add_block_at_steps=config.add_block_at_steps,
+                block_schedule_lengths=config.block_schedule_lengths,
+            )
+        else:
+            self.mlp = MLP(
+                dtype=params_dtype,
+                input_size=config.embedding_size,
+                nonlinearity=config.nonlinearity,
+                segmented_norm=config.segmented_norm,
+                glu=config.glu,
+                inner_size_multiple_of=config.inner_size_multiple_of,
+                pairwise_cancelling_init=config.pairwise_cancelling_init,
+            )
 
         # print(
         #     f"Block {block_idx} has {config.num_heads} heads_q and {config.num_heads_kv} heads_kv"

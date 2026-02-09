@@ -42,6 +42,10 @@ class LanguageModelTrainingConfig:
     separate_data_with_eot: bool = True
     dataset: str = "slimpajama"
 
+    # Growing MLP schedule
+    add_block_at_steps: list[int] | None = None
+    block_schedule_steps: list[int] | None = None
+
     adam_eps: float = 1e-7
     adam_betas: tuple[float, float] = (0.9, 0.995)
     weight_decay: float = 0.1

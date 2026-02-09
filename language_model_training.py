@@ -31,6 +31,7 @@ from language_model_basics import (
     LanguageModelTrainingConfig,
     EvalConfig,
 )
+import block_scheduler
 import training_loop
 import torch
 import torch.nn as nn
@@ -360,6 +361,135 @@ class LanguageModelTrainingState(TrainingState[LMData]):
             path=path_obj,
         )
 
+class GrowingLanguageModelTrainingState(LanguageModelTrainingState):
+    """Training state for language models with growing MLPs."""
+
+    def __init__(
+        self,
+        model: language_model_basics.LanguageModel,
+        config: LanguageModelTrainingConfig,
+    ):
+        # Don't call super().__init__ since we need different scheduler setup
+        self.model = model
+        self.config = config
+        self.current_step = 0
+
+        # Parse block addition schedule
+        self.add_block_at_steps = set(config.add_block_at_steps or [])
+        self.block_schedule_steps = config.block_schedule_steps or []
+        self._next_block_idx = 0
+
+        with prng.PRNG(config.seed + 345345):
+            assert config.learning_rate is not None
+            self.optimizer = optimi.AdamW(
+                model.parameters(),
+                lr=config.learning_rate,
+                eps=config.adam_eps,
+                betas=config.adam_betas,
+                weight_decay=config.weight_decay,
+            )
+
+        assert config.training_config.training_steps_per_epoch is not None
+        num_steps = (
+            config.training_config.num_epochs
+            * config.training_config.training_steps_per_epoch
+        )
+        warmup_steps = config.warmup_steps or int(num_steps * 0.05)
+
+        # Use GrowingModelScheduler instead of SequentialLR
+        self.scheduler = block_scheduler.GrowingModelScheduler(
+            self.optimizer,
+            warmup_steps=warmup_steps,
+            min_lr_factor=0.25,
+            initial_schedule_steps=num_steps,
+        )
+
+        self.training_flops_total = 0
+        self.num_tokens_seen = 0
+
+    def _get_growing_mlps(self) -> list[transformer.GrowingMLP]:
+        """Get all GrowingMLP modules from the model."""
+        mlps = []
+        if hasattr(self.model, 'transformer_blocks'):
+            for block in self.model.transformer_blocks:
+                if isinstance(block.mlp, transformer.GrowingMLP):
+                    mlps.append(block.mlp)
+        return mlps
+
+    def step(self, data: LMData) -> Metrics:
+        # Check if we should add blocks
+        blocks_added = []
+        for mlp in self._get_growing_mlps():
+            n_to_add = mlp.num_blocks_to_add(self.current_step)
+            blocks_added.append(n_to_add)
+            if n_to_add > 0:
+                adding_blocks = True
+            for _ in range(n_to_add):
+                schedule_length = mlp.get_next_block_schedule_length()
+                new_params = mlp.add_block()
+                self.scheduler.add_param_group(new_params, schedule_steps=schedule_length)
+        
+        if not all([b==0 for b in blocks_added]):
+            print(
+                f"🦶 Step {self.current_step} Added {blocks_added} blocks to growing mlps"
+            )
+            print(
+                f"Num parameters: {self.model.num_parameters()} parameters"
+            )
+
+        self.current_step += 1
+        
+        metrics = super().step(data)
+        # # Rest is same as parent
+        # inputs = torch.tensor(data.inputs, dtype=torch.int32)
+        # targets = torch.tensor(data.targets, dtype=torch.long)
+        # loss_mask = torch.tensor(data.loss_mask, dtype=torch.float32)
+        # assert inputs.shape == targets.shape == loss_mask.shape
+        # assert inputs.shape == (
+        #     self.config.batch_size,
+        #     self.config.sequence_length,
+        # )
+
+        # start = time.time()
+        # targets = torch.where(
+        #     loss_mask == 0.0,
+        #     cross_entropy.cross_entropy_ignore_index,
+        #     targets,
+        # )
+
+        # with nvtx.range("train_step", color="blue"):
+        #     torch.compiler.cudagraph_mark_step_begin()
+        #     loss = self.model.compute_loss(inputs, targets)
+
+        #     self.optimizer.zero_grad()
+        #     loss.backward()
+        #     torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+        #     self.optimizer.step()
+        #     self.scheduler.step()
+
+        #     loss_numpy = float(loss.to(torch.float32).detach().cpu().numpy())
+
+        # step_time = time.time() - start
+        # flops_this_step = self.flops_per_step(data.inputs.shape)
+        # self.training_flops_total += flops_this_step
+        # self.num_tokens_seen += inputs.numel()
+
+        # metrics = {
+        #     "loss": MetricItem(loss_numpy),
+        #     "loss_vs_pflops": MetricItem(loss_numpy, self._get_training_pflops()),
+        #     "loss_vs_num_tokens": MetricItem(
+        #         loss_numpy, self._get_training_tokens_seen()
+        #     ),
+        #     "pflops_total": MetricItem(value=self._get_training_pflops()),
+        #     "tflops_per_second": MetricItem(value=flops_this_step / step_time / 1e12),
+        #     "step_time_seconds": MetricItem(value=step_time),
+        #     "num_tokens": MetricItem(value=self._get_training_tokens_seen()),
+        # }
+
+        for i, grp in enumerate(self.optimizer.param_groups):
+            metrics[f"learning_rate_{i}"] = MetricItem(value=grp["lr"])
+
+        return metrics
 
 def train_language_model(
     config: LanguageModelTrainingConfig,
@@ -396,10 +526,14 @@ def train_language_model(
                 training_steps_per_epoch=chinchilla_optimal_steps,
             ),
         )
-
-    # Create training state
+    
+    # Choose training state class based on config
     with prng.PRNG(config.seed + 234234):
-        state = LanguageModelTrainingState(model, config)
+        if config.model_config.growing_mlp:
+            state = GrowingLanguageModelTrainingState(model, config)
+        else:
+            state = LanguageModelTrainingState(model, config)
+    
     # Create data generator
     if dataset == "stackv2":
         train_dataset = stackv2_dataloader.create_stackv2_dataloader(config)
@@ -431,6 +565,12 @@ def train_language_model(
                 split="validation",
                 count=3,
             ),
+        ]
+    elif dataset == "tiny_shakespeare":
+        import shakespeare_dataloader 
+        train_dataset = shakespeare_dataloader.create_tiny_shakespeare_dataloader(config)
+        eval_datasets = [
+            shakespeare_dataloader.create_tiny_shakespeare_dataloader(config, split="validation")
         ]
     else:
         raise ValueError(f"Unknown dataset {dataset}")

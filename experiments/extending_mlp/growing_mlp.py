@@ -153,8 +153,11 @@ class GrowingMLP(nn.Module):
 
     def add_block(self) -> Iterator[nn.Parameter]:
         """Add a new block and return its parameters (for optimizer)."""
+        device = self.blocks[-1].linear_in.weight.device
+        
         last_block = self.blocks[-1]
         new_block = self._make_block()
+        new_block.to(device)
         new_block.init_weights()
         self.blocks.append(new_block)
 
@@ -164,10 +167,16 @@ class GrowingMLP(nn.Module):
             #     new.data.copy_(old.data * 0.2)
             print("Copying last block's weights")
             # print on which devices these tensors are
-            new_block.linear_in.weight.data = (
-                0.5 * new_block.linear_in.weight.data
-                + 0.5 * last_block.linear_in.weight.data
-            )
+            # new_block.linear_in.weight.data = (
+            #     0.1 * new_block.linear_in.weight.data
+            #     + 0.9 * last_block.linear_in.weight.data
+            # )
+            n_blocks = len(self.blocks)
+            # for now, assume blocks all the same size
+            scale_factor = 1 / n_blocks
+            for block in self.blocks[:-1]:
+                block.linear_out.weight.data = (n_blocks - 1) * scale_factor * block.linear_out.weight.data
+            new_block.linear_out.weight.data = scale_factor * new_block.linear_out.weight.data
 
         return new_block.parameters()
 

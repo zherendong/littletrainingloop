@@ -17,12 +17,148 @@ import torch.optim as optim
 from growing_mlp import GrowingMLP
 from block_scheduler import create_block_scheduler
 
-torch.set_default_device("cuda")
 
+def example_mnist_training(static: bool = False, use_pairwise_init=True):
+    """MNIST training experiment to test growing MLP on real data."""
+    from torchvision import datasets, transforms
+    
+    # Config
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    input_size = 784  # 28x28 flattened
+    output_size = 10  # digits 0-9
+    block_size = 512
+    num_blocks = 4
+    block_training_steps = 400
+    total_steps = block_training_steps * num_blocks
+    add_block_at_steps = [block_training_steps * i for i in range(1, num_blocks)]
+    
+    if static:
+        block_size = block_size * num_blocks
+        add_block_at_steps = []
+        average_blocks_per_step = sum(range(1, num_blocks+1)) / num_blocks
+        total_steps = int(average_blocks_per_step * total_steps / num_blocks)
 
-def example_growing_mlp_training(static: bool = False):
+    print(f"Static: {static}, block_size: {block_size}")
+    
+    # Load MNIST
+    train_data = datasets.MNIST(
+        root='./data',
+        train=True,
+        download=True,
+        transform=transforms.ToTensor()
+    )
+    test_data = datasets.MNIST(
+        root='./data',
+        train=False,
+        download=True,
+        transform=transforms.ToTensor()
+    )
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=64)
+    
+    # Create model
+    model = GrowingMLP(
+        dtype=dtype,
+        input_size=input_size,
+        output_size=output_size,
+        block_size=block_size,
+        initial_blocks=1,
+        glu=False,
+        pairwise_cancelling_init=use_pairwise_init,
+        copy_most_active_init=True,
+    ).to(device)
+    model.init_weights()
+    
+    print(f"Initial model: {model.num_blocks} block(s), {model.total_inner_size} hidden units")
+    print(f"pairwise cancelling {'True' if use_pairwise_init else 'False'}")
+
+    # Optimizer and scheduler
+    optimizer = optim.AdamW(model.parameters(), lr=1e-2)
+    scheduler = create_block_scheduler(
+        optimizer,
+        total_steps=block_training_steps if not static else total_steps,
+        warmup_steps=10,
+    )
+    
+    criterion = nn.CrossEntropyLoss()
+    
+    # Training loop
+    step = 0
+    train_iter = iter(train_loader)
+    
+    while step < total_steps:
+        # Check if we should add a block
+        if step in add_block_at_steps:
+            # evaluation on test set
+            model.eval()
+            correct = 0
+            total = 0
+            with torch.no_grad():
+                for images, labels in test_loader:
+                    x = images.view(images.size(0), -1).to(device=device, dtype=dtype)
+                    labels = labels.to(device)
+                    logits = model(x)
+                    correct += (logits.argmax(dim=-1) == labels).sum().item()
+                    total += labels.size(0)
+            
+            print(f"\nTest accuracy: {correct/total:.4f}")
+            print(f"{model.num_blocks} blocks, {model.total_inner_size} hidden units")
+            
+            model.train()
+            print(f"\n=== Step {step}: Adding block ===")
+            new_params = model.add_block()
+            model.blocks[-1].to(device)
+            scheduler.add_param_group(new_params)
+            print(f"Now have {model.num_blocks} blocks, {model.total_inner_size} hidden units")
+        
+        # Get batch (cycle through data)
+        try:
+            images, labels = next(train_iter)
+        except StopIteration:
+            train_iter = iter(train_loader)
+            images, labels = next(train_iter)
+        
+        x = images.view(images.size(0), -1).to(device=device, dtype=dtype)
+        labels = labels.to(device)
+        
+        # Forward
+        logits = model(x)
+        loss = criterion(logits.float(), labels)
+        
+        # Backward
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+        
+        # Logging
+        if step % 10 == 0:
+            acc = (logits.argmax(dim=-1) == labels).float().mean().item()
+            lrs = scheduler.get_last_lr()
+            lr_str = ", ".join(f"{lr:.6f}" for lr in lrs)
+            print(f"Step {step}: loss={loss.item():.4f}, acc={acc:.3f}, LRs=[{lr_str}]")
+        
+        step += 1
+    
+    # Final evaluation on test set
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in test_loader:
+            x = images.view(images.size(0), -1).to(device=device, dtype=dtype)
+            labels = labels.to(device)
+            logits = model(x)
+            correct += (logits.argmax(dim=-1) == labels).sum().item()
+            total += labels.size(0)
+    
+    print(f"\nFinal test accuracy: {correct/total:.4f}")
+    print(f"Final: {model.num_blocks} blocks, {model.total_inner_size} hidden units")
+
+def example_growing_mlp_training(static: bool = False, use_pairwise_init: bool = True):
     """Simple example of training with block addition."""
-
+    # torch.set_default_device("cuda")
     # Config
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if device == "cuda" else torch.float32
@@ -46,13 +182,14 @@ def example_growing_mlp_training(static: bool = False):
         block_size=block_size,
         initial_blocks=1,
         glu=False,
-        pairwise_cancelling_init=True,
+        pairwise_cancelling_init=use_pairwise_init,
     ).to(device)
     model.init_weights()
 
     print(
         f"Initial model: {model.num_blocks} block(s), {model.total_inner_size} KV pairs"
     )
+    print(f"pairwise cancelling {'True' if use_pairwise_init else 'False'}")
 
     # Create optimizer with initial parameters
     optimizer = optim.AdamW(model.parameters(), lr=1e-2)
@@ -165,12 +302,29 @@ if __name__ == "__main__":
     # print("=" * 50)
     # test_add_block()
 
-    print("\n" + "=" * 50)
-    print("Example: Training with static MLP")
-    print("=" * 50)
-    example_growing_mlp_training(static=True)
+    # # 1. Experiment with random data
+    # print("\n" + "=" * 50)
+    # print("Example: Training with static MLP")
+    # print("=" * 50)
+    # example_growing_mlp_training(static=True, use_pairwise_init=True)
 
+    # print("\n" + "=" * 50)
+    # print("Example: Training with block addition")
+    # print("=" * 50)
+    # example_growing_mlp_training(use_pairwise_init=True)
+    
+    # 2. Experiment with mnist
     print("\n" + "=" * 50)
-    print("Example: Training with block addition")
+    print("MNIST: Static training, paired init")
     print("=" * 50)
-    example_growing_mlp_training()
+    example_mnist_training(static=True, use_pairwise_init=True)
+   
+    # print("\n" + "=" * 50)
+    # print("MNIST: Static training, no paired weights")
+    # print("=" * 50)
+    # example_mnist_training(static=True, use_pairwise_init=False)
+   
+    print("\n" + "=" * 50)
+    print("MNIST: Growing training")
+    print("=" * 50)
+    example_mnist_training(static=False)

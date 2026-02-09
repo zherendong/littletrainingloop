@@ -158,5 +158,5 @@ def create_block_scheduler(
     """
     return BlockAwareLRScheduler(
         optimizer,
-        schedule=LinearWarmupLinearDecay(total_steps, warmup_steps, min_lr_factor=0.0),
+        schedule=LinearWarmupLinearDecay(total_steps, warmup_steps, min_lr_factor=0.25),
     )
