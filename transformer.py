@@ -85,11 +85,16 @@ class TransformerConfig:
     chunk_stride: int = (
         8  # Stride for cluster assignment (1 = every token, 8 = every 8th)
     )
+    chunk_topk: int = (
+        1  # Number of top centroids to retrieve (1 = top-1 only, 16 = weighted sum of top-16)
+    )
     chunk_init_scale: float = 0.0  # Initial scale for value embeddings (0 = zero-init)
     chunk_centroid_path: str | None = (
         None  # Path to centroid file (required if chunk_embeddings=True)
     )
     chunk_cache_dir: str | None = None  # Directory for disk cache of cluster IDs
+    chunk_sims_scale: float = 1.0
+    chunk_proj: bool = False
 
     def __post_init__(self):
         if self.num_heads_kv == 0:
@@ -579,6 +584,14 @@ class TransformerModel(language_model_basics.LanguageModel):
             # Learned gate for chunk embeddings (initialized to produce ~0 output)
             # This is a per-dimension learnable parameter that gets sigmoid-activated
             self.chunk_gate = nn.Parameter(torch.zeros(self.dim, dtype=emb_dtype))
+            if config.chunk_proj:
+                self.chunk_proj = nn.Linear(
+                    self.dim,
+                    self.dim,
+                    dtype=self.params_dtype,
+                    bias=False,
+                )
+            self.chunk_norm = fp32norm.FP32LayerNorm(self.dim)
 
             # Load cluster assigner for computing cluster IDs
             assert (
@@ -689,7 +702,10 @@ class TransformerModel(language_model_basics.LanguageModel):
                         mean=0.0, std=self.config.chunk_init_scale
                     )
                 # Initialize gate to produce near-zero output initially
-                self.chunk_gate.fill_(-5.0)
+                self.chunk_gate.fill_(0.0)
+                if self.config.chunk_proj:
+                    initialization.init_linear(self.chunk_proj, activation="linear")
+                self.chunk_norm.init_weights()
 
         for block in self.transformer_blocks:
             block.init_weights()  # type: ignore
@@ -723,8 +739,8 @@ class TransformerModel(language_model_basics.LanguageModel):
             raise NotImplementedError
         return self.final_norm(x)
 
-    def _get_cluster_ids(self, x: torch.Tensor) -> torch.Tensor:
-        """Compute or load cached cluster IDs for input token IDs.
+    def _get_cluster_data(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Compute or load cached cluster IDs and similarities for input token IDs.
 
         NOTE: This method is NOT torch.compile compatible. Call it before _forward_opt.
 
@@ -735,33 +751,57 @@ class TransformerModel(language_model_basics.LanguageModel):
             x: Token IDs of shape (batch, seq_len)
 
         Returns:
-            cluster_ids: Tensor of shape (batch, seq_len)
+            cluster_ids: Tensor of shape (batch, seq_len, topk)
+            similarities: Tensor of shape (batch, seq_len, topk)
         """
         return self.cluster_assigner.get_cluster_ids(
             x,
             stride=self.config.chunk_stride,
+            topk=self.config.chunk_topk,
             cache_dir=self.config.chunk_cache_dir,
         )
 
-    def _forward(self, x: torch.Tensor, cluster_ids: torch.Tensor | None = None):
+    def _forward(
+        self,
+        x: torch.Tensor,
+        cluster_ids: torch.Tensor | None = None,
+        cluster_sims: torch.Tensor | None = None,
+    ):
         """Returns embeddings, not logits.
 
         Use get_output_projection_weights to get the weights to compute the logits.
 
         Args:
             x: Token IDs of shape (batch, seq_len)
-            cluster_ids: Cluster IDs of shape (batch, seq_len) for chunk embeddings.
-                         Must be provided if chunk_embeddings is enabled.
+            cluster_ids: Cluster IDs of shape (batch, seq_len, topk) for chunk embeddings.
+            cluster_sims: Similarities of shape (batch, seq_len, topk) for chunk embeddings.
         """
         x = self.embedding(x).to(self.activation_dtype)
         # Add gated chunk value embeddings if available
-        if cluster_ids is not None:
-            chunk_emb = self.chunk_value_embedding(cluster_ids).to(
-                self.activation_dtype
+        if cluster_ids is not None and self.config.chunk_embeddings:
+            assert cluster_sims is not None
+            # cluster_ids: (batch, seq_len, topk)
+            # cluster_sims: (batch, seq_len, topk)
+
+            # Lookup all top-K embeddings: (batch, seq_len, topk, dim)
+            all_embs = self.chunk_value_embedding(cluster_ids).to(self.activation_dtype)
+
+            # Normalize similarities to get weights (softmax over topk dimension)
+            cluster_sims = (
+                cluster_sims.to(self.activation_dtype) * self.config.chunk_sims_scale
             )
+            sim_weights = F.softmax(cluster_sims, dim=-1)
+
+            # Weighted sum: (batch, seq_len, topk, dim) * (batch, seq_len, topk, 1) -> sum over topk
+            chunk_emb = (all_embs * sim_weights.unsqueeze(-1)).sum(dim=2)
+            if self.config.chunk_proj:
+                chunk_emb = self.chunk_proj(chunk_emb)
+
             # Apply learned gate (sigmoid activation, per-dimension)
             gate = torch.sigmoid(self.chunk_gate.to(self.activation_dtype))
-            x = x + gate * chunk_emb
+            x = (1 - gate) * x + gate * chunk_emb
+            # x = x + chunk_emb
+            # x = self.chunk_norm(x)
         if self.config.embedding_norm:
             x = self.embedding_norm(x)
         x = self.transformer_blocks(x)
@@ -794,9 +834,10 @@ class TransformerModel(language_model_basics.LanguageModel):
         assert targets.dtype == torch.long
         # Compute cluster IDs outside compiled region if chunk embeddings enabled
         cluster_ids = None
+        cluster_sims = None
         if self.config.chunk_embeddings:
-            cluster_ids = self._get_cluster_ids(inputs)
-        final_emb = self._forward_opt(inputs, cluster_ids)
+            cluster_ids, cluster_sims = self._get_cluster_data(inputs)
+        final_emb = self._forward_opt(inputs, cluster_ids, cluster_sims)
 
         emb_dim = final_emb.shape[-1]
         # flatten batch and sequence length for cross entropy
@@ -817,12 +858,13 @@ class TransformerModel(language_model_basics.LanguageModel):
     ):
         # Compute cluster IDs outside compiled region if chunk embeddings enabled
         cluster_ids = None
+        cluster_sims = None
         if self.config.chunk_embeddings:
-            cluster_ids = self._get_cluster_ids(x)
+            cluster_ids, cluster_sims = self._get_cluster_data(x)
         if use_optimized:
-            final_emb = self._forward_opt(x, cluster_ids)
+            final_emb = self._forward_opt(x, cluster_ids, cluster_sims)
         else:
-            final_emb = self._forward(x, cluster_ids)
+            final_emb = self._forward(x, cluster_ids, cluster_sims)
         logits = F.linear(final_emb, self.get_output_projection_weights())
         return logits
 

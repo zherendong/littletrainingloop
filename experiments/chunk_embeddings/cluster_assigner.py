@@ -11,6 +11,7 @@ Usage:
 
 import hashlib
 import os
+import tempfile
 
 import torch
 import tiktoken
@@ -118,18 +119,24 @@ class ClusterAssigner:
         self,
         token_ids: list[int],
         stride: int = 1,
+        topk: int = 1,
         return_positions: bool = False,
-    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+    ) -> (
+        tuple[torch.Tensor, torch.Tensor]
+        | tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    ):
         """
         Assign cluster IDs to positions in a single sequence.
 
         Args:
             token_ids: Token IDs for one sequence
             stride: Assign every `stride` positions (1 = all positions)
+            topk: Number of top centroids to retrieve per position
             return_positions: If True, also return the positions that were assigned
 
         Returns:
-            cluster_ids: Tensor of shape (num_positions,) with cluster IDs
+            cluster_ids: Tensor of shape (num_positions, topk) with cluster IDs
+            similarities: Tensor of shape (num_positions, topk) with cosine similarities
             positions: (optional) Tensor of positions that were assigned
         """
         seq_len = len(token_ids)
@@ -143,53 +150,61 @@ class ClusterAssigner:
         non_empty_mask = [len(w) > 0 for w in windows]
         non_empty_windows = [w for w, m in zip(windows, non_empty_mask) if m]
 
-        cluster_ids = torch.zeros(len(positions), dtype=torch.int32, device=self.device)
+        cluster_ids = torch.zeros(
+            len(positions), topk, dtype=torch.int32, device=self.device
+        )
+        similarities = torch.zeros(
+            len(positions), topk, dtype=torch.float16, device=self.device
+        )
 
         if non_empty_windows:
             # Embed and assign using segmented index (~3.5x faster)
             embeddings = self.embedder.embed(non_empty_windows)  # (N, 768) fp16
-            assigned, _ = self.index.search(embeddings, k=1)  # (N, 1)
-            assigned = assigned.squeeze(1)  # (N,)
+            assigned, sims = self.index.search(embeddings, k=topk)  # (N, topk)
 
             # Fill in the non-empty positions
             j = 0
             for i, m in enumerate(non_empty_mask):
                 if m:
                     cluster_ids[i] = assigned[j]
+                    similarities[i] = sims[j]
                     j += 1
 
         if return_positions:
-            return cluster_ids, torch.tensor(positions, dtype=torch.int32)
-        return cluster_ids
+            return cluster_ids, similarities, torch.tensor(positions, dtype=torch.int32)
+        return cluster_ids, similarities
 
     def assign_batch(
         self,
         token_ids_batch: list[list[int]],
         stride: int = 1,
-    ) -> list[torch.Tensor]:
+        topk: int = 1,
+    ) -> list[tuple[torch.Tensor, torch.Tensor]]:
         """
         Assign cluster IDs to a batch of sequences.
 
         Args:
             token_ids_batch: List of token ID lists
             stride: Assign every `stride` positions
+            topk: Number of top centroids to retrieve per position
 
         Returns:
-            List of cluster_id tensors, one per sequence
+            List of (cluster_ids, similarities) tuples, one per sequence.
+            cluster_ids: Tensor of shape (num_positions, topk)
+            similarities: Tensor of shape (num_positions, topk)
         """
-        # return_positions=False (default), so always returns Tensor
-        results: list[torch.Tensor] = [
-            self.assign_single(ids, stride=stride)  # type: ignore[misc]
-            for ids in token_ids_batch
+        results = [
+            self.assign_single(ids, stride=stride, topk=topk) for ids in token_ids_batch
         ]
-        return results
+        return results  # type: ignore[return-value]
 
     def get_cluster_ids(
         self,
         x: torch.Tensor,
         stride: int = 1,
+        topk: int = 1,
         cache_dir: str | None = None,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Compute or load cached cluster IDs for a batch of token IDs.
 
@@ -204,16 +219,20 @@ class ClusterAssigner:
         Args:
             x: Token IDs of shape (batch, seq_len)
             stride: Assign every `stride` positions (default 1 = all positions)
+            topk: Number of top centroids to retrieve per position
             cache_dir: Directory for disk cache. If None, no caching.
 
         Returns:
-            cluster_ids: Tensor of shape (batch, seq_len) on same device as x
+            cluster_ids: Tensor of shape (batch, seq_len, topk) on same device as x
+            similarities: Tensor of shape (batch, seq_len, topk) on same device as x
         """
         _, seq_len = x.shape
 
-        # Compute fingerprint of batch (includes stride in case config changes)
+        # Compute fingerprint of batch (includes stride and topk in case config changes)
         x_bytes = x.cpu().numpy().tobytes()
-        fingerprint = hashlib.sha256(x_bytes + str(stride).encode()).hexdigest()[:16]
+        fingerprint = hashlib.sha256(x_bytes + f"{stride}_{topk}".encode()).hexdigest()[
+            :16
+        ]
 
         # Check disk cache
         cache_path = None
@@ -221,25 +240,44 @@ class ClusterAssigner:
             os.makedirs(cache_dir, exist_ok=True)
             cache_path = os.path.join(cache_dir, f"{fingerprint}.pt")
             if os.path.exists(cache_path):
-                return torch.load(cache_path, weights_only=True).to(x.device)
+                try:
+                    cached = torch.load(cache_path, weights_only=True)
+                    return cached["ids"].to(x.device), cached["sims"].to(x.device)
+                except (EOFError, RuntimeError, KeyError):
+                    # File was corrupted (concurrent write) - recompute
+                    print(f"Corrupted cache file: {cache_path}")
+                    pass
 
         # Compute cluster IDs with striding
         token_ids_list = [row.tolist() for row in x.cpu()]
-        strided_ids_list = self.assign_batch(token_ids_list, stride=stride)
+        strided_results = self.assign_batch(token_ids_list, stride=stride, topk=topk)
 
-        # Expand strided cluster IDs to full sequence length
-        # Each cluster ID at position i covers positions [i*stride, (i+1)*stride)
+        # Expand strided cluster IDs and similarities to full sequence length
         cluster_ids_list = []
-        for strided_ids in strided_ids_list:
-            # strided_ids has shape (num_positions,) where num_positions = ceil(seq_len/stride)
-            # Repeat each ID `stride` times, then truncate to seq_len
-            expanded = strided_ids.repeat_interleave(stride)[:seq_len]
-            cluster_ids_list.append(expanded)
+        similarities_list = []
+        for strided_ids, strided_sims in strided_results:
+            # strided_ids has shape (num_positions, topk)
+            # Repeat each row `stride` times, then truncate to seq_len
+            expanded_ids = strided_ids.repeat_interleave(stride, dim=0)[:seq_len]
+            expanded_sims = strided_sims.repeat_interleave(stride, dim=0)[:seq_len]
+            cluster_ids_list.append(expanded_ids)
+            similarities_list.append(expanded_sims)
 
         cluster_ids = torch.stack(cluster_ids_list).to(x.device)
+        similarities = torch.stack(similarities_list).to(x.device)
 
-        # Save to disk cache
+        # Save to disk cache (atomic write to avoid corruption from concurrent access)
         if cache_path is not None:
-            torch.save(cluster_ids.cpu(), cache_path)
+            tmp_fd, tmp_path = tempfile.mkstemp(dir=cache_dir, suffix=".pt.tmp")
+            try:
+                os.close(tmp_fd)
+                torch.save(
+                    {"ids": cluster_ids.cpu(), "sims": similarities.cpu()}, tmp_path
+                )
+                os.replace(tmp_path, cache_path)  # Atomic on POSIX
+            except Exception:
+                # Clean up temp file on failure
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
 
-        return cluster_ids
+        return cluster_ids, similarities

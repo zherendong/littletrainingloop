@@ -213,35 +213,38 @@ def config_variants(
         )
     variants = long_variants
 
-    # chunk_variants = []
-    # for config in variants:
-    #     # chunk_variants.append(config)
-    #     chunk_variants.append(
-    #         replace(
-    #             config,
-    #             model_config=replace(
-    #                 config.model_config,
-    #                 chunk_embeddings=True,
-    #                 chunk_num_clusters=1_000_000,
-    #                 chunk_centroid_path="data/slimpajama_centroids/centroids_1m_w32_slimpajama.pt",
-    #                 chunk_cache_dir=f"data/chunk_cache_{config.name}",
-    #             ),
-    #             name=config.name + f"_chunk",
-    #         )
-    #     )
-    # variants = chunk_variants
-
-    chinchilla_variants = []
+    chunk_variants = []
     for config in variants:
-        # chinchilla_variants.append(config)
-        chinchilla_variants.append(
+        # chunk_variants.append(config)
+        chunk_variants.append(
             replace(
                 config,
-                chinchilla_factor=10,
-                name=config.name + f"_cf10",
+                model_config=replace(
+                    config.model_config,
+                    chunk_embeddings=True,
+                    chunk_num_clusters=1_000_000,
+                    chunk_centroid_path="data/slimpajama_centroids/centroids_1m_w32_slimpajama.pt",
+                    chunk_cache_dir=f"data/chunk_cache_{config.name}",
+                    chunk_sims_scale=5.0,
+                    chunk_topk=16,
+                    chunk_proj=False,
+                ),
+                name=config.name + f"_chunk16_s5_g",
             )
         )
-    variants = chinchilla_variants
+    variants = chunk_variants
+
+    # chinchilla_variants = []
+    # for config in variants:
+    #     # chinchilla_variants.append(config)
+    #     chinchilla_variants.append(
+    #         replace(
+    #             config,
+    #             chinchilla_factor=10,
+    #             name=config.name + f"_cf10",
+    #         )
+    #     )
+    # variants = chinchilla_variants
 
     # stackv2_variants = []
     # for config in variants:
@@ -275,7 +278,7 @@ def main(
         # "chinchilla-196m",
         # "chinchilla-251m",
         # "chinchilla-306m",
-        "chinchilla-425m",
+        # "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
         # "chinchilla-816m",

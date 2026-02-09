@@ -144,6 +144,7 @@ def train(
 
             metrics = state.step(data)
             if idx % config.train_metrics_every_n_steps == 0 or idx == 10:
+                print(f"Train metrics ({epoch=}, {idx=}):")
                 mem_gb()
                 record_metrics(
                     metrics=metrics,
