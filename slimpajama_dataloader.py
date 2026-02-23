@@ -18,7 +18,7 @@ def extract_slimpajama_data(row: dict) -> str:
 def create_slimpajama_dataloader(
     config: LanguageModelTrainingConfig,
     split: str = "train",
-    path: str = "data/slimpajama",
+    path: str = "~/shv-storage-us-east-3/littletrainingloop/data/slimpajama",
 ) -> language_model_dataloader.BatchedDataLoader:
     """Load SlimPajama dataset."""
     raw_data_loader = language_model_dataloader.JSONLDataLoader(
@@ -91,7 +91,7 @@ def create_slimpajama_dataloader(
 def create_slimpajama_and_call_generate(
     config: LanguageModelTrainingConfig,
     split: str = "train",
-    path: str = "data/slimpajama",
+    path: str = "~/shv-storage-us-east-3/littletrainingloop/data/slimpajama",
 ) -> Iterable[LMData]:
     """Load SlimPajama dataset and call generate."""
     dataloader = create_slimpajama_dataloader(config, split, path)
@@ -101,7 +101,7 @@ def create_slimpajama_and_call_generate(
 def create_slimpajama_dataloader_in_separate_process(
     config: LanguageModelTrainingConfig,
     split: str = "train",
-    path: str = "data/slimpajama",
+    path: str = "~/shv-storage-us-east-3/littletrainingloop/data/slimpajama",
     prefetch: int = 10,
 ) -> language_model_dataloader.MultiProcessDataloader:
     """Load SlimPajama dataset."""

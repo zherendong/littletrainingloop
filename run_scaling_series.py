@@ -30,6 +30,13 @@ def config_variants(
     config: language_model_training.LanguageModelTrainingConfig,
 ) -> list[language_model_training.LanguageModelTrainingConfig]:
     """Generate variants of a config."""
+    config = replace(
+        config, 
+        model_config = replace(
+            config.model_config,
+            glu = False
+        )
+    )
     variants = [config]
 
     lr_variants = []
@@ -81,119 +88,142 @@ def config_variants(
         )
     variants = vanilla_variants
 
-    spelling_bee_variants = []
+    growing_variants = []
     for config in variants:
-        spelling_bee_variants.append(config)
-        # spelling bee
-        spelling_bee_variants.append(
+        growing_variants.append(
             replace(
-                config,
+                config, 
                 model_config=replace(
                     config.model_config,
-                    spelling_bee=True,
-                    char_init_scale=1.0,
-                    char_embedding_norm=False,
-                    spelling_bee_in_out_scale=1.0,
-                    spelling_type="full",
+                    growing_mlp=True,
+                    growing_mlp_block_size=2*config.model_config.embedding_size,
+                    growing_mlp_initial_blocks=1,
+                    growing_mlp_output_scale_on_add=True,
+                    add_block_at_steps=[5759], 
+                    block_schedule_lengths=[5759],  # Each new block's LR schedule length
                 ),
-                name=config.name + f"_spellingbee",
+                name=config.name + "_growing2blocks",
+                training_config=replace(
+                    config.training_config,
+                    training_steps_per_epoch=11518 # currently have to calculate manually to match static model
+                )
             )
         )
-        # # static
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="static_emb",
-        #         ),
-        #         name=config.name + f"_s_static",
-        #     )
-        # )
-        # # no rotary
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="full",
-        #             apply_rotary=False,
-        #         ),
-        #         name=config.name + f"_s_norotary",
-        #     )
-        # )
-        # # no main token emb
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="full",
-        #             separate_token_embedding=False,
-        #         ),
-        #         name=config.name + f"_s_notoken",
-        #     )
-        # )
-        # # first char only
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="full",
-        #             spelling_bee_max_characters=1,
-        #         ),
-        #         name=config.name + f"_s_firstchar",
-        #     )
-        # )
-        # # output spelling bee
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="full",
-        #             spelling_bee_out=True,
-        #         ),
-        #         name=config.name + f"_s_out",
-        #     )
-        # )
-        # # shuffled spelling bee
-        # spelling_bee_variants.append(
-        #     replace(
-        #         config,
-        #         model_config=replace(
-        #             config.model_config,
-        #             spelling_bee=True,
-        #             char_init_scale=1.0,
-        #             char_embedding_norm=False,
-        #             spelling_bee_in_out_scale=1.0,
-        #             spelling_type="shuffled",
-        #         ),
-        #         name=config.name + f"_s_shuffled",
-        #     )
-        # )
-    variants = spelling_bee_variants
+    variants = growing_variants
+
+    # spelling_bee_variants = []
+    # for config in variants:
+    #     spelling_bee_variants.append(config)
+    #     # spelling bee
+    #     spelling_bee_variants.append(
+    #         replace(
+    #             config,
+    #             model_config=replace(
+    #                 config.model_config,
+    #                 spelling_bee=True,
+    #                 char_init_scale=1.0,
+    #                 char_embedding_norm=False,
+    #                 spelling_bee_in_out_scale=1.0,
+    #                 spelling_type="full",
+    #             ),
+    #             name=config.name + f"_spellingbee",
+    #         )
+    #     )
+    #     # # static
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="static_emb",
+    #     #         ),
+    #     #         name=config.name + f"_s_static",
+    #     #     )
+    #     # )
+    #     # # no rotary
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="full",
+    #     #             apply_rotary=False,
+    #     #         ),
+    #     #         name=config.name + f"_s_norotary",
+    #     #     )
+    #     # )
+    #     # # no main token emb
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="full",
+    #     #             separate_token_embedding=False,
+    #     #         ),
+    #     #         name=config.name + f"_s_notoken",
+    #     #     )
+    #     # )
+    #     # # first char only
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="full",
+    #     #             spelling_bee_max_characters=1,
+    #     #         ),
+    #     #         name=config.name + f"_s_firstchar",
+    #     #     )
+    #     # )
+    #     # # output spelling bee
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="full",
+    #     #             spelling_bee_out=True,
+    #     #         ),
+    #     #         name=config.name + f"_s_out",
+    #     #     )
+    #     # )
+    #     # # shuffled spelling bee
+    #     # spelling_bee_variants.append(
+    #     #     replace(
+    #     #         config,
+    #     #         model_config=replace(
+    #     #             config.model_config,
+    #     #             spelling_bee=True,
+    #     #             char_init_scale=1.0,
+    #     #             char_embedding_norm=False,
+    #     #             spelling_bee_in_out_scale=1.0,
+    #     #             spelling_type="shuffled",
+    #     #         ),
+    #     #         name=config.name + f"_s_shuffled",
+    #     #     )
+    #     # )
+    # variants = spelling_bee_variants
 
     long_variants = []
     for config in variants:
@@ -247,20 +277,20 @@ def main(
     no_neptune: bool = False,
 ):
     configs = [  # extended group of models
-        # "chinchilla-44m",
+        "chinchilla-44m",
         # "chinchilla-74m",
         # "chinchilla-90m",
-        "chinchilla-106m",
+        # "chinchilla-106m",
         # "chinchilla-117m",
         # "chinchilla-140m",
         # "chinchilla-163m",
         # "chinchilla-196m",
         # "chinchilla-251m",
         # "chinchilla-306m",
-        "chinchilla-425m",
+        # "chinchilla-425m",
         # "chinchilla-489m",
         # "chinchilla-632m",
-        "chinchilla-816m",
+        # "chinchilla-816m",
         # "chinchilla-1266m",
         # "chinchilla-1593m",
         # "chinchilla-2298m",

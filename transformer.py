@@ -80,7 +80,7 @@ class TransformerConfig:
 
     # Growing MLP options
     growing_mlp: bool = False
-    growing_mlp_block_size: int | None = None  # None = use mlp_inner_size
+    growing_mlp_block_size: int | None = None  
     growing_mlp_initial_blocks: int = 1
     growing_mlp_output_scale_on_add: bool = True
     add_block_at_steps: tuple[int, ...] = ()
@@ -654,11 +654,10 @@ class TransformerBlock(nn.Module):
         self.config = config
 
         if config.growing_mlp:
-            block_size = config.growing_mlp_block_size #or config.mlp_inner_size
             self.mlp = GrowingMLP(
                 dtype=params_dtype,
                 input_size=config.embedding_size,
-                block_size=block_size,
+                block_size=config.growing_mlp_block_size,
                 initial_blocks=config.growing_mlp_initial_blocks,
                 nonlinearity=config.nonlinearity,
                 glu=config.glu,
@@ -811,6 +810,9 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
         print(
             f"Num non-embedding parameters: {self.num_non_embedding_parameters()} parameters"
+        )
+        print(
+            f"Total parameters: {self.num_parameters()}"
         )
 
         self._forward_opt = torch.compile(

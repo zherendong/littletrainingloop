@@ -82,12 +82,6 @@ def get_tiny_shakespeare_config(
         model_config=model_config,
     )
 
-    if growing:
-        training_config = dataclasses.replace(
-            training_config,
-
-        )
-
     return training_config
 
 def run_test(

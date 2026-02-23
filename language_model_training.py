@@ -550,21 +550,21 @@ def train_language_model(
             slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
                 config, split="validation"
             ),
-            strawberry_dataloader.create_strawberry_dataloader(
-                config,
-                split="validation",
-                count=1,
-            ),
-            strawberry_dataloader.create_strawberry_dataloader(
-                config,
-                split="validation",
-                count=2,
-            ),
-            strawberry_dataloader.create_strawberry_dataloader(
-                config,
-                split="validation",
-                count=3,
-            ),
+            # strawberry_dataloader.create_strawberry_dataloader(
+            #     config,
+            #     split="validation",
+            #     count=1,
+            # ),
+            # strawberry_dataloader.create_strawberry_dataloader(
+            #     config,
+            #     split="validation",
+            #     count=2,
+            # ),
+            # strawberry_dataloader.create_strawberry_dataloader(
+            #     config,
+            #     split="validation",
+            #     count=3,
+            # ),
         ]
     elif dataset == "tiny_shakespeare":
         import shakespeare_dataloader 

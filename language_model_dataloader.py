@@ -6,6 +6,7 @@ import glob
 import json
 from typing import Any, Callable, Iterable, TypeVar, Generic
 import time
+import os
 
 import numpy as np
 import tiktoken
@@ -37,7 +38,7 @@ class JSONLDataLoader(DataProvider[dict[str, Any]]):
     """Loads a directory of JSONL files and returns a single iterator of dictionaries."""
 
     def __init__(self, config: LanguageModelTrainingConfig, path: str):
-        self.path = path
+        self.path = os.path.expanduser(path)
         self.config = config
 
     def generate(self) -> Iterable[dict[str, Any]]:
