@@ -12,7 +12,6 @@
   - scheduling multiple runs in parallel
   - multi-GPU training runs [later]
 - Notify per email when an experiment series or single run is done or failed.
-
 """
 
 import language_model_training
