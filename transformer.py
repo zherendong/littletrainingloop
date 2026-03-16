@@ -816,9 +816,10 @@ class TransformerModel(language_model_basics.LanguageModel):
         )
 
         self._forward_opt = torch.compile(
-            self._forward, mode="max-autotune", fullgraph=True
+            self._forward, mode="reduce-overhead", fullgraph=True,
+            # self._forward, mode="max-autotune", fullgraph=True
         )
-        # self._forward_opt = self._forward
+        # self._forward_opt = self._forward  # no compile
 
         if config.zheren_init:
             self.init_weights()

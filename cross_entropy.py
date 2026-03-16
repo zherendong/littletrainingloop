@@ -18,8 +18,9 @@ def _cross_entropy_with_logits(embeddings, weights, targets):
 
 
 @torch.compile(
-    mode="max-autotune", fullgraph=True
-)  # mode="reduce-overhead", fullgraph=True
+    mode="reduce-overhead", fullgraph=True,
+    # mode="max-autotune", fullgraph=True
+)
 def _cross_entropy_with_logits_checkpointed(
     embeddings, weights, targets
 ) -> torch.Tensor:
