@@ -17,7 +17,12 @@ import dataclasses
 import os
 import time
 import torch.cuda.nvtx as nvtx
-import neptune_lib
+
+# neptune is dead, long live wandb!
+# import neptune_lib
+
+# yes this is ridiculous but if you will spread a specific name throughout the codebase what do you expect!?
+import wandb_lib as neptune_lib
 
 from training_basics import (
     TrainingConfig,
@@ -54,7 +59,7 @@ import checkpointing
 import optimi  # for 16-bit optimizers
 
 # cache for torch.compile to improve startup times.
-os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/tmp/torchinductor_cache"
+os.environ["TORCHINDUCTOR_CACHE_DIR"] = "/u/jclymo/.cache/torchinductor"
 os.environ["TORCHINDUCTOR_FX_GRAPH_CACHE"] = "1"
 os.environ["TORCHINDUCTOR_AUTOGRAD_CACHE"] = "1"
 
@@ -586,6 +591,16 @@ def train_language_model(
     neptune_run["num_parameters"] = state.num_parameters()
     neptune_run["num_non_embedding_parameters"] = state.num_non_embedding_parameters()
     neptune_run["config"] = dataclasses.asdict(config)
+
+    mlp_track_fn = None
+    if config.mlp_tracking_output is not None:
+        import mlp_tracking
+        tracker = mlp_tracking.MLPTracker(model, config.mlp_tracking_output, track_every=500)
+
+        def mlp_track_fn(step: int, data: LMData) -> None:
+            inputs = torch.tensor(data.inputs, dtype=torch.int32)
+            tracker.maybe_track(step, inputs)
+
     # Train the model
     losses = training_loop.train(
         state,
@@ -594,7 +609,12 @@ def train_language_model(
         eval_config=config.eval_config,
         eval_data_providers=eval_datasets,
         neptune_run=neptune_run,
+        mlp_track_fn=mlp_track_fn,
     )
+
+    if mlp_track_fn is not None:
+        tracker.close()
+
     return losses
 
 

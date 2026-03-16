@@ -7,7 +7,7 @@ Design goals:
 """
 
 import time
-from typing import Sequence
+from typing import Callable, Sequence
 
 import torch
 
@@ -19,7 +19,11 @@ from training_basics import (
     MetricItem,
     D,
 )
-import neptune_lib
+# neptune is dead, long live wandb!
+# import neptune_lib
+
+# yes this is ridiculous but if you will spread a specific name throughout the codebase what do you expect!? 
+import wandb_lib as neptune_lib 
 
 
 def mem_gb():
@@ -57,7 +61,13 @@ def record_metrics(
         print(f"  {key}: {item.value:.6f}")
     for key, item in metrics.items():
         x = step if item.x_axis is None else item.x_axis
-        neptune_run[f"{metric_path}/{key}"].append(item.value, step=x)
+        # neptune_run[f"{metric_path}/{key}"].append(item.value, step=x)
+        # hacky change to metric paths because wandb is stupid
+        if key.startswith("loss_vs_"):
+            full_key = f"{key}/{metric_path}"
+        else:
+            full_key = f"{metric_path}/{key}"
+        neptune_run[full_key].append(item.value, step=x)
 
 
 def validation(
@@ -109,6 +119,7 @@ def train(
     eval_config: EvalConfig,
     neptune_run: neptune_lib.NeptuneRunWrapper,
     eval_data_providers: Sequence[DataProvider[D]] = (),
+    mlp_track_fn: Callable[[int, D], None] | None = None,
 ):
     """Training loop using configuration object"""
 
@@ -143,6 +154,8 @@ def train(
                 # print(snap)
 
             metrics = state.step(data)
+            if mlp_track_fn is not None:
+                mlp_track_fn(idx, data)
             if idx % config.train_metrics_every_n_steps == 0 or idx == 10:
                 mem_gb()
                 record_metrics(

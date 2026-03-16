@@ -56,6 +56,10 @@ class LanguageModelTrainingConfig:
     eval_config: EvalConfig = dataclasses.field(default_factory=lambda: EvalConfig())
     chinchilla_factor: float = 1.0
 
+    # Optional path to write MLP activation stats CSV (None = disabled).
+    # Stats are collected every 500 steps via mlp_tracking.MLPTracker.
+    mlp_tracking_output: str | None = None
+
 
 class LanguageModel(abc.ABC, torch.nn.Module):
 
