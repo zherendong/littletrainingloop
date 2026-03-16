@@ -16,4 +16,5 @@ torchvision
 torchaudio
 neptune-client
 lm_eval
-flash-attn
+#flash-attn
+wandb
