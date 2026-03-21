@@ -23,6 +23,22 @@ import fp32norm
 # This can crash or stall training runs.
 torch._dynamo.config.cache_size_limit = 128
 
+def _is_per_layer_schedule(schedule) -> bool:
+    """Return True if schedule is a sequence-of-sequences (one per layer)."""
+    return len(schedule) > 0 and isinstance(schedule[0], (list, tuple))
+
+
+def _layer_schedule(schedule, layer_idx: int) -> tuple:
+    """Extract the flat schedule for a single layer.
+
+    If *schedule* is per-layer (sequence of sequences), return the inner
+    sequence for *layer_idx* as a tuple.  Otherwise return *schedule* as-is
+    (same schedule for every layer).
+    """
+    if _is_per_layer_schedule(schedule):
+        return tuple(schedule[layer_idx])
+    return tuple(schedule)
+
 
 @dataclasses.dataclass(frozen=True)
 class TransformerConfig:
@@ -80,13 +96,40 @@ class TransformerConfig:
 
     # Growing MLP options
     growing_mlp: bool = False
-    growing_mlp_block_size: int | None = None  
-    growing_mlp_initial_blocks: int = 1
+    growing_mlp_block_size: int | None = None
+    growing_mlp_initial_blocks: int | tuple[int, ...] = 1
     growing_mlp_output_scale_on_add: bool = True
-    add_block_at_steps: tuple[int, ...] = ()
-    block_schedule_lengths: tuple[int, ...] = ()
+    # Either a flat tuple of ints (same schedule applied to every layer) or a tuple of
+    # tuples (one inner tuple per layer, in layer order).  Both fields must use the same
+    # form.  Per-layer form must have exactly num_layers inner tuples.
+    add_block_at_steps: tuple[int, ...] | tuple[tuple[int, ...], ...] = ()
+    block_schedule_lengths: tuple[int, ...] | tuple[tuple[int, ...], ...] = ()
 
     def __post_init__(self):
+        if self.growing_mlp:
+            add_per = _is_per_layer_schedule(self.add_block_at_steps)
+            sched_per = _is_per_layer_schedule(self.block_schedule_lengths)
+            if add_per != sched_per:
+                raise ValueError(
+                    "add_block_at_steps and block_schedule_lengths must both be flat "
+                    "or both be per-layer (tuple of tuples)"
+                )
+            if add_per and len(self.add_block_at_steps) != self.num_layers:
+                raise ValueError(
+                    f"Per-layer add_block_at_steps must have {self.num_layers} entries "
+                    f"(one per layer), got {len(self.add_block_at_steps)}"
+                )
+            if sched_per and len(self.block_schedule_lengths) != self.num_layers:
+                raise ValueError(
+                    f"Per-layer block_schedule_lengths must have {self.num_layers} entries "
+                    f"(one per layer), got {len(self.block_schedule_lengths)}"
+                )
+            if isinstance(self.growing_mlp_initial_blocks, tuple) and len(self.growing_mlp_initial_blocks) != self.num_layers:
+                raise ValueError(
+                    f"Per-layer growing_mlp_initial_blocks must have {self.num_layers} entries "
+                    f"(one per layer), got {len(self.growing_mlp_initial_blocks)}"
+                )
+
         if self.num_heads_kv == 0:
             num_heads_kv = self.num_heads
             if self.gqa:
@@ -658,13 +701,13 @@ class TransformerBlock(nn.Module):
                 dtype=params_dtype,
                 input_size=config.embedding_size,
                 block_size=config.growing_mlp_block_size,
-                initial_blocks=config.growing_mlp_initial_blocks,
+                initial_blocks=config.growing_mlp_initial_blocks[block_idx] if isinstance(config.growing_mlp_initial_blocks, tuple) else config.growing_mlp_initial_blocks,
                 nonlinearity=config.nonlinearity,
                 glu=config.glu,
                 pairwise_cancelling_init=config.pairwise_cancelling_init,
                 output_scale_on_add=config.growing_mlp_output_scale_on_add,
-                add_block_at_steps=config.add_block_at_steps,
-                block_schedule_lengths=config.block_schedule_lengths,
+                add_block_at_steps=_layer_schedule(config.add_block_at_steps, block_idx),
+                block_schedule_lengths=_layer_schedule(config.block_schedule_lengths, block_idx),
             )
         else:
             self.mlp = MLP(
@@ -818,6 +861,7 @@ class TransformerModel(language_model_basics.LanguageModel):
         self._forward_opt = torch.compile(
             self._forward, mode="reduce-overhead", fullgraph=True,
             # self._forward, mode="max-autotune", fullgraph=True
+            # self._forward, mode="default", fullgraph=True,
         )
         # self._forward_opt = self._forward  # no compile
 
