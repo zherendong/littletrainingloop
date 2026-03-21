@@ -81,7 +81,7 @@ def init_linear(
 
         if pairwise_mode is not None:
             assert pairwise_mode in ["equal", "opposing"]
-            print("Applying pairwise initialization")
+            # print("Applying pairwise initialization")
             if pairwise_mode == "equal":
                 weight[1::2, :] = weight[::2, :]
             elif pairwise_mode == "opposing":  # note that we flip the dims
