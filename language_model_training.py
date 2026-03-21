@@ -380,8 +380,8 @@ class GrowingLanguageModelTrainingState(LanguageModelTrainingState):
         self.current_step = 0
 
         # Parse block addition schedule
-        self.add_block_at_steps = set(config.add_block_at_steps or [])
-        self.block_schedule_steps = config.block_schedule_steps or []
+        # self.add_block_at_steps = set(config.add_block_at_steps or [])
+        # self.block_schedule_steps = config.block_schedule_steps or []
         self._next_block_idx = 0
 
         with prng.PRNG(config.seed + 345345):
@@ -405,8 +405,8 @@ class GrowingLanguageModelTrainingState(LanguageModelTrainingState):
         self.scheduler = block_scheduler.GrowingModelScheduler(
             self.optimizer,
             warmup_steps=warmup_steps,
-            min_lr_factor=0.25,
-            initial_schedule_steps=num_steps,
+            min_lr_factor=config.growing_mlp_min_lr_factor,
+            initial_schedule_steps=config.growing_mlp_initial_schedule_steps or num_steps,
         )
 
         self.training_flops_total = 0
@@ -546,15 +546,17 @@ def train_language_model(
             stackv2_dataloader.create_stackv2_dataloader(config, split="validation")
         ]
     elif dataset == "slimpajama":
-        train_dataset = (
-            slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
-                config
-            )
-        )
+        # train_dataset = (
+        #     slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
+        #         config
+        #     )
+        # )
+        train_dataset = slimpajama_dataloader.create_slimpajama_dataloader(config)
         eval_datasets = [
-            slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
-                config, split="validation"
-            ),
+            # slimpajama_dataloader.create_slimpajama_dataloader_in_separate_process(
+            #     config, split="validation"
+            # ),
+            slimpajama_dataloader.create_slimpajama_dataloader(config, split="validation"),
             # strawberry_dataloader.create_strawberry_dataloader(
             #     config,
             #     split="validation",

@@ -43,8 +43,8 @@ class LanguageModelTrainingConfig:
     dataset: str = "slimpajama"
 
     # Growing MLP schedule
-    add_block_at_steps: list[int] | None = None
-    block_schedule_steps: list[int] | None = None
+    # add_block_at_steps: list[int] | None = None
+    # block_schedule_steps: list[int] | None = None
 
     adam_eps: float = 1e-7
     adam_betas: tuple[float, float] = (0.9, 0.995)
@@ -55,6 +55,10 @@ class LanguageModelTrainingConfig:
     )
     eval_config: EvalConfig = dataclasses.field(default_factory=lambda: EvalConfig())
     chinchilla_factor: float = 1.0
+
+    # Growing MLP scheduler options
+    growing_mlp_min_lr_factor: float = 0.25
+    growing_mlp_initial_schedule_steps: int | None = None  # None = use total training steps
 
     # Optional path to write MLP activation stats CSV (None = disabled).
     # Stats are collected every 500 steps via mlp_tracking.MLPTracker.
