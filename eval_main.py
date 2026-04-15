@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import lm_eval
+from lm_eval.tasks import TaskManager
 import torch
 
 import checkpointing
@@ -91,6 +92,7 @@ def evaluate_single_task(
     task: str,
     num_fewshot: int | None,
     limit: int | None,
+    task_manager: TaskManager | None = None,
 ) -> dict:
     """Run evaluation for a single task using an already-loaded model wrapper."""
     start_time = datetime.datetime.now()
@@ -103,8 +105,9 @@ def evaluate_single_task(
         num_fewshot=num_fewshot,
         device=wrapper.device,
         max_batch_size=wrapper.batch_size,
-        cache_requests=True,
+        cache_requests=False,
         confirm_run_unsafe_code=True,
+        task_manager=task_manager,
     )
     end_time = datetime.datetime.now()
     print(f"  [lm_eval] Completed evaluation for task: {task} at time {end_time} (diff = {end_time-start_time})", flush=True)
@@ -118,14 +121,22 @@ def evaluate_checkpoint(
     num_fewshot: int | None,
     limit: int | None,
     output_dir: Path = RESULTS_DIR,
+    max_samples_log: int | None = 100,
+    task_include_path: str | None = "spelling_benchmark",
 ) -> list[EvalResult]:
     """
     Evaluate a single checkpoint on multiple tasks.
 
     Loads the checkpoint once, then runs each task independently with error handling.
+
+    Args:
+        task_include_path: Path to include for custom YAML task definitions.
     """
     results: list[EvalResult] = []
     checkpoint_str = str(checkpoint_path)
+
+    # Create task manager once for all tasks (allows custom YAML tasks)
+    task_manager = TaskManager(include_path=task_include_path) if task_include_path else None
 
     print(f"\n{'='*60}")
     print(f"Loading checkpoint: {checkpoint_path}")
@@ -172,7 +183,18 @@ def evaluate_checkpoint(
                 task=task.name,  # internal name might differ
                 num_fewshot=num_fewshot,
                 limit=limit,
+                task_manager=task_manager,
             )
+
+            # Reduce the number of samples to limit file size
+            if "samples" in task_results and task.name in task_results["samples"]:
+                samples = task_results["samples"][task.name]
+                if max_samples_log is not None:
+                    samples = samples[:max_samples_log]
+                task_results["samples"] = samples
+            elif "samples" in task_results:
+                # Samples exist but task name not found - keep original structure
+                print(f"  Warning: Could not find samples for task '{task.name}', keeping original")
 
             result = EvalResult(
                 checkpoint_path=checkpoint_str,
@@ -216,6 +238,7 @@ def run_all_evaluations(
     num_fewshot: int | None,
     limit: int | None,
     output_dir: Path = RESULTS_DIR,
+    max_samples_log: int | None = 100,
 ) -> list[EvalResult]:
     """
     Run evaluations for all (checkpoint, task) pairs.
@@ -240,6 +263,7 @@ def run_all_evaluations(
             num_fewshot=num_fewshot,
             limit=limit,
             output_dir=output_dir,
+            max_samples_log=max_samples_log,
         )
         all_results.extend(results)
 
@@ -318,6 +342,12 @@ if __name__ == "__main__":
         default="lm_eval_results",
         help="Directory to save results (default: lm_eval_results)",
     )
+    parser.add_argument(
+        "--max_samples_log",
+        type=int,
+        default=100,
+        help="Max samples to save per task (default: 100, use 0 for unlimited)",
+    )
 
     args = parser.parse_args()
 
@@ -335,6 +365,9 @@ if __name__ == "__main__":
         print(f"Available tasks: {list(lm_eval_wrapper.available_tasks.keys())}")
         exit(1)
 
+    # Convert 0 to None for unlimited samples
+    max_samples_log = args.max_samples_log if args.max_samples_log > 0 else None
+
     results = run_all_evaluations(
         checkpoint_paths=checkpoint_paths,
         tasks=args.tasks,
@@ -342,6 +375,7 @@ if __name__ == "__main__":
         num_fewshot=args.num_fewshot,
         limit=args.limit,
         output_dir=Path(args.output_dir),
+        max_samples_log=max_samples_log,
     )
 
     print_summary(results)
